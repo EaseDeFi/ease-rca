@@ -1,41 +1,47 @@
 pragma solidity 0.8.10;
 
 /**
+ * @title RCA Vault
  * @notice Main contract for reciprocally-covered assets. Mints, redeems, and sells.
+ * Each underlying token (not protocol) has its own RCA vault. This contract
+ * doubles as the vault and the RCA token.
  * @author Robert M.C. Forster
 **/
-contract RcaVault is ERC20 {
+contract RcaVault is ERC20, Governable {
 
-    uint256 constant DENOMINATOR = 1000;
+    uint256 constant DENOMINATOR = 10000;
 
-    /** @notice Controller of RCA contract that takes care of actions. */
+    /// @notice Controller of RCA contract that takes care of actions.
     IController public controller;
-    /** @notice Treasury for all funds that accepts payments. */
+    /// @notice Treasury for all funds that accepts payments.
     address public treasury;
-    /** @notice Current sale discount to sell tokens cheaper */
+    /// @notice Current sale discount to sell tokens cheaper.
     uint256 public discount;
-    /** @notice Percent to pay per year. 1000 == 10%. */
+    /// @notice Percent to pay per year. 1000 == 10%.
     uint256 public apr;
-    /** @notice Amount of tokens currently up for sale. */
-    uint256 public amtForSale;
+
     /** 
-     * @notice Cumulative amount for liquidation lol.
+     * @notice Cumulative total amount that has been for sale lol.
      * @dev Used to make sure we don't run into a situation where forSale amount isn't updated,
      * a new hack occurs and current forSale is added to, then forSale is updated while
      * DAO votes on the new forSale. In this case we can subtract that interim addition.
      */
-    uint256 public cumForLiq;
-    /** @notice withdrawal variable for withdrawal delays */
-    uint256 withdrawalDelay;
+    uint256 public cumForSale;
+    /// @notice Amount of tokens currently up for sale.
+    uint256 public amtForSale;
+
     /** 
      * @notice Amount of RCA tokens pending withdrawal. 
      * @dev When doing value calculations this is required
      * because RCAs are burned immediately upon request, but underlying tokens only leave the
      * contract once the withdrawal is finalized.
      */
-    uint256 pendingWithdrawal;
-    /** @notice Requests by users for withdrawals. */
-    mapping (address => WithdrawRequest) withdrawRequests;
+    uint256 public pendingWithdrawal;
+    /// @notice withdrawal variable for withdrawal delays.
+    uint256 public withdrawalDelay;
+    /// @notice Requests by users for withdrawals.
+    mapping (address => WithdrawRequest) public withdrawRequests;
+
     /** 
      * @notice Last time the contract has been updated.
      * @dev Used to calculate APR if fees are implemented.
@@ -48,36 +54,44 @@ contract RcaVault is ERC20 {
         uint32  endTime;
     }
 
+    /// @notice Notification of the mint of new tokens.
     event Mint(
-        address indexed user, 
+        address indexed sender,
+        address indexed to, 
         uint256 uAmount, 
         uint256 rcaAmount, 
         uint256 timestamp
     );
+    /// @notice Notification of an initial redeem request.
     event RedeemRequest(
-        address indexed user, 
+        address indexed to, 
         uint256 uAmount, 
         uint256 rcaAmount, 
         uint256 endTime, 
         uint256 timestamp
     );
+    /// @notice Notification of a redeem finalization after withdrawal delay.
     event RedeemComplete(
-        address indexed user, 
+        address indexed sender,
+        address indexed to, 
         uint256 uAmount, 
         uint256 rcaAmount, 
         uint256 timestamp
     );
+    /// @notice Notification of a purchase of the underlying token.
     event PurchaseU(
-        address indexed user, 
-        uint256 uAmount, 
-        uint256 etherAmount, 
+        address indexed to, 
+        uint256 uAmount,
+        uint256 ethAmount, 
         uint256 price, 
         uint256 timestamp
     );
+    /// @notice Notification of a purchase of an RCA token.
     event PurchaseRca(
-        address indexed user, 
+        address indexed to,
+        uint256 uAmount,
         uint256 rcaAmount, 
-        uint256 etherAmount, 
+        uint256 ethAmount, 
         uint256 price, 
         uint256 timestamp
     );
@@ -102,6 +116,38 @@ contract RcaVault is ERC20 {
                 / DENOMINATOR;
             lastUpdate = block.timestamp;
         }
+    }
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////// initialize /////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    /**
+     * @notice Initialize the shield upon creation.
+     * @param _name Name of the ERC20 token that will be created.
+     * @param _symbol Symbol of the token.
+     * @param _apr Cost of normal RCA system fees.
+     * @param _discount Discount that will be given to purchases.
+     * @param _withdrawalDelay Delay (in seconds) of withdrawals.
+     * @param _treasury Treasury to send Ether funds to.
+     */
+    function initialize(
+        string _name,
+        string _symbol,
+        uint256 _apr,
+        uint256 _discount,
+        uint256 _withdrawalDelay,
+        address _treasury
+    )
+      external
+    {
+        require(address(controller) == address(0), "Contract already initialized.");
+        _initializeToken(_name, _symbol);
+        apr             = _apr;
+        discount        = _discount;
+        controller      = msg.sender;
+        withdrawalDelay = _withdrawalDelay;
+        treasury        = _treasury;
     }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -139,6 +185,7 @@ contract RcaVault is ERC20 {
         );
 
         uint256 rcaAmount = rcaValue(_uAmount);
+
         uToken.safeTransferFrom(
             user, 
             address(this), 
@@ -146,7 +193,14 @@ contract RcaVault is ERC20 {
         );
 
         _mint(user, rcaAmount);
-        emit Mint();
+
+        emit Mint(
+            msg.sender,
+            user,
+            _uAmount,
+            rcaAmount,
+            block.timestamp
+        );
     }
 
     /**
@@ -155,7 +209,7 @@ contract RcaVault is ERC20 {
     function redeemRequest(
         uint256 _rcaAmount
         uint256 _addForSale,
-        uint256 _oldCumForLiq,
+        uint256 _oldCumForSale,
         bytes32[] _forSaleProof
     )
       external
@@ -164,7 +218,7 @@ contract RcaVault is ERC20 {
         controller.redeem(
             _rcaAmount,
             _addForSale,
-            _oldCumForLiq,
+            _oldCumForSale,
             _forSaleProof
         )
 
@@ -177,6 +231,14 @@ contract RcaVault is ERC20 {
         uint112 newRcaAmount              = uint112(_rcaAmount) + curRequest.rcaAmount;
         uint32 endTime                    = uint32(block.timestamp) + uint32(withdrawalDelay);
         withdrawRequests[msg.sender]      = WithdrawRequest(newUAmount, newRcaAmount, endTime);
+
+        emit RedeemRequest(
+            msg.sender,
+            uint256(uAmount),
+            _rcaAmount,
+            uint256(endTime),
+            block.timestamp
+        );
     }
 
     /**
@@ -184,10 +246,11 @@ contract RcaVault is ERC20 {
      * @param _rcaAmount The amount of RCA tokens to redeem.
      * @param _user The address to redeem tokens for. Since a previous request is required, there are no security implications.
      */
-    function redeemFor(
-        address _user
-        uint256 _addForSale,
-        uint256 _oldCumForLiq,
+    function redeemTo(
+        address   _to,
+        address   _user,
+        uint256   _addForSale,
+        uint256   _oldCumForSale,
         bytes32[] _forSaleProof
     )
       external
@@ -200,31 +263,53 @@ contract RcaVault is ERC20 {
         // endTime > 0 ensures request exists.
         require(request.endTime > 0 && uint32(block.timestamp) > request.endTime, "Withdrawal not yet allowed.");
 
-        controller.redeem(
-            _user,
-            _rcaAmount,
-            _addForSale,
-            _oldCumForLiq,
-            _forSaleProof
-        );
+        // This function doubles as redeeming and determining whether user is a zapper.
+        bool zapper = 
+            controller.redeem(
+                _to,
+                _user,
+                _rcaAmount,
+                _addForSale,
+                _oldCumForSale,
+                _forSaleProof
+            );
 
         pending -= uint256(request.rcaAmount);
 
-        uToken.safeTransferFrom( address(this), user, uint256(request.uAmount) );
-        emit Redeem();
+        uToken.safeTransferFrom( address(this), _user, uint256(request.uAmount) );
+
+        // The cool part about doing it this way rather than having user RCAs to zapper contract,
+        // then it exchanging and returning Ether is that it's more gas efficient and no approvals are needed.
+        if (zapper) IZapper(_to).zapTo( _user, uint256(request.uAmount) );
+        else if (_to != _user) revert("Redeeming to invalid address.");
+
+        emit Redeem(
+            msg.sender,
+            _user,
+            uint256(request.uAmount),
+            uint256(request.rcaAmount),
+            block.timestamp
+        );
     }
 
-    // purchase function
+    /**
+     * @notice Purchase underlying tokens directly. This will be preferred by bots.
+     * @param _user The user to purchase tokens for.
+     * @param _uAmount Amount of underlying tokens to purchase.
+     * @param _uEthPrice Price of the underlying token in Ether per token.
+     * @param _priceProof Merkle proof for the price.
+     * @param _addForSale Additional amount for sale.
+     * @param _oldCumForSale Old cumulative amount for sale.
+     * @param _forSaleProof Merkle proof for for sale amounts.
+     */
     function purchaseU(
         address   _user,
         uint256   _uAmount,
         uint256   _uEthPrice,
-        bytes calldata _value,
         bytes32[] _priceProof,
         uint256   _addForSale,
-        uint256   _oldCumForLiq,
+        uint256   _oldCumForSale,
         bytes32[] _forSaleProof
-
     )
       external
       payable
@@ -237,29 +322,45 @@ contract RcaVault is ERC20 {
             _uEthPrice,
             _priceProof,
             _addForSale,
-            _oldCumForLiq
+            _oldCumForSale
         );
 
-        require(msg.value == _uEthPrice * _uAmount, "Incorrect Ether sent.");
+        uint256 price = _uEthPrice  - (_uEthPrice * discount / DENOMINATOR);
+        uint256 ethAmount = price * _uAmount;
+        require(msg.value == etherAmount, "Incorrect Ether sent.");
+
         // If amount is too big than for sale, tx will fail here.
         amtForSale -= _uAmount;
 
         uToken.transfer(_user, _uAmount);
         treasury.transfer(msg.value);
-        emit Purchase(
+        
+        emit PurchaseU(
             _user,
-
+            _uAmount,
+            ethAmount,
+            _uEthPrice,
+            block.timestamp
         );
     }
 
-    // purchase underlying probably too?
+    /**
+     * @notice purchaseRca allows a user to purchase the RCA directly with Ether through liquidation.
+     * @param _user The user to make the purchase for.
+     * @param _uAmount The amount of underlying tokens to purchase.
+     * @param _uEthPrice The underlying token price in Ether per token.
+     * @param _priceProof Merkle proof to verify this price.
+     * @param _addForSale Additional amount for sale.
+     * @param _oldCumForSale Old cumulative amount for sale.
+     * @param _forSaleProof Merkle proof of the for sale amounts.
+     */
     function purchaseRca(
         address   _user,
         uint256   _uAmount,
         uint256   _uEthPrice,
         bytes32[] _priceProof,
         uint256   _addForSale,
-        uint256   _oldCumForLiq,
+        uint256   _oldCumForSale,
         bytes32[] _forSaleProof
     )
       external
@@ -274,13 +375,26 @@ contract RcaVault is ERC20 {
             _addForSale,
             _oldCumForLiq
         );
-        require(msg.value == _uEthPrice * _uAmount, "Incorrect Ether sent.");
+
+        uint256 price = _uEthPrice  - (_uEthPrice * discount / DENOMINATOR);
+        uint256 ethAmount = price * _uAmount;
+        require(msg.value == price * _uAmount, "Incorrect Ether sent.");
+        
         // If amount is too big than for sale, tx will fail here.
-        amtForSale -= _uAmount;
+        amtForSale       -= _uAmount;
         uint256 rcaAmount = _rcaValue(_uAmount);
+
         _mint(_user, rcaAmount);
         treasury.transfer(msg.value);
-        emit Purchase();
+
+        emit Purchase(
+            _user,
+            _uAmount,
+            rcaAmount,
+            _uEthPrice,
+            ethAmount,
+            block.timestamp
+        );
     }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -393,6 +507,10 @@ contract RcaVault is ERC20 {
 /////////////////////////////////////////////// onlyController //////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+    /**
+     * @notice Change the treasury address to which funds will be sent.
+     * @param _newTreasury New treasury address.
+    **/
     function setForSale(
         uint256 _newAddForSale
     )
@@ -414,6 +532,10 @@ contract RcaVault is ERC20 {
         treasury = _newTreasury;
     }
 
+    /**
+     * @notice Change the treasury address to which funds will be sent.
+     * @param _newTreasury New treasury address.
+    **/
     function setPausedPercent(
         uint256 _newPausedPercent
     )
@@ -423,6 +545,10 @@ contract RcaVault is ERC20 {
         pausedPercent = _newPausedPercent;
     }
 
+    /**
+     * @notice Change the treasury address to which funds will be sent.
+     * @param _newTreasury New treasury address.
+    **/
     function setWithdrawalDelay(
         uint256 _newWithdrawalDelay
     )
@@ -432,6 +558,10 @@ contract RcaVault is ERC20 {
         withdrawalDelay = _newWithdrawalDelay;
     }
 
+    /**
+     * @notice Change the treasury address to which funds will be sent.
+     * @param _newTreasury New treasury address.
+    **/
     function setDiscount(
         uint256 _newDiscount
     )
@@ -441,6 +571,10 @@ contract RcaVault is ERC20 {
         discount = _newDiscount;
     }
 
+    /**
+     * @notice Change the treasury address to which funds will be sent.
+     * @param _newApr New APR. 1000 == 
+    **/
     function setApr(
         uint256 _newApr
     )

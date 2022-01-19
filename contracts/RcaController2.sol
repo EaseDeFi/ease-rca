@@ -3,25 +3,47 @@ import '../general/RcaGovernable.sol';
 import '../libraries/MerkleProof.sol';
 
 /**
- * @notice Controller contract for all RCA vaults. Keeps track of them, accepts 
+ * @title RCA Controller
+ * @notice Controller contract for all RCA vaults.
+ * This contract creates vaults, emits events when anything happens on a vault,
+ * keeps track of variables relevant to vault functionality, keeps track of capacities,
+ * amounts for sale on each vault, prices of tokens, and updates vaults when needed.
  * @author Robert M.C. Forster
  */
 
-
-
 contract RcaController is RcaGovernable {
 
-    // Address => whether or not it's a verified shield.
-    mapping (address => bool) shieldMapping;
-    // Shield address => underlying token oracle key.
-    mapping (address => bytes32) underlyingKeys;
-    // Percents of coverage for each protocol of a specific shield, 1000 == 10%.
+    /// @notice Address => whether or not it's a verified shield.
+    mapping (address => bool) public shieldMapping;
+    /// @notice Address => whether or not it's a verified zapper.
+    mapping(address => bool) public zapper;
+
     /**
+     * @notice Percents of coverage for each protocol of a specific shield, 1000 == 10%.
      * @dev For a Yearn vault with a Curve token with DAI, USDC, USDT:
      * Yearn|100%, Curve|100%, DAI|33%, USDC|33%, USDT|33%
      * Just used by frontend at the moment.
      */
     mapping (address => uint256[]) shieldProtocolPercents;
+
+    /// @notice Fees for users per year for using the system. Ideally just 0 but option is here. In hundredths of %. 1000 == 10%.
+    uint256 public apr;
+    /// @notice Amount of time users must wait to withdraw tokens after requesting redemption. In seconds.
+    uint256 public withdrawalDelay;
+    /// @notice The amount of each contract that's currently paused. Only non-zero after multisig
+    /// declares a hack occurred and before DAO confirms for sale amounts. 1000 == 10%.
+    uint256 public percentPaused;
+    /// @notice Address that funds from selling tokens is sent to.
+    address public treasury;
+    /// @notice Amount of funds for sale on a protocol, sent in by DAO after a hack occurs (in token).
+    bytes32 public forSaleRoot;
+    /// @notice Merkle root of the amount of capacity available for each protocol (in USD).
+    bytes32 public capacitiesRoot;
+    /// @notice Root of all underlying token prices--only used if the protocol is doing pricing.
+    bytes32 public priceRoot;
+
+    /// @notice Last time each individual shield was checked for update.
+    mapping (address => uint256) lastShieldUpdate;
     /**
      * @dev The update variable flow works in an interesting way to optimize efficiency:
      * Each time a user interacts with a specific shield vault, it calls Controller
@@ -37,27 +59,7 @@ contract RcaController is RcaGovernable {
         uint32 aprUpdate;
         uint32 treasuryUpdate;
     }
-
     SystemUpdates private systemUpdates;
-    // Last time each individual shield was checked for update.
-    mapping (address => uint256) lastShieldUpdate;
-
-    // Fees for users per year for using the system. Ideally just 0 but option is here. In hundredths of %. 1000 == 10%.
-    uint256 public apr;
-    // Amount of time users must wait to withdraw tokens after requesting redemption. In seconds.
-    uint256 public withdrawalDelay;
-    // The amount of each contract that's currently paused. Only non-zero after multisig
-    // declares a hack occurred and before DAO confirms for sale amounts. 1000 == 10%.
-    uint256 public percentPaused;
-    // Address that funds from selling tokens is sent to.
-    address public treasury;
-    // Amount of funds for sale on a protocol, sent in by DAO after a hack occurs (in token).
-    // Set as new full amount for sale.
-    bytes32 public forSaleRoot;
-    // Merkle root of the amount of capacity available for each protocol (in USD).
-    bytes32 public capacitiesRoot;
-    // Root of all underlying token prices--only used if the protocol is doing pricing.
-    bytes32 public priceRoot;
 
     /**
      * @dev Events are used to notify the frontend of events on shields. If we have 1,000 shields,
@@ -68,6 +70,7 @@ contract RcaController is RcaGovernable {
     event RcaPurchase(address indexed rcaToken, uint256 amount, uint256 timestamp);
     event UnderlyingPurchase(address indexed rcaToken, uint256 amount, uint256 timestamp);
     event ShieldCreated(address indexed rcaShield, address indexed underlyingToken, string name, string symbol, uint256 timestamp);
+    event ShieldDeleted(address indexed rcaShield);
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////// modifiers //////////////////////////////////////////////////
@@ -75,17 +78,28 @@ contract RcaController is RcaGovernable {
 
     /**
      * @notice Update is used before each onlyShield function to ensure the shield is up-to-date before actions.
+     * @param _addForSale Additional amount for sale.
+     * @param _oldCumForSale Old cumulative amount of funds for sale. Needed to ensure additional is accurate.
+     * @param _forSaleProof Merkle proof for the for sale amount.
      */
     modifier update(
         uint256 _addForSale,
-        uint256 _oldCumForLiq,
+        uint256 _oldCumForSale,
         bytes32[] _forSaleProof
     )
     {
-        _update(_forSaleProof);
+        _update(
+            _addForSale,
+            _oldCumForSale,
+            _forSaleProof
+        );
         _;
     }
     
+    /**
+     * @notice Ensure the sender is a shield.
+     * @dev We don't want non-shield contracts creating mint, redeem, purchase events.
+     */
     modifier onlyShield()
     {
         require(shieldMapping[msg.sender], "Caller must be a Shield Vault.");
@@ -103,14 +117,14 @@ contract RcaController is RcaGovernable {
         address   _user,
         uint256   _capacity,
         uint256   _addForSale,
-        uint256   _oldCumForLiq,
+        uint256   _oldCumForSale,
         bytes32[] _capacityProof,
         bytes32[] _forSaleProof
     )
       external
       update(
           _addForSale,
-          _oldCumForLiq,
+          _oldCumForSale,
           _forSaleProof
       )
       onlyShield
@@ -121,10 +135,18 @@ contract RcaController is RcaGovernable {
          * happen. We don't keep track on-chain because we'll be on multiple chains without 
          * cross-communication. We've decided there's not enough risk to keep capacities fully on-chain.
          */ 
-        bytes32 leaf = bytes32(abi.encodePacked(msg.sender, _capacity);
-        uint256 availableCapacity = verifyCapacity(_capacityProof, leaf);
+        verifyCapacity(
+            msg.sender, 
+            _capacity, 
+            _capacityProof
+        );
         require(_uAmount < availableCapacity, "Not enough capacity available.");
-        emit Mint(msg.sender, _user, block.timestamp);
+        
+        emit Mint(
+            msg.sender, 
+            _user, 
+            block.timestamp
+        );
     }
 
     /**
@@ -133,50 +155,64 @@ contract RcaController is RcaGovernable {
      * @param _rcaAmount The amount of RCAs they're redeeming.
      */
     function redeem(
+        address   _to,
         address   _user,
         uint256   _rcaAmount,
         uint256   _addForSale,
-        uint256   _oldCumForLiq,
+        uint256   _oldCumForSale,
         bytes32[] _forSaleProof
     )
       external
       update(
           _addForSale,
-          _oldCumForLiq,
+          _oldCumForSale,
           _forSaleProof
       )
       onlyShield
+      returns(
+          bool zapper
+      )
     {
-        emit Redeem(msg.sender, _user, block.timestamp);
+        emit Redeem(
+            msg.sender, 
+            _user,
+            block.timestamp
+        );
+
+        return zappers[_to];
     }
 
     /**
      * @notice Updates contract, emits event for purchase action, verifies price.
      */
     function purchase(
-        address        _user,
-        uint256        _uAmount,
-        bytes calldata _value,
-        bytes32[]      _priceProof,
-        uint256        _addForSale,
-        uint256        _oldCumForLiq,
-        bytes32[]      _forSaleProof
+        address   _user,
+        uint256   _uAmount,
+        uint256   _ethPrice,
+        bytes32[] _priceProof,
+        uint256   _addForSale,
+        uint256   _oldCumForSale,
+        bytes32[] _forSaleProof
     )
       external
       update(
           _addForSale,
-          _oldCumForLiq,
+          _oldCumForSale,
           _forSaleProof
       )
       onlyShield
     {
         verifyPrice(
             msg.sender,
-            _value,
+            _ethPrice,
             _priceProof
         )
 
-        emit Purchase(msg.sender, _user, block.timestamp);
+        emit Purchase(
+            msg.sender, 
+            _user, 
+            block.timestamp
+        );
     }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -190,7 +226,7 @@ contract RcaController is RcaGovernable {
      */
     function _update(
         uint256   _addForSale,
-        uint256   _oldCumForLiq,
+        uint256   _oldCumForSale,
         bytes32[] _forSaleProof
     )
       internal
@@ -201,21 +237,27 @@ contract RcaController is RcaGovernable {
 
         // Seems kinda messy but not too bad on gas.
         SystemUpdates memory updates = systemUpdates;
+
+        if (lastUpdate < updates.aprUpdate) shield.setApr(apr);
         if (lastUpdate < updates.treasuryUpdate) shield.setTreasury(treasury);
+        if (lastUpdate < updates.discountUpdate) shield.setDiscount(discount);
         if (lastUpdate < updates.pausedUpdate) shield.setPausedPercent(percentPaused);
         if (lastUpdate < updates.withdrawalDelayUpdate) shield.setWithdrawalDelay(withdrawalDelay);
-        if (lastUpdate < updates.discountUpdate) shield.setDiscount(discount);
-        if (lastUpdate < updates.aprUpdate) shield.setApr(apr);
         if (lastUpdate < updates.forSaleUpdate) {
+            
             verifyForSale(
                 _addForSale,
-                _oldCumForLiq,
+                _oldCumForSale,
                 _forSaleProof
             );
-            uint256 newAddForSale = _addForSale
-                                   + _oldCumForLiq
-                                   - shield.cumForLiq;
+
+            uint256 newAddForSale = 
+                _addForSale
+                + _oldCumForLiq
+                - shield.cumForLiq;
+
             shield.addForSale(newAddForSale);
+
         }
         lastShieldUpdate[msg.sender] = uint32(block.timestamp);
     }
@@ -225,56 +267,28 @@ contract RcaController is RcaGovernable {
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
-     * @notice Verify price on Umbrella of the tokens. Verifies in token:eth.
-     * @param _value is this needed like this
+     * @notice Verify price from Ease price oracle.
+     * @param _shield Address of the shield to find price of.
+     * @param _value Price of the token (in Ether) for this shield.
+     * @param _proof Merkle proof.
      */
     function verifyPrice(
-        address _shield,
-        bytes memory _value,
-        bytes32[] _proof,
-    )
-      public
-      view
-    returns(
-        bool
-    )
-    {
-        // While we're using Umbrella we won't have our own price oracle.
-        if (priceOracle == address(0)) {
-            IChain chain          = _chain();
-            uint256 lastBlockId   = uint256(chain.getLatestBlockId());
-            bytes32 underlyingKey = underlyingKeys[_shield];
-
-            bool success = chain.verifyProofForBlock(
-                lastBlockId,
-                _proof,
-                abi.encodePacked(underlyingKey),
-                _value
-            );
-            require(success, "Incorrect price proof."; 
-        } else {
-            _verifyPrice(
-                _shield,
-                _value,
-                _proof
-            )
-        }
-
-    }
-
-    function _verifyPrice(
         address _shield,
         uint256 _value,
         bytes32[] _proof
     )
-      internal
+      public
       view
     {
         bytes32 leaf = abi.encodePacked(_shield, _value);
+        // This doesn't protect against oracle hacks, but does protect against some bugs.
+        require(_value > 0, "Invalid price submitted.");
         require(MerkleProof.verify(priceRoot, _proof, leaf), "Incorrect price proof.");
     }
 
-    // capacity available function
+    /**
+     * @notice Verify capacity of a shield.
+     */
     function verifyCapacity(
         address   _shield,
         uint256   _capacity,
@@ -291,12 +305,14 @@ contract RcaController is RcaGovernable {
     }
 
     /**
-     * @notice Get the current amount for sale for a certain shield.
-     * @param _shieldAddress Address of the shield vault to get for sale for. Used as key for root.
+     * @notice Verify the current amount for sale.
+     * @param _addForSale Addition amount for sale.
+     * @param _oldCumForSale Old cumulative amount for liquidation.
+     * @param _forSaleProof Proof of the for sale amounts.
      */
     function verifyForSale(
         uint256 _addForSale,
-        uint256 _oldCumForLiq,
+        uint256 _oldCumForSale,
         bytes32[] _forSaleProof,
     )
       public
@@ -305,8 +321,31 @@ contract RcaController is RcaGovernable {
         bool
     )
     {
-        bytes32 leaf = bytes32(abi.encodePacked(_addForSale, _oldCumForLiq));
+        bytes32 leaf = bytes32(abi.encodePacked(msg.sender, _addForSale, _oldCumForSale));
         require(MerkleProof.verify(forSaleRoot, _proof, _leaf), "Incorrect forSale proof.");
+    }
+
+    /**
+     * @notice Makes it easier for frontend to get the balances on many shields.
+     * @param _user User to find balances of.
+     * @param _shields The shields (also tokens) to find the RCA balances for.
+     */
+    function balanceOfs(
+        address _user,
+        address[] calldata _shields
+    )
+      external
+      view
+    returns(
+        uint256[] memory balances
+    )
+    {
+        balances = new uint256[](_tokens.length);
+
+        for (uint256 i = 0; i < _tokens.length; i++) {
+            uint256 balance = IERC20(_tokens[i]).balanceOf(_user);
+            balances[i] = balance;
+        }
     }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -334,11 +373,13 @@ contract RcaController is RcaGovernable {
         IRCA(shield).initialize(
             _name,
             _symbol,
-            _oracleKey
+            apr,
+            discount,
+            withdrawalDelay,
+            treasury
         );
         
         shieldMapping[proxy]          = true;
-        underlyingKeys[proxy]         = _oracleKey;
         shieldProtocolPercents[proxy] = _percents;
 
         OwnedUpgradeabilityProxy( payable(proxy) ).transferProxyOwnership(msg.sender);
@@ -347,12 +388,9 @@ contract RcaController is RcaGovernable {
     /**
      * @notice Governance calls to set the new total amount for sale. This call also resets percentPaused
      * because it implicitly signals the end of the pause period and beginning of selling period.
-     * @dev Values are the new total amount for sale | current (at time of making root) amount for sale.
-     * Calculations will then be done by adding current (at time of update) amount for sale
-     * to total amount for sale, then subtracting the old (at time of making root) for sale.
-     * Kinda janky situation because we want the root to be new total amount rather than addition,
-     * but want to be able to account for fees being added to for sale between root creation and update.
-     * TODO: ^^^^^^^ NOT RIGHT
+     * @dev Root will be determined by hashing current amount for sale and current cumulative amount
+     * that has been put as for sale through this means in the past. This ensures that if the vault is
+     * updated after this new root has been created, the new cumulative amount can be accounted for.
      * @param _newForSaleRoot Merkle root for new total amounts for sale for each protocol (in token).
      */
     function setForSale(
@@ -362,11 +400,11 @@ contract RcaController is RcaGovernable {
       onlyGov
     {
         // In some cases governance may just want to reset percent paused.
-        percentPaused = 0;
+        percentPaused              = 0;
         systemUpdates.pausedUpdate = uint32(block.timestamp);
 
         if ( _newForSaleRoot != bytes32(0) ) {
-            forSaleRoot = _newForSaleRoot;
+            forSaleRoot                 = _newForSaleRoot;
             systemUpdates.forSaleUpdate = uint32(block.timestamp);
         }
     }
@@ -395,7 +433,7 @@ contract RcaController is RcaGovernable {
       external
       onlyGov
     {
-        withdrawalDelay = _newWithdrawalDelay;
+        withdrawalDelay                     = _newWithdrawalDelay;
         systemUpdates.withdrawalDelayUpdate = uint32(block.timestamp);
     }
 
@@ -409,7 +447,7 @@ contract RcaController is RcaGovernable {
       external
       onlyGov
     {
-        discount = _newDiscount;
+        discount                     = _newDiscount;
         systemUpdates.discountUpdate = uint32(block.timestamp);
     }
 
@@ -423,7 +461,7 @@ contract RcaController is RcaGovernable {
       external
       onlyGov
     {
-        apr = _newApr;
+        apr                     = _newApr;
         systemUpdates.aprUpdate = uint32(block.timestamp);
     }
 
@@ -437,8 +475,21 @@ contract RcaController is RcaGovernable {
       external
       onlyGov
     {
-        treasury = _newTreasury;
+        treasury                     = _newTreasury;
         systemUpdates.treasuryUpdate = uint32(block.timestamp);
+    }
+
+    /**
+     * @notice Governance can add a new zapper allowed to exchange funds for users.
+     * @param _newZapper Address of the zapper contract.
+     */
+    function setZapper(
+        address _newZapper
+    )
+      external
+      onlyGov
+    {
+        zappers[_newZapper] = true;
     }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -460,7 +511,6 @@ contract RcaController is RcaGovernable {
         percentPaused = _newPercentPaused;
         systemUpdates.pausedUpdate = uint32(block.timestamp);
     }
-
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////// onlyCapOracle ///////////////////////////////////////////////
@@ -484,7 +534,8 @@ contract RcaController is RcaGovernable {
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
-     * @notice Only to be used if we take over price oracle functionality.
+     * @notice Set prices of all tokens with our oracle. This will be expanded so that price oracle is a
+     * smart contract that accepts input from a few sources to increase decentralization.
      * @param _newPriceRoot Merkle root for new capacities available for each protocol (in USD).
      */
     function setPrice(
@@ -492,6 +543,8 @@ contract RcaController is RcaGovernable {
     )
       onlyPriceOracle
     {
+        require(block.timestamp > priceTime);
+        lastPriceRoot
         priceRoot = _newPriceRoot;
     }
 

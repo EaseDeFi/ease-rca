@@ -1,0 +1,79 @@
+pragma solidity 0.8.10;
+
+/**
+ * @title RCA Ranking
+ * @notice RCA Ranking simply holds tokens that signify how much a protocol is trusted.
+ * These tokens are never spent, used, invested, or anything. The funds deposited simply
+ * signify the emphasis users/protocols put on the safety of the protocol.
+ * The amount of staked tokens here determines how much each vault/protocol needs to payout.
+ * @author Robert M.C. Forster
+ */
+contract RcaRanking {
+
+    /// @notice Amount of ARMOR tokens "staked" on each protocol.
+    mapping (uint256 => uint256) public ranks;
+    /// @notice Balances of each address that has staked.
+    mapping (address => uint256) public balances;
+
+    /// @notice Notification of a stake.
+    event Stake(
+        uint256 indexed protocol, 
+        address indexed user,
+        uint256 amount,
+        uint256 newTotal
+    );
+    /// @notice Notification of an unstake..
+    event Unstake(
+        uint256 indexed protocol, 
+        address indexed user,
+        uint256 amount,
+        uint256 newTotal
+    );
+
+    /**
+     * @notice Stake an amount of tokens on a protocol.
+     * @param _protocol Unique identifier of the protocol to stake for.
+     * @param _amount Amount of tokens to stake on the protocol.
+     */
+    function stake(
+        uint256 _protocol,
+        uint256 _amount
+    )
+      external
+    {
+        token.transferFrom(msg.sender, address(this), _amount);
+        ranks[_protocol] += _amount;
+        balances[msg.sender] += _amount;
+
+        emit Stake(
+            _protocol,
+            msg.sender,
+            _amount,
+            ranks[_protocol]
+        );
+    }
+
+    /**
+     * @notice Remove your staking from a protocol.
+     * @param _protocol Unique identifier of the protocol to unstake from.
+     * @param _amount Amount of tokens to unstake from the protocol.
+     */
+    function unstake(
+        uint256 _protocol,
+        uint256 _amount
+    )
+      external
+    {
+        ranks[_protocol] -= _amount;
+        balances[msg.sender] -= _amount;
+        token.transfer(msg.sender, _amount);
+
+        emit Unstake(
+            _protocol,
+            msg.sender,
+            _amount,
+            ranks[_protocol]
+        );
+    }
+
+}

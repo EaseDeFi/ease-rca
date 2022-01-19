@@ -1,5 +1,12 @@
 pragma solidity 0.8.10;
 
+/**
+ * @title RCA Treasury
+ * @notice This contract holds all Ether funds from both liquidated tokens
+ * and fees that are taken for the operation of the ecosystem.
+ * It also functions as the contract to claim losses from when a hack occurs.
+ * @author Robert M.C. Forster
+ */
 contract RcaTreasury is RcaOwnable {
 
     // Amount of claims available for individual addresses (in Ether).
