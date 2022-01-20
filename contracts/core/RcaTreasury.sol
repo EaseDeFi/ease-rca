@@ -1,4 +1,8 @@
-pragma solidity 0.8.10;
+/// SPDX-License-Identifier: UNLICENSED
+
+pragma solidity 0.8.11;
+import '../general/Governable.sol';
+import '../library/MerkleProof.sol';
 
 /**
  * @title RCA Treasury
@@ -7,7 +11,7 @@ pragma solidity 0.8.10;
  * It also functions as the contract to claim losses from when a hack occurs.
  * @author Robert M.C. Forster
  */
-contract RcaTreasury is RcaOwnable {
+contract RcaTreasury is Governable {
 
     // Amount of claims available for individual addresses (in Ether).
     // ID of hack => amount claimable.
@@ -18,13 +22,28 @@ contract RcaTreasury is RcaOwnable {
     event Claim(address indexed user, uint256 indexed hackId, uint256 indexed etherAmount);
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////// constructor ////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    /**
+     * @notice Constructor just used to set governor that can withdraw funds from the contract.
+     * @param _governor Full owner of this contract.
+     */
+    constructor(
+        address _governor
+    )
+    {
+        initializeGovernable(_governor);
+    }
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////// fallback //////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
      * @dev Just here to accept Ether.
      */
-    fallback() payable {}
+    receive() external payable {}
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////// external //////////////////////////////////////////////////
@@ -38,15 +57,15 @@ contract RcaTreasury is RcaOwnable {
      * @param _claimsProof Merkle proof to verify this user's claim.
      */
     function claimFor(
-        address   _user,
+        address   payable _user,
         uint256   _loss,
         uint256   _hackId,
-        bytes32[] _claimsProof 
+        bytes32[] calldata _claimsProof 
     )
       external
     {
         require(!claimed[_user][_hackId], "Loss has already been claimed.");
-        MerkleProof.verifyClaim(_user, _hackId, _loss, _claimsProof);
+        verifyClaim(_user, _hackId, _loss, _claimsProof);
         claimed[_user][_hackId] = true;
         _user.transfer(_loss);
         emit Claim(_user, _hackId, _loss);
@@ -56,17 +75,14 @@ contract RcaTreasury is RcaOwnable {
     function verifyClaim(
         address   _user,
         uint256   _hackId,
-        uint256   _amount
-        bytes32[] _claimProof
+        uint256   _amount,
+        bytes32[] memory _claimsProof
     )
       public
       view
-    returns(
-        bool
-    )
     {
-        bytes32 leaf = bytes32(abi.encodePacked(_user, _hackId, _amount));
-        require(MerkleProof.verify(claimsRoots[_hackId], _proof, leaf), "Incorrect capacity proof.");
+        bytes32 leaf = keccak256(abi.encodePacked(_user, _hackId, _amount));
+        require(MerkleProof.verify(_claimsProof, claimsRoots[_hackId], leaf), "Incorrect capacity proof.");
     }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -79,7 +95,7 @@ contract RcaTreasury is RcaOwnable {
      * @param _amount Amount of funds (in Ether) to send.
      */
     function withdraw(
-        address _to,
+        address payable _to,
         uint256 _amount
     )
       external

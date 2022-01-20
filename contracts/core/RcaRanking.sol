@@ -1,4 +1,7 @@
-pragma solidity 0.8.10;
+/// SPDX-License-Identifier: UNLICENSED
+
+pragma solidity 0.8.11;
+import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 
 /**
  * @title RCA Ranking
@@ -10,6 +13,8 @@ pragma solidity 0.8.10;
  */
 contract RcaRanking {
 
+    /// @notice Ease/Armor token address
+    IERC20 public token;
     /// @notice Amount of ARMOR tokens "staked" on each protocol.
     mapping (uint256 => uint256) public ranks;
     /// @notice Balances of each address that has staked.
@@ -29,6 +34,17 @@ contract RcaRanking {
         uint256 amount,
         uint256 newTotal
     );
+
+    /**
+     * @notice Initialize contract with staking token (which will be the Ease/Armor protocol token).
+     * @param _token Address of the staking token.
+     */
+    constructor(
+        address _token
+    )
+    {
+        token = IERC20(_token);
+    }
 
     /**
      * @notice Stake an amount of tokens on a protocol.
