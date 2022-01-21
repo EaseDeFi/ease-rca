@@ -1,5 +1,5 @@
 name: compile-workflow
-on: [push]
+on: [pull_request]
 jobs:
   compile-job:
     runs-on: ubuntu-latest
