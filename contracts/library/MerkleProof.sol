@@ -30,4 +30,5 @@ library MerkleProof {
         // Check if the computed hash (root) is equal to the provided root
         return computedHash == root;
     }
+
 }

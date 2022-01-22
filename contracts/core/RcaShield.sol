@@ -1,11 +1,12 @@
 /// SPDX-License-Identifier: UNLICENSED
 
 pragma solidity 0.8.11;
+import 'hardhat/console.sol';
 import '../general/Governable.sol';
 import '../interfaces/IZapper.sol';
 import '../interfaces/IRcaController.sol';
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
-import '@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol';
+import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
 
 /**
  * @title RCA Vault
@@ -14,7 +15,7 @@ import '@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol';
  * doubles as the vault and the RCA token.
  * @author Robert M.C. Forster
 **/
-contract RcaShield is ERC20Burnable, Governable {
+contract RcaShield is ERC20, Governable {
 
     uint256 constant YEAR_SECS = 31536000;
     uint256 constant DENOMINATOR = 10000;
@@ -156,6 +157,7 @@ contract RcaShield is ERC20Burnable, Governable {
     constructor(
         string  memory _name,
         string  memory _symbol,
+        address _uToken,
         address _governor,
         address _controller
     )
@@ -165,6 +167,7 @@ contract RcaShield is ERC20Burnable, Governable {
     )
     {
         initializeGovernable(_governor);
+        uToken = IERC20(_uToken);
         controller = IRcaController(_controller);
     }
 
@@ -229,7 +232,7 @@ contract RcaShield is ERC20Burnable, Governable {
             _forSaleProof
         );
 
-        uint256 rcaAmount = _rcaValue(_uAmount);
+        uint256 rcaAmount = _rcaValue(_uAmount, 0);
 
         uToken.transferFrom(
             user, 
@@ -268,7 +271,7 @@ contract RcaShield is ERC20Burnable, Governable {
             _forSaleProof
         );
 
-        uint256 uAmount = _uValue(_rcaAmount);
+        uint256 uAmount = _uValue(_rcaAmount, 0);
         _burn(msg.sender, _rcaAmount);
         pendingWithdrawal += _rcaAmount;
 
@@ -423,12 +426,16 @@ contract RcaShield is ERC20Burnable, Governable {
         );
 
         uint256 price = _uEthPrice  - (_uEthPrice * discount / DENOMINATOR);
-        uint256 ethAmount = price * _uAmount;
-        require(msg.value == price * _uAmount, "Incorrect Ether sent.");
+        console.log("Price: ", price);
+        // divide by 1 ether because price also has 18 decimals. ASSUMES UNDERLYING TOKEN HAS 18 DECIMALS.
+        uint256 ethAmount = price * _uAmount / 1 ether;
+        console.log("Ether amount: ", ethAmount);
+        console.log("Msg.value: ", msg.value);
+        require(msg.value == ethAmount, "Incorrect Ether sent.");
         
         // If amount is too big than for sale, tx will fail here.
         amtForSale       -= _uAmount;
-        uint256 rcaAmount = _rcaValue(_uAmount);
+        uint256 rcaAmount = _rcaValue(_uAmount, 0);
 
         _mint(_user, rcaAmount);
         treasury.transfer(msg.value);
@@ -451,9 +458,11 @@ contract RcaShield is ERC20Burnable, Governable {
      * @notice Convert RCA value to underlying tokens. This is internal because new 
      * for sale amounts will already have been retrieved and updated.
      * @param _rcaAmount The amount of RCAs to find the underlying value of.
+     * @param _extraForSale Used by external value calls cause updates aren't made on those.
      */
     function _uValue(
-        uint256 _rcaAmount
+        uint256 _rcaAmount,
+        uint256 _extraForSale
     )
       internal
       view
@@ -465,7 +474,7 @@ contract RcaShield is ERC20Burnable, Governable {
         if (totalSupply == 0) return _rcaAmount;
 
         uAmount = 
-            (uToken.balanceOf( address(this) ) - amtForSale)
+            (uToken.balanceOf( address(this) ) - amtForSale + _extraForSale)
             * _rcaAmount
             / (totalSupply + pendingWithdrawal);
 
@@ -480,9 +489,11 @@ contract RcaShield is ERC20Burnable, Governable {
     /**
      * @notice Find the RCA value of an amount of underlying tokens.
      * @param _uAmount Amount of underlying tokens to find RCA value of.
+     * @param _extraForSale Used by external value calls cause updates aren't made on those.
      */
     function _rcaValue(
-        uint256 _uAmount
+        uint256 _uAmount,
+        uint256 _extraForSale
     )
       internal
       view
@@ -496,7 +507,7 @@ contract RcaShield is ERC20Burnable, Governable {
         rcaAmount = 
             (totalSupply() + pendingWithdrawal)
             * _uAmount
-            / (balance - amtForSale);
+            / (balance - amtForSale + _extraForSale);
     }
 
     /**
@@ -515,14 +526,31 @@ contract RcaShield is ERC20Burnable, Governable {
         uint256 uAmount
     )
     {
-        controller.verifyForSale(
-            address(this),
-            _addForSale, 
-            _oldCumForLiq,
-            _forSaleProof
-        );
+        uint256 extraForSale = 0;
 
-        uAmount = _uValue(_rcaAmount);
+        // Pretty annoying but we gotta do APR calculations if it's above 0.
+        if (apr > 0) {
+            uint256 secsElapsed = block.timestamp - lastUpdate;
+            uint256 balance = uToken.balanceOf( address(this) );
+            extraForSale =
+                balance
+                * secsElapsed 
+                * apr
+                / YEAR_SECS
+                / DENOMINATOR;
+        }
+
+        // This calculates whether extra needs to be added to amtForSale for these calcs.
+        extraForSale += 
+            controller.getForSale(
+                address(this),
+                _addForSale, 
+                _oldCumForLiq,
+                _forSaleProof
+            )
+            - cumForSale;
+
+        uAmount = _uValue(_rcaAmount, extraForSale);
     }
 
     /**
@@ -541,14 +569,31 @@ contract RcaShield is ERC20Burnable, Governable {
         uint256 rcaAmount
     )
     {
-        controller.verifyForSale(
-            address(this),
-            _addForSale, 
-            _oldCumForLiq,
-            _forSaleProof
-        );
+        uint256 extraForSale = 0;
 
-        rcaAmount = _rcaValue(_uAmount);
+        // Pretty annoying but we gotta do APR calculations if it's above 0.
+        if (apr > 0) {
+            uint256 secsElapsed = block.timestamp - lastUpdate;
+            uint256 balance = uToken.balanceOf( address(this) );
+            extraForSale =
+                balance
+                * secsElapsed 
+                * apr
+                / YEAR_SECS
+                / DENOMINATOR;
+        }
+
+        // This calculates whether extra needs to be added to amtForSale for these calcs.
+        extraForSale += 
+            controller.getForSale(
+                address(this),
+                _addForSale, 
+                _oldCumForLiq,
+                _forSaleProof
+            )
+            - cumForSale;
+
+        rcaAmount = _rcaValue(_uAmount, extraForSale);
     }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -565,6 +610,8 @@ contract RcaShield is ERC20Burnable, Governable {
       external
       onlyController
     {
+        // Do this here rather than on controller for slight savings.
+        _newAddForSale -= cumForSale;
         amtForSale += _newAddForSale;
     }
 

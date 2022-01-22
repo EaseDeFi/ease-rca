@@ -130,15 +130,24 @@ contract RcaController is RcaGovernable {
         address _governor,
         address _guardian,
         address _priceOracle,
-        address _capOracle
+        address _capOracle,
+        uint256 _apr,
+        uint256 _discount,
+        uint256 _withdrawalDelay,
+        address payable _treasury
     )
     {
         initRcaGovernable(
             _governor,
             _guardian,
-            _priceOracle,
-            _capOracle
+            _capOracle,
+            _priceOracle
         );
+
+        apr = _apr;
+        discount = _discount;
+        treasury = _treasury;
+        withdrawalDelay = _withdrawalDelay;
     }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -307,29 +316,67 @@ contract RcaController is RcaGovernable {
         if (lastUpdate < updates.discountUpdate) shield.setDiscount(discount);
         if (lastUpdate < updates.pausedUpdate) shield.setPercentPaused(percentPaused);
         if (lastUpdate < updates.withdrawalDelayUpdate) shield.setWithdrawalDelay(withdrawalDelay);
-        if (lastUpdate < updates.forSaleUpdate) {
-            
-            verifyForSale(
-                msg.sender,
-                _addForSale,
-                _oldCumForSale,
-                _forSaleProof
-            );
-
-            uint256 newAddForSale = 
-                _addForSale
-                + _oldCumForSale
-                - shield.cumForSale();
-
-            shield.setForSale(newAddForSale);
-
-        }
+        if (lastUpdate < updates.forSaleUpdate) shield.setForSale(
+                                                            getForSale(
+                                                                msg.sender,
+                                                                _addForSale,
+                                                                _oldCumForSale,
+                                                                _forSaleProof
+                                                            )
+                                                        );
         lastShieldUpdate[msg.sender] = uint32(block.timestamp);
     }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////// view ////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    /**
+     * @notice Get amount for sale.
+     * @param _shield        Address of shield to get for sale for.
+     * @param _addForSale    Additional amount for sale (in Merkle).
+     * @param _oldCumForSale Old cumulative amount for sale.
+     * @param _forSaleProof  Merkle proof for data.
+     */
+    function getForSale(
+        address   _shield,
+        uint256   _addForSale,
+        uint256   _oldCumForSale,
+        bytes32[] memory _forSaleProof
+    )
+      public
+      view
+    returns (uint256)
+    {
+        verifyForSale(
+            _shield,
+            _addForSale,
+            _oldCumForSale,
+            _forSaleProof
+        );
+
+        uint256 newAddForSale = _addForSale + _oldCumForSale;
+        return newAddForSale;
+    }
+
+    /**
+     * @notice Verify the current amount for sale.
+     * @param _addForSale    Additional amount for sale.
+     * @param _oldCumForSale Old cumulative amount for liquidation.
+     * @param _forSaleProof  Proof of the for sale amounts.
+     */
+    function verifyForSale(
+        address   _shield,
+        uint256   _addForSale,
+        uint256   _oldCumForSale,
+        bytes32[] memory _forSaleProof
+    )
+      public
+      view
+    {
+        bytes32 leaf = keccak256(abi.encodePacked(_shield, _addForSale, _oldCumForSale));
+        require(MerkleProof.verify(_forSaleProof, forSaleRoot, leaf), "Incorrect forSale proof.");
+    }
 
     /**
      * @notice Verify price from Ease price oracle.
@@ -367,25 +414,6 @@ contract RcaController is RcaGovernable {
     }
 
     /**
-     * @notice Verify the current amount for sale.
-     * @param _addForSale Addition amount for sale.
-     * @param _oldCumForSale Old cumulative amount for liquidation.
-     * @param _forSaleProof Proof of the for sale amounts.
-     */
-    function verifyForSale(
-        address   _shield,
-        uint256   _addForSale,
-        uint256   _oldCumForSale,
-        bytes32[] memory _forSaleProof
-    )
-      public
-      view
-    {
-        bytes32 leaf = keccak256(abi.encodePacked(_shield, _addForSale, _oldCumForSale));
-        require(MerkleProof.verify(_forSaleProof, forSaleRoot, leaf), "Incorrect forSale proof.");
-    }
-
-    /**
      * @notice Makes it easier for frontend to get the balances on many shields.
      * @param _user User to find balances of.
      * @param _shields The shields (also tokens) to find the RCA balances for.
@@ -408,14 +436,43 @@ contract RcaController is RcaGovernable {
         }
     }
 
+    /**
+     * @notice Create merkle leaf with our data. Temporarily using this for testing.
+     */
+    function createLeaf(
+        address _shield,
+        uint256 _capacity
+    )
+      external
+      pure
+    returns(bytes32)
+    {
+        return keccak256(abi.encodePacked(_shield, _capacity));
+    }
+
+    /**
+     * @notice Create merkle leaf with our data. Temporarily using this for testing.
+     */
+    function createForSale(
+        address _shield,
+        uint256 _addForSale,
+        uint256 _oldCumForSale
+    )
+      external
+      pure
+    returns(bytes32)
+    {
+        return keccak256(abi.encodePacked(_shield, _addForSale, _oldCumForSale));
+    }
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////// onlyGov //////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
-     * @notice Initiate a new arShield from an already-created family.
+     * @notice Initialize a new arShield from an already-created family.
      */
-    function initiateShield(
+    function initializeShield(
         address   _shield,
         uint128[] calldata _protocols,
         uint128[] calldata _percents
@@ -433,7 +490,10 @@ contract RcaController is RcaGovernable {
         );
         
         shieldMapping[_shield] = true;
+
+        // Annoying stuff below because we can't push a struct to the mapping.
         for (uint256 i = 0; i < _protocols.length; i++) {
+            shieldProtocolPercents[_shield].push();
             shieldProtocolPercents[_shield][i].protocolId = _protocols[i];
             shieldProtocolPercents[_shield][i].percent    = _percents[i];
         }
@@ -580,7 +640,7 @@ contract RcaController is RcaGovernable {
      * smart contract that accepts input from a few sources to increase decentralization.
      * @param _newPriceRoot Merkle root for new capacities available for each protocol (in USD).
      */
-    function setPrice(
+    function setPrices(
         bytes32 _newPriceRoot
     )
       external
