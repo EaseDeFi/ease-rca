@@ -1,4 +1,12 @@
-pragma solidity 0.8.10;
+/// SPDX-License-Identifier: UNLICENSED
+
+pragma solidity 0.8.11;
+import 'hardhat/console.sol';
+import '../general/Governable.sol';
+import '../interfaces/IZapper.sol';
+import '../interfaces/IRcaController.sol';
+import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
+import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
 
 /**
  * @title RCA Vault
@@ -7,18 +15,25 @@ pragma solidity 0.8.10;
  * doubles as the vault and the RCA token.
  * @author Robert M.C. Forster
 **/
-contract RcaVault is ERC20, Governable {
+contract RcaShield is ERC20, Governable {
 
+    uint256 constant YEAR_SECS = 31536000;
     uint256 constant DENOMINATOR = 10000;
 
     /// @notice Controller of RCA contract that takes care of actions.
-    IController public controller;
+    IRcaController public controller;
+    /// @notice Underlying token that is protected by the shield.
+    IERC20 public uToken;
     /// @notice Treasury for all funds that accepts payments.
-    address public treasury;
+    address payable public treasury;
     /// @notice Current sale discount to sell tokens cheaper.
     uint256 public discount;
     /// @notice Percent to pay per year. 1000 == 10%.
     uint256 public apr;
+    /// @notice Percent of the contract that is currently paused and cannot be withdrawn.
+    /// Set > 0 when a hack has happened and DAO has not submitted for sales.
+    /// Withdrawals during this time will lose this percent. 1000 == 10%.
+    uint256 public percentPaused;
 
     /** 
      * @notice Cumulative total amount that has been for sale lol.
@@ -64,15 +79,15 @@ contract RcaVault is ERC20, Governable {
     );
     /// @notice Notification of an initial redeem request.
     event RedeemRequest(
-        address indexed to, 
+        address indexed user, 
         uint256 uAmount, 
         uint256 rcaAmount, 
         uint256 endTime, 
         uint256 timestamp
     );
     /// @notice Notification of a redeem finalization after withdrawal delay.
-    event RedeemComplete(
-        address indexed sender,
+    event RedeemFinalize(
+        address indexed user,
         address indexed to, 
         uint256 uAmount, 
         uint256 rcaAmount, 
@@ -111,11 +126,49 @@ contract RcaVault is ERC20, Governable {
             amtForSale += 
                 balance
                 * secsElapsed 
-                * apr 
-                / 1 years 
+                * apr
+                / YEAR_SECS
                 / DENOMINATOR;
             lastUpdate = block.timestamp;
         }
+        _;
+    }
+
+    /**
+     * @notice Restrict set functions to only controller for many variables.
+     */
+    modifier onlyController()
+    {
+        require(msg.sender == address(controller), "Function must only be called by controller.");
+        _;
+    }
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////// constructor ////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    /**
+     * @notice Construct shield and RCA ERC20 token.
+     * @param _name Name of the RCA token.
+     * @param _symbol Symbol of the RCA token.
+     * @param _governor Address of the governor (owner) of the shield.
+     * @param _controller Address of the controller that maintains the shield.
+     */
+    constructor(
+        string  memory _name,
+        string  memory _symbol,
+        address _uToken,
+        address _governor,
+        address _controller
+    )
+    ERC20(
+        _name,
+        _symbol
+    )
+    {
+        initializeGovernable(_governor);
+        uToken = IERC20(_uToken);
+        controller = IRcaController(_controller);
     }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -123,31 +176,26 @@ contract RcaVault is ERC20, Governable {
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
-     * @notice Initialize the shield upon creation.
-     * @param _name Name of the ERC20 token that will be created.
-     * @param _symbol Symbol of the token.
-     * @param _apr Cost of normal RCA system fees.
-     * @param _discount Discount that will be given to purchases.
-     * @param _withdrawalDelay Delay (in seconds) of withdrawals.
-     * @param _treasury Treasury to send Ether funds to.
+     * @notice Controller calls to initiate which sets current contract variables. All %s are 1000 == 10%.
+     * @param _apr Fees for using the RCA ecosystem.
+     * @param _discount Discount for purchases while tokens are being liquidated.
+     * @param _treasury Address of the treasury to which Ether from fees and liquidation will be sent.
+     * @param _withdrawalDelay Delay of withdrawals from the shield in seconds.
      */
     function initialize(
-        string _name,
-        string _symbol,
         uint256 _apr,
         uint256 _discount,
-        uint256 _withdrawalDelay,
-        address _treasury
+        address payable _treasury,
+        uint256 _withdrawalDelay
     )
       external
+      onlyController
     {
-        require(address(controller) == address(0), "Contract already initialized.");
-        _initializeToken(_name, _symbol);
-        apr             = _apr;
-        discount        = _discount;
-        controller      = msg.sender;
+        require(treasury == address(0), "Contract has already been initialized.");
+        apr = _apr;
+        discount = _discount;
+        treasury = _treasury;
         withdrawalDelay = _withdrawalDelay;
-        treasury        = _treasury;
     }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -163,10 +211,10 @@ contract RcaVault is ERC20, Governable {
         address   _user,
         uint256   _uAmount,
         uint256   _capacity,
-        bytes32[] _capacityProof,
+        bytes32[] calldata _capacityProof,
         uint256   _addForSale,
-        uint256   _oldCumForLiq,
-        bytes32[] _forSaleProof
+        uint256   _oldCumForSale,
+        bytes32[] calldata _forSaleProof
     )
       external
       update
@@ -180,13 +228,13 @@ contract RcaVault is ERC20, Governable {
             _capacity,
             _capacityProof,
             _addForSale,
-            _oldCumForLiq,
+            _oldCumForSale,
             _forSaleProof
         );
 
-        uint256 rcaAmount = rcaValue(_uAmount);
+        uint256 rcaAmount = _rcaValue(_uAmount, 0);
 
-        uToken.safeTransferFrom(
+        uToken.transferFrom(
             user, 
             address(this), 
             _uAmount
@@ -207,24 +255,25 @@ contract RcaVault is ERC20, Governable {
      * @notice Request redemption of RCAs back to the underlying token.
      */
     function redeemRequest(
-        uint256 _rcaAmount
-        uint256 _addForSale,
-        uint256 _oldCumForSale,
-        bytes32[] _forSaleProof
+        uint256   _rcaAmount,
+        uint256   _addForSale,
+        uint256   _oldCumForSale,
+        bytes32[] calldata _forSaleProof
     )
       external
       update
     {
-        controller.redeem(
+        controller.redeemRequest(
+            msg.sender,
             _rcaAmount,
             _addForSale,
             _oldCumForSale,
             _forSaleProof
-        )
+        );
 
-        uint256 uAmount = _uValue(_rcaAmount);
+        uint256 uAmount = _uValue(_rcaAmount, 0);
         _burn(msg.sender, _rcaAmount);
-        pending += _rcaAmount;
+        pendingWithdrawal += _rcaAmount;
 
         WithdrawRequest memory curRequest = withdrawRequests[msg.sender];
         uint112 newUAmount                = uint112(uAmount) + curRequest.uAmount;
@@ -243,7 +292,6 @@ contract RcaVault is ERC20, Governable {
 
     /**
      * @notice Used to exchange RCA tokens back to the underlying token. Will have a 2+ day delay upon withdrawal.
-     * @param _rcaAmount The amount of RCA tokens to redeem.
      * @param _user The address to redeem tokens for. Since a previous request is required, there are no security implications.
      */
     function redeemTo(
@@ -251,7 +299,7 @@ contract RcaVault is ERC20, Governable {
         address   _user,
         uint256   _addForSale,
         uint256   _oldCumForSale,
-        bytes32[] _forSaleProof
+        bytes32[] calldata _forSaleProof
     )
       external
       update
@@ -265,27 +313,27 @@ contract RcaVault is ERC20, Governable {
 
         // This function doubles as redeeming and determining whether user is a zapper.
         bool zapper = 
-            controller.redeem(
+            controller.redeemFinalize(
                 _to,
                 _user,
-                _rcaAmount,
+                uint256(request.rcaAmount),
                 _addForSale,
                 _oldCumForSale,
                 _forSaleProof
             );
 
-        pending -= uint256(request.rcaAmount);
+        pendingWithdrawal -= uint256(request.rcaAmount);
 
-        uToken.safeTransferFrom( address(this), _user, uint256(request.uAmount) );
+        uToken.transfer( _user, uint256(request.uAmount) );
 
         // The cool part about doing it this way rather than having user RCAs to zapper contract,
         // then it exchanging and returning Ether is that it's more gas efficient and no approvals are needed.
         if (zapper) IZapper(_to).zapTo( _user, uint256(request.uAmount) );
         else if (_to != _user) revert("Redeeming to invalid address.");
 
-        emit Redeem(
-            msg.sender,
+        emit RedeemFinalize(
             _user,
+            _to,
             uint256(request.uAmount),
             uint256(request.rcaAmount),
             block.timestamp
@@ -306,10 +354,10 @@ contract RcaVault is ERC20, Governable {
         address   _user,
         uint256   _uAmount,
         uint256   _uEthPrice,
-        bytes32[] _priceProof,
+        bytes32[] calldata _priceProof,
         uint256   _addForSale,
         uint256   _oldCumForSale,
-        bytes32[] _forSaleProof
+        bytes32[] calldata _forSaleProof
     )
       external
       payable
@@ -318,16 +366,16 @@ contract RcaVault is ERC20, Governable {
         // If user submits incorrect price, tx will fail here.
         controller.purchase(
             _user,
-            _uAmount,
             _uEthPrice,
             _priceProof,
             _addForSale,
-            _oldCumForSale
+            _oldCumForSale,
+            _forSaleProof
         );
 
         uint256 price = _uEthPrice  - (_uEthPrice * discount / DENOMINATOR);
         uint256 ethAmount = price * _uAmount;
-        require(msg.value == etherAmount, "Incorrect Ether sent.");
+        require(msg.value == ethAmount, "Incorrect Ether sent.");
 
         // If amount is too big than for sale, tx will fail here.
         amtForSale -= _uAmount;
@@ -358,36 +406,38 @@ contract RcaVault is ERC20, Governable {
         address   _user,
         uint256   _uAmount,
         uint256   _uEthPrice,
-        bytes32[] _priceProof,
+        bytes32[] calldata _priceProof,
         uint256   _addForSale,
         uint256   _oldCumForSale,
-        bytes32[] _forSaleProof
+        bytes32[] calldata _forSaleProof
     )
       external
+      payable
       update
     {
         // If user submits incorrect price, tx will fail here.
         controller.purchase(
             _user,
-            _uAmount,
             _uEthPrice,
             _priceProof,
             _addForSale,
-            _oldCumForLiq
+            _oldCumForSale,
+            _forSaleProof
         );
 
         uint256 price = _uEthPrice  - (_uEthPrice * discount / DENOMINATOR);
-        uint256 ethAmount = price * _uAmount;
-        require(msg.value == price * _uAmount, "Incorrect Ether sent.");
+        // divide by 1 ether because price also has 18 decimals. ASSUMES UNDERLYING TOKEN HAS 18 DECIMALS.
+        uint256 ethAmount = price * _uAmount / 1 ether;
+        require(msg.value == ethAmount, "Incorrect Ether sent.");
         
         // If amount is too big than for sale, tx will fail here.
         amtForSale       -= _uAmount;
-        uint256 rcaAmount = _rcaValue(_uAmount);
+        uint256 rcaAmount = _rcaValue(_uAmount, 0);
 
         _mint(_user, rcaAmount);
         treasury.transfer(msg.value);
 
-        emit Purchase(
+        emit PurchaseRca(
             _user,
             _uAmount,
             rcaAmount,
@@ -405,9 +455,11 @@ contract RcaVault is ERC20, Governable {
      * @notice Convert RCA value to underlying tokens. This is internal because new 
      * for sale amounts will already have been retrieved and updated.
      * @param _rcaAmount The amount of RCAs to find the underlying value of.
+     * @param _extraForSale Used by external value calls cause updates aren't made on those.
      */
     function _uValue(
-        uint256 _rcaAmount
+        uint256 _rcaAmount,
+        uint256 _extraForSale
     )
       internal
       view
@@ -419,11 +471,11 @@ contract RcaVault is ERC20, Governable {
         if (totalSupply == 0) return _rcaAmount;
 
         uAmount = 
-            (uToken.balanceOf( address(this) ) - amtForSale)
+            (uToken.balanceOf( address(this) ) - amtForSale + _extraForSale)
             * _rcaAmount
             / (totalSupply + pendingWithdrawal);
 
-        _percentPaused = percentPaused;
+        uint256 _percentPaused = percentPaused;
         if (_percentPaused > 0)
             uAmount -= 
             (uAmount 
@@ -434,9 +486,11 @@ contract RcaVault is ERC20, Governable {
     /**
      * @notice Find the RCA value of an amount of underlying tokens.
      * @param _uAmount Amount of underlying tokens to find RCA value of.
+     * @param _extraForSale Used by external value calls cause updates aren't made on those.
      */
     function _rcaValue(
-        uint256 _uAmount
+        uint256 _uAmount,
+        uint256 _extraForSale
     )
       internal
       view
@@ -450,7 +504,7 @@ contract RcaVault is ERC20, Governable {
         rcaAmount = 
             (totalSupply() + pendingWithdrawal)
             * _uAmount
-            / (balance - amtForSale);
+            / (balance - amtForSale + _extraForSale);
     }
 
     /**
@@ -461,7 +515,7 @@ contract RcaVault is ERC20, Governable {
         uint256   _rcaAmount,
         uint256   _addForSale,
         uint256   _oldCumForLiq,
-        bytes32[] _forSaleProof
+        bytes32[] calldata _forSaleProof
     )
       external
       view
@@ -469,13 +523,31 @@ contract RcaVault is ERC20, Governable {
         uint256 uAmount
     )
     {
-        controller.verifyForSale(
-            _addForSale, 
-            _oldCumForLiq,
-            _forSaleProof
-        );
+        uint256 extraForSale = 0;
 
-        uAmount = _uValue(_rcaAmount);
+        // Pretty annoying but we gotta do APR calculations if it's above 0.
+        if (apr > 0) {
+            uint256 secsElapsed = block.timestamp - lastUpdate;
+            uint256 balance = uToken.balanceOf( address(this) );
+            extraForSale =
+                balance
+                * secsElapsed 
+                * apr
+                / YEAR_SECS
+                / DENOMINATOR;
+        }
+
+        // This calculates whether extra needs to be added to amtForSale for these calcs.
+        extraForSale += 
+            controller.getForSale(
+                address(this),
+                _addForSale, 
+                _oldCumForLiq,
+                _forSaleProof
+            )
+            - cumForSale;
+
+        uAmount = _uValue(_rcaAmount, extraForSale);
     }
 
     /**
@@ -486,7 +558,7 @@ contract RcaVault is ERC20, Governable {
         uint256   _uAmount,
         uint256   _addForSale,
         uint256   _oldCumForLiq,
-        bytes32[] _forSaleProof
+        bytes32[] calldata _forSaleProof
     )
       external
       view
@@ -494,13 +566,31 @@ contract RcaVault is ERC20, Governable {
         uint256 rcaAmount
     )
     {
-        controller.verifyForSale(
-            _addForSale, 
-            _oldCumForLiq,
-            _forSaleProof
-        );
+        uint256 extraForSale = 0;
 
-        rcaAmount = _rcaValue(_uAmount);
+        // Pretty annoying but we gotta do APR calculations if it's above 0.
+        if (apr > 0) {
+            uint256 secsElapsed = block.timestamp - lastUpdate;
+            uint256 balance = uToken.balanceOf( address(this) );
+            extraForSale =
+                balance
+                * secsElapsed 
+                * apr
+                / YEAR_SECS
+                / DENOMINATOR;
+        }
+
+        // This calculates whether extra needs to be added to amtForSale for these calcs.
+        extraForSale += 
+            controller.getForSale(
+                address(this),
+                _addForSale, 
+                _oldCumForLiq,
+                _forSaleProof
+            )
+            - cumForSale;
+
+        rcaAmount = _rcaValue(_uAmount, extraForSale);
     }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -508,8 +598,8 @@ contract RcaVault is ERC20, Governable {
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
-     * @notice Change the treasury address to which funds will be sent.
-     * @param _newTreasury New treasury address.
+     * @notice Add a for sale amount to this shield vault.
+     * @param _newAddForSale New additional amount of underlying tokens for sale on this contract.
     **/
     function setForSale(
         uint256 _newAddForSale
@@ -517,6 +607,8 @@ contract RcaVault is ERC20, Governable {
       external
       onlyController
     {
+        // Do this here rather than on controller for slight savings.
+        _newAddForSale -= cumForSale;
         amtForSale += _newAddForSale;
     }
 
@@ -527,27 +619,28 @@ contract RcaVault is ERC20, Governable {
     function setTreasury(
         address _newTreasury
     )
+      external
       onlyController
     {
-        treasury = _newTreasury;
+        treasury = payable(_newTreasury);
     }
 
     /**
-     * @notice Change the treasury address to which funds will be sent.
-     * @param _newTreasury New treasury address.
+     * @notice Change the percent paused on this vault. 1000 == 10%.
+     * @param _newPercentPaused New percent paused.
     **/
-    function setPausedPercent(
-        uint256 _newPausedPercent
+    function setPercentPaused(
+        uint256 _newPercentPaused
     )
       external
       onlyController
     {
-        pausedPercent = _newPausedPercent;
+        percentPaused = _newPercentPaused;
     }
 
     /**
-     * @notice Change the treasury address to which funds will be sent.
-     * @param _newTreasury New treasury address.
+     * @notice Change the withdrawal delay of withdrawing underlying tokens from vault. In seconds.
+     * @param _newWithdrawalDelay New withdrawal delay.
     **/
     function setWithdrawalDelay(
         uint256 _newWithdrawalDelay
@@ -559,8 +652,8 @@ contract RcaVault is ERC20, Governable {
     }
 
     /**
-     * @notice Change the treasury address to which funds will be sent.
-     * @param _newTreasury New treasury address.
+     * @notice Change the discount that users get for purchasing from us. 1000 == 10%.
+     * @param _newDiscount New discount.
     **/
     function setDiscount(
         uint256 _newDiscount
@@ -573,7 +666,7 @@ contract RcaVault is ERC20, Governable {
 
     /**
      * @notice Change the treasury address to which funds will be sent.
-     * @param _newApr New APR. 1000 == 
+     * @param _newApr New APR. 1000 == 10%.
     **/
     function setApr(
         uint256 _newApr
@@ -599,7 +692,7 @@ contract RcaVault is ERC20, Governable {
       external
       onlyGov
     {
-        controller = IController(_newController);
+        controller = IRcaController(_newController);
     }
 
     /**
@@ -608,7 +701,7 @@ contract RcaVault is ERC20, Governable {
      * @param _coverAddress Address that we need to send 0 eth to to confirm we had a loss.
      */
     function proofOfLoss(
-        address _coverAddress
+        address payable _coverAddress
     )
       external
       onlyGov
