@@ -426,11 +426,8 @@ contract RcaShield is ERC20, Governable {
         );
 
         uint256 price = _uEthPrice  - (_uEthPrice * discount / DENOMINATOR);
-        console.log("Price: ", price);
         // divide by 1 ether because price also has 18 decimals. ASSUMES UNDERLYING TOKEN HAS 18 DECIMALS.
         uint256 ethAmount = price * _uAmount / 1 ether;
-        console.log("Ether amount: ", ethAmount);
-        console.log("Msg.value: ", msg.value);
         require(msg.value == ethAmount, "Incorrect Ether sent.");
         
         // If amount is too big than for sale, tx will fail here.
