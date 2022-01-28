@@ -8,14 +8,16 @@ interface IRcaController {
         uint256   uAmount,
         uint256   capacity,
         bytes32[] calldata capacityProof,
-        uint256   _newCumLiq,
+        uint256   addForSale,
+        uint256   oldCumForSale,
         bytes32[] calldata forSaleProof
     ) external;
 
     function redeemRequest(
         address   user,
         uint256   rcaAmount,
-        uint256   _newCumLiq,
+        uint256   addForSale,
+        uint256   oldCumForSale,
         bytes32[] calldata forSaleProof
     ) external;
 
@@ -23,7 +25,8 @@ interface IRcaController {
         address   to,
         address   user,
         uint256   rcaAmount,
-        uint256   _newCumLiq,
+        uint256   addForSale,
+        uint256   oldCumForSale,
         bytes32[] calldata forSaleProof
     ) external returns(bool);
 
@@ -31,13 +34,15 @@ interface IRcaController {
         address   user,
         uint256   uEthPrice,
         bytes32[] calldata priceProof,
-        uint256   _newCumLiq,
+        uint256   addForSale,
+        uint256   oldcumForSale,
         bytes32[] calldata forSaleProof
     ) external;
 
-    function verifyLiq(
+    function verifyForSale(
         address   shield,
-        uint256   _newCumLiq,
+        uint256   addForSale,
+        uint256   oldcumForSale,
         bytes32[] memory forSaleProof
     ) external view;
 
@@ -49,7 +54,8 @@ interface IRcaController {
 
     function getForSale(
         address   _shield,
-        uint256   __newCumLiq,
+        uint256   _addForSale,
+        uint256   _oldcumForSale,
         bytes32[] memory _forSaleProof
     ) external view returns(uint256);
 }
