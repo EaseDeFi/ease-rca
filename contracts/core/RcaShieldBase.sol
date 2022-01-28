@@ -1,12 +1,12 @@
 /// SPDX-License-Identifier: UNLICENSED
 
 pragma solidity 0.8.11;
-import 'hardhat/console.sol';
 import '../general/Governable.sol';
 import '../interfaces/IZapper.sol';
 import '../interfaces/IRcaController.sol';
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
+import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 
 /**
  * @title RCA Vault
@@ -16,7 +16,8 @@ import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
  * @dev This contract assumes uToken decimals of 18.
  * @author Robert M.C. Forster
 **/
-contract RcaShield is ERC20, Governable {
+abstract contract RcaShield is ERC20, Governable {
+    using SafeERC20 for IERC20;
 
     uint256 constant YEAR_SECS = 31536000;
     uint256 constant DENOMINATOR = 10000;
@@ -209,6 +210,9 @@ contract RcaShield is ERC20, Governable {
 ///////////////////////////////////////////////// external //////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+    /// Get reward of a protocol includes rewards
+    function getReward(IERC20[] memory _tokens) public virtual;
+
     /**
      * @notice Mint tokens to an address. Not automatically to msg.sender so we can more easily zap assets.
      * @param _uAmount Amount of underlying tokens desired to use for mint.
@@ -236,8 +240,10 @@ contract RcaShield is ERC20, Governable {
         );
 
         uint256 rcaAmount = _rcaValue(_uAmount, 0);
-        uToken.transferFrom(msg.sender, address(this), _uAmount);
+        uToken.safeTransferFrom(msg.sender, address(this), _uAmount);
         _mint(_user, rcaAmount);
+
+        _afterMint(_uAmount);
 
         emit Mint(
             msg.sender,
@@ -275,6 +281,8 @@ contract RcaShield is ERC20, Governable {
         uint112 newRcaAmount              = uint112(_rcaAmount) + curRequest.rcaAmount;
         uint32 endTime                    = uint32(block.timestamp) + uint32(withdrawalDelay);
         withdrawRequests[msg.sender]      = WithdrawRequest(newUAmount, newRcaAmount, endTime);
+
+        _afterRedeem(uAmount);
 
         emit RedeemRequest(
             msg.sender,
@@ -317,7 +325,7 @@ contract RcaShield is ERC20, Governable {
 
         pendingWithdrawal -= uint256(request.rcaAmount);
 
-        uToken.transfer( _user, uint256(request.uAmount) );
+        uToken.safeTransfer( _user, uint256(request.uAmount) );
 
         // The cool part about doing it this way rather than having user RCAs to zapper contract,
         // then it exchanging and returning Ether is that it's more gas efficient and no approvals are needed.
@@ -370,7 +378,7 @@ contract RcaShield is ERC20, Governable {
         // If amount is too big than for sale, tx will fail here.
         amtForSale -= _uAmount;
 
-        uToken.transfer(_user, _uAmount);
+        uToken.safeTransfer(_user, _uAmount);
         treasury.transfer(msg.value);
         
         emit PurchaseU(
@@ -438,6 +446,9 @@ contract RcaShield is ERC20, Governable {
 /////////////////////////////////////////////////// view ////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+    /// @notice Check balance of underlying token.
+    function _uBalance() internal virtual view returns(uint256);
+
     /**
      * @notice Convert RCA value to underlying tokens. This is internal because new 
      * for sale amounts will already have been retrieved and updated.
@@ -458,7 +469,7 @@ contract RcaShield is ERC20, Governable {
         if (totalSupply == 0) return _rcaAmount;
 
         uAmount = 
-            (uToken.balanceOf( address(this) ) - amtForSale + _extraForSale)
+            (_uBalance() - amtForSale + _extraForSale)
             * _rcaAmount
             / (totalSupply + pendingWithdrawal);
 
@@ -485,7 +496,7 @@ contract RcaShield is ERC20, Governable {
         uint256 rcaAmount
     )
     {
-        uint256 balance = uToken.balanceOf( address(this) );
+        uint256 balance = _uBalance();
         if (balance == 0) return _uAmount;
 
         rcaAmount = 
@@ -514,7 +525,7 @@ contract RcaShield is ERC20, Governable {
         // Pretty annoying but we gotta do APR calculations if it's above 0.
         if (apr > 0) {
             uint256 secsElapsed = block.timestamp - lastUpdate;
-            uint256 balance = uToken.balanceOf( address(this) );
+            uint256 balance = _uBalance();
             extraForSale =
                 balance
                 * secsElapsed 
@@ -552,7 +563,7 @@ contract RcaShield is ERC20, Governable {
         // Pretty annoying but we gotta do APR calculations if it's above 0.
         if (apr > 0) {
             uint256 secsElapsed = block.timestamp - lastUpdate;
-            uint256 balance = uToken.balanceOf( address(this) );
+            uint256 balance = _uBalance();
             extraForSale =
                 balance
                 * secsElapsed 
@@ -569,6 +580,16 @@ contract RcaShield is ERC20, Governable {
 
         rcaAmount = _rcaValue(_uAmount, extraForSale);
     }
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////// internal ///////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    function _updateReward(address _user) internal virtual;
+
+    function _afterMint(uint256 _uAmount) internal virtual;
+
+    function _afterRedeem(uint256 _uAmount) internal virtual;
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////// onlyController //////////////////////////////////////////////
