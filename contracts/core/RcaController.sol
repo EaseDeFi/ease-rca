@@ -46,7 +46,7 @@ contract RcaController is RcaGovernable {
     /// @notice Address that funds from selling tokens is sent to.
     address payable public treasury;
     /// @notice Amount of funds for sale on a protocol, sent in by DAO after a hack occurs (in token).
-    bytes32 public forSaleRoot;
+    bytes32 public liqRoot;
     /// @notice Merkle root of the amount of capacity available for each protocol (in USD).
     bytes32 public capacitiesRoot;
     /// @notice Root of all underlying token prices--only used if the protocol is doing pricing.
@@ -87,21 +87,15 @@ contract RcaController is RcaGovernable {
 
     /**
      * @notice Update is used before each onlyShield function to ensure the shield is up-to-date before actions.
-     * @param _addForSale Additional amount for sale.
-     * @param _oldCumForSale Old cumulative amount of funds for sale. Needed to ensure additional is accurate.
-     * @param _forSaleProof Merkle proof for the for sale amount.
+     * @param _newCumLiq Old cumulative amount of funds for sale. Needed to ensure additional is accurate.
+     * @param _liqProof Merkle proof for the for sale amount.
      */
     modifier update(
-        uint256   _addForSale,
-        uint256   _oldCumForSale,
-        bytes32[] memory _forSaleProof
+        uint256   _newCumLiq,
+        bytes32[] memory _liqProof
     )
     {
-        _update(
-            _addForSale,
-            _oldCumForSale,
-            _forSaleProof
-        );
+        _update(_newCumLiq, _liqProof);
         _;
     }
     
@@ -162,15 +156,13 @@ contract RcaController is RcaGovernable {
         uint256   _uAmount,
         uint256   _capacity,
         bytes32[] calldata _capacityProof,
-        uint256   _addForSale,
-        uint256   _oldCumForSale,
-        bytes32[] calldata _forSaleProof
+        uint256   _newCumLiq,
+        bytes32[] calldata _liqProof
     )
       external
       update(
-          _addForSale,
-          _oldCumForSale,
-          _forSaleProof
+          _newCumLiq,
+          _liqProof
       )
       onlyShield
     {
@@ -180,18 +172,10 @@ contract RcaController is RcaGovernable {
          * happen. We don't keep track on-chain because we'll be on multiple chains without 
          * cross-communication. We've decided there's not enough risk to keep capacities fully on-chain.
          */ 
-        verifyCapacity(
-            msg.sender, 
-            _capacity, 
-            _capacityProof
-        );
+        verifyCapacity(msg.sender, _capacity, _capacityProof);
         require(_uAmount < _capacity, "Not enough capacity available.");
         
-        emit Mint(
-            msg.sender, 
-            _user, 
-            block.timestamp
-        );
+        emit Mint(msg.sender, _user, block.timestamp);
     }
 
     /**
@@ -202,15 +186,13 @@ contract RcaController is RcaGovernable {
     function redeemRequest(
         address   _user,
         uint256   _rcaAmount,
-        uint256   _addForSale,
-        uint256   _oldCumForSale,
-        bytes32[] calldata _forSaleProof
+        uint256   _newCumLiq,
+        bytes32[] calldata _liqProof
     )
       external
       update(
-          _addForSale,
-          _oldCumForSale,
-          _forSaleProof
+          _newCumLiq,
+          _liqProof
       )
       onlyShield
     {
@@ -231,15 +213,13 @@ contract RcaController is RcaGovernable {
         address   _to,
         address   _user,
         uint256   _rcaAmount,
-        uint256   _addForSale,
-        uint256   _oldCumForSale,
-        bytes32[] calldata _forSaleProof
+        uint256   _newCumLiq,
+        bytes32[] calldata _liqProof
     )
       external
       update(
-          _addForSale,
-          _oldCumForSale,
-          _forSaleProof
+          _newCumLiq,
+          _liqProof
       )
       onlyShield
       returns(
@@ -264,29 +244,19 @@ contract RcaController is RcaGovernable {
         address   _user,
         uint256   _ethPrice,
         bytes32[] calldata _priceProof,
-        uint256   _addForSale,
-        uint256   _oldCumForSale,
-        bytes32[] calldata _forSaleProof
+        uint256   _newCumLiq,
+        bytes32[] calldata _liqProof
     )
       external
       update(
-          _addForSale,
-          _oldCumForSale,
-          _forSaleProof
+          _newCumLiq,
+          _liqProof
       )
       onlyShield
     {
-        verifyPrice(
-            msg.sender,
-            _ethPrice,
-            _priceProof
-        );
+        verifyPrice(msg.sender, _ethPrice, _priceProof);
 
-        emit Purchase(
-            msg.sender, 
-            _user,
-            block.timestamp
-        );
+        emit Purchase(msg.sender, _user, block.timestamp);
     }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -299,9 +269,8 @@ contract RcaController is RcaGovernable {
      * withdrawal delay, new discount for sales, new APR fee for general functionality.
      */
     function _update(
-        uint256   _addForSale,
-        uint256   _oldCumForSale,
-        bytes32[] memory _forSaleProof
+        uint256   _newCumLiq,
+        bytes32[] memory _liqProof
     )
       internal
     {
@@ -316,14 +285,11 @@ contract RcaController is RcaGovernable {
         if (lastUpdate < updates.discountUpdate) shield.setDiscount(discount);
         if (lastUpdate < updates.pausedUpdate) shield.setPercentPaused(percentPaused);
         if (lastUpdate < updates.withdrawalDelayUpdate) shield.setWithdrawalDelay(withdrawalDelay);
-        if (lastUpdate < updates.forSaleUpdate) shield.setForSale(
-                                                            getForSale(
-                                                                msg.sender,
-                                                                _addForSale,
-                                                                _oldCumForSale,
-                                                                _forSaleProof
-                                                            )
-                                                        );
+        if (lastUpdate < updates.forSaleUpdate) {
+            verifyLiq(msg.sender, _newCumLiq, _liqProof);
+            shield.setForSale(_newCumLiq);
+        }
+                                                        
         lastShieldUpdate[msg.sender] = uint32(block.timestamp);
     }
 
@@ -332,50 +298,20 @@ contract RcaController is RcaGovernable {
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
-     * @notice Get amount for sale.
-     * @param _shield        Address of shield to get for sale for.
-     * @param _addForSale    Additional amount for sale (in Merkle).
-     * @param _oldCumForSale Old cumulative amount for sale.
-     * @param _forSaleProof  Merkle proof for data.
+     * @notice Verify the current amount for liquidation.
+     * @param _newCumLiq New cumulative amount liquidated.
+     * @param _liqProof  Proof of the for sale amounts.
      */
-    function getForSale(
+    function verifyLiq(
         address   _shield,
-        uint256   _addForSale,
-        uint256   _oldCumForSale,
-        bytes32[] memory _forSaleProof
-    )
-      public
-      view
-    returns (uint256)
-    {
-        verifyForSale(
-            _shield,
-            _addForSale,
-            _oldCumForSale,
-            _forSaleProof
-        );
-
-        uint256 newAddForSale = _addForSale + _oldCumForSale;
-        return newAddForSale;
-    }
-
-    /**
-     * @notice Verify the current amount for sale.
-     * @param _addForSale    Additional amount for sale.
-     * @param _oldCumForSale Old cumulative amount for liquidation.
-     * @param _forSaleProof  Proof of the for sale amounts.
-     */
-    function verifyForSale(
-        address   _shield,
-        uint256   _addForSale,
-        uint256   _oldCumForSale,
-        bytes32[] memory _forSaleProof
+        uint256   _newCumLiq,
+        bytes32[] memory _liqProof
     )
       public
       view
     {
-        bytes32 leaf = keccak256(abi.encodePacked(_shield, _addForSale, _oldCumForSale));
-        require(MerkleProof.verify(_forSaleProof, forSaleRoot, leaf), "Incorrect forSale proof.");
+        bytes32 leaf = keccak256(abi.encodePacked(_shield, _newCumLiq));
+        require(MerkleProof.verify(_liqProof, liqRoot, leaf), "Incorrect liq proof.");
     }
 
     /**
@@ -416,11 +352,11 @@ contract RcaController is RcaGovernable {
     /**
      * @notice Makes it easier for frontend to get the balances on many shields.
      * @param _user User to find balances of.
-     * @param _shields The shields (also tokens) to find the RCA balances for.
+     * @param _tokens The shields (also tokens) to find the RCA balances for.
      */
     function balanceOfs(
         address   _user,
-        address[] calldata _shields
+        address[] calldata _tokens
     )
       external
       view
@@ -428,41 +364,12 @@ contract RcaController is RcaGovernable {
         uint256[] memory balances
     )
     {
-        balances = new uint256[](_shields.length);
+        balances = new uint256[](_tokens.length);
 
-        for (uint256 i = 0; i < _shields.length; i++) {
-            uint256 balance = IERC20(_shields[i]).balanceOf(_user);
+        for (uint256 i = 0; i < _tokens.length; i++) {
+            uint256 balance = IERC20(_tokens[i]).balanceOf(_user);
             balances[i] = balance;
         }
-    }
-
-    /**
-     * @notice Create merkle leaf with our data. Temporarily using this for testing.
-     */
-    function createLeaf(
-        address _shield,
-        uint256 _capacity
-    )
-      external
-      pure
-    returns(bytes32)
-    {
-        return keccak256(abi.encodePacked(_shield, _capacity));
-    }
-
-    /**
-     * @notice Create merkle leaf with our data. Temporarily using this for testing.
-     */
-    function createForSale(
-        address _shield,
-        uint256 _addForSale,
-        uint256 _oldCumForSale
-    )
-      external
-      pure
-    returns(bytes32)
-    {
-        return keccak256(abi.encodePacked(_shield, _addForSale, _oldCumForSale));
     }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -505,10 +412,10 @@ contract RcaController is RcaGovernable {
      * @dev Root will be determined by hashing current amount for sale and current cumulative amount
      * that has been put as for sale through this means in the past. This ensures that if the vault is
      * updated after this new root has been created, the new cumulative amount can be accounted for.
-     * @param _newForSaleRoot Merkle root for new total amounts for sale for each protocol (in token).
+     * @param _newLiqRoot Merkle root for new total amounts for sale for each protocol (in token).
      */
     function setForSale(
-        bytes32 _newForSaleRoot
+        bytes32 _newLiqRoot
     )
       external
       onlyGov
@@ -517,8 +424,8 @@ contract RcaController is RcaGovernable {
         percentPaused              = 0;
         systemUpdates.pausedUpdate = uint32(block.timestamp);
 
-        if ( _newForSaleRoot != bytes32(0) ) {
-            forSaleRoot                 = _newForSaleRoot;
+        if ( _newLiqRoot != bytes32(0) ) {
+            liqRoot                     = _newLiqRoot;
             systemUpdates.forSaleUpdate = uint32(block.timestamp);
         }
     }
