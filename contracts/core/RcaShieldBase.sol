@@ -47,12 +47,6 @@ abstract contract RcaShieldBase is ERC20, Governable {
     /// @notice Amount of tokens currently up for sale.
     uint256 public amtForSale;
 
-    // cumulative for sale: 1000 tokens
-    // amount for sale: 1000 tokens
-    // for sale update: 1000 tokens
-    // hack occurs, new total cumulative is set to 2000
-
-
     /** 
      * @notice Amount of RCA tokens pending withdrawal. 
      * @dev When doing value calculations this is required
@@ -130,7 +124,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
     {
         if (apr > 0) {
             uint256 secsElapsed = block.timestamp - lastUpdate;
-            uint256 active = uToken.balanceOf( address(this) ) - amtForSale;
+            uint256 active = _uBalance() - amtForSale;
             amtForSale += 
                 active
                 * secsElapsed 
@@ -205,6 +199,15 @@ abstract contract RcaShieldBase is ERC20, Governable {
         treasury = _treasury;
         withdrawalDelay = _withdrawalDelay;
     }
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////// internal ///////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    function _updateReward(address _user) internal virtual;
+
+    function _afterMint(uint256 _uAmount) internal virtual;
+
+    function _afterRedeem(uint256 _uAmount) internal virtual;
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////// external //////////////////////////////////////////////////
@@ -274,6 +277,9 @@ abstract contract RcaShieldBase is ERC20, Governable {
 
         uint256 uAmount = _uValue(_rcaAmount, 0);
         _burn(msg.sender, _rcaAmount);
+
+        _afterRedeem(uAmount);
+
         pendingWithdrawal += _rcaAmount;
 
         WithdrawRequest memory curRequest = withdrawRequests[msg.sender];
@@ -281,8 +287,6 @@ abstract contract RcaShieldBase is ERC20, Governable {
         uint112 newRcaAmount              = uint112(_rcaAmount) + curRequest.rcaAmount;
         uint32 endTime                    = uint32(block.timestamp) + uint32(withdrawalDelay);
         withdrawRequests[msg.sender]      = WithdrawRequest(newUAmount, newRcaAmount, endTime);
-
-        _afterRedeem(uAmount);
 
         emit RedeemRequest(
             msg.sender,
