@@ -16,7 +16,7 @@ import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
  * @dev This contract assumes uToken decimals of 18.
  * @author Robert M.C. Forster
 **/
-abstract contract RcaShield is ERC20, Governable {
+abstract contract RcaShieldBase is ERC20, Governable {
     using SafeERC20 for IERC20;
 
     uint256 constant YEAR_SECS = 31536000;
