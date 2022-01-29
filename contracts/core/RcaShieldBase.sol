@@ -7,6 +7,7 @@ import '../interfaces/IRcaController.sol';
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
+import 'hardhat/console.sol';
 
 /**
  * @title RCA Vault
@@ -368,6 +369,8 @@ abstract contract RcaShieldBase is ERC20, Governable {
 
         uint256 price = _uEthPrice  - (_uEthPrice * discount / DENOMINATOR);
         uint256 ethAmount = price * _uAmount;
+        console.log("eth amount:", ethAmount);
+        console.log("msg value:", msg.value);
         require(msg.value == ethAmount, "Incorrect Ether sent.");
 
         // If amount is too big than for sale, tx will fail here.

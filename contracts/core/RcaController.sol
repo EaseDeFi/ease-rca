@@ -414,7 +414,7 @@ contract RcaController is RcaGovernable {
      * updated after this new root has been created, the new cumulative amount can be accounted for.
      * @param _newLiqRoot Merkle root for new total amounts for sale for each protocol (in token).
      */
-    function setForSale(
+    function setLiqTotal(
         bytes32 _newLiqRoot
     )
       external

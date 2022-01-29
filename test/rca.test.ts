@@ -16,6 +16,12 @@ describe('RCAs baby', function(){
   let user: Signer;
   let priceOracle: Signer;
   let capOracle: Signer;
+  let capTree: BalanceTree;
+  let liqTree: BalanceTree;
+  let priceTree: BalanceTree;
+  let capProof: String[];
+  let priceProof: String[];
+  let liqProof: String[];
 
   beforeEach(async function(){
     accounts    = await ethers.getSigners();
@@ -41,6 +47,32 @@ describe('RCAs baby', function(){
     await controller.connect(owner).initializeShield(shield.address, [1], [10000]);
 
     await uToken.mint(user.getAddress(), ether("1000000"));
+      
+    // Set capacity tree.
+    capTree = new BalanceTree([
+      { account: shield.address, amount: ether("1000000") },
+      { account: controller.address, amount: ether("1000000") }
+    ]);
+
+    await controller.connect(capOracle).setCapacities(capTree.getHexRoot());
+
+    // Set liquidation tree.
+    liqTree = new BalanceTree([
+      { account: shield.address, amount: ether("100") },
+      { account: controller.address, amount: ether("100") }
+    ]);
+
+    // Set price tree.
+    priceTree = new BalanceTree([
+      { account: shield.address, amount: ether("0.001") },
+      { account: controller.address, amount: ether("0.001") }
+    ]);
+
+    await controller.connect(priceOracle).setPrices(priceTree.getHexRoot());
+
+    capProof   = capTree.getProof(shield.address, ether("1000000"));
+    priceProof = priceTree.getProof(shield.address, ether("0.001"));
+    liqProof   = liqTree.getProof(shield.address, ether("100"));
   });
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -62,24 +94,14 @@ describe('RCAs baby', function(){
   describe('Mint', function(){
 
     beforeEach(async function(){
-
+      await uToken.connect(user).approve(shield.address, ether("1000"));
+      //                  to address, uAmount, capacity, cap proof, for sale, old cumulative, for sale proof
+      var capProof = capTree.getProof(shield.address, ether("1000000"));
     });
 
     // Approve shield to take 1,000 underlying tokens, mint, should receive back 1,000 RCA tokens.
     it("should be able to mint an RCA token", async function(){
-      let tree: BalanceTree;
-      
-      // Set capacity proof.
-      tree = new BalanceTree([
-        { account: shield.address, amount: ether("1000000") },
-        { account: controller.address, amount: ether("1000000") }
-      ])
-
-      await controller.connect(capOracle).setCapacities(tree.getHexRoot());
-      await uToken.connect(user).approve(shield.address, ether("1000"));
-      //                  to address, uAmount, capacity, cap proof, for sale, old cumulative, for sale proof
-      const capProof = tree.getProof(shield.address, ether("1000000"));
-      await shield.connect(user).mintTo(user.getAddress(), ether("100"), ether("1000000"), capProof, 0, 0, []);
+      await shield.connect(user).mintTo(user.getAddress(), ether("100"), ether("1000000"), capProof, 0, liqProof);
 
       let rcaBal = await shield.balanceOf(user.getAddress());
       expect(rcaBal).to.be.equal(ether("100"));
@@ -89,14 +111,12 @@ describe('RCAs baby', function(){
   describe('Redeem', function(){
 
     beforeEach(async function(){
-      let capacities = await controller.createLeaf(shield.address, ether("1000000"));
-      await controller.connect(capOracle).setCapacities(capacities);
       await uToken.connect(user).approve(shield.address, ether("1000"));
-      await shield.connect(user).mintTo(user.getAddress(), ether("100"), ether("1000000"), [], 0, 0, [])
+      await shield.connect(user).mintTo(user.getAddress(), ether("100"), ether("1000000"), capProof, 0, liqProof)
     });
 
     it("should be able to initiate and finalize redeem of RCA token", async function(){
-      await shield.connect(user).redeemRequest(ether("100"), 0, 0, [])
+      await shield.connect(user).redeemRequest(ether("100"), 0, [])
 
       // Check request data
       let timestamp = await getTimestamp();
@@ -109,7 +129,7 @@ describe('RCAs baby', function(){
       // A bit more than 1 day withdrawal
       increase(86500);
 
-      await shield.connect(user).redeemTo(user.getAddress(), user.getAddress(), 0, 0, []);
+      await shield.connect(user).redeemTo(user.getAddress(), user.getAddress(), 0, []);
       let rcaBal = await shield.balanceOf(user.getAddress());
       let uBal   = await uToken.balanceOf(user.getAddress());
       expect(rcaBal).to.be.equal(0);
@@ -118,7 +138,7 @@ describe('RCAs baby', function(){
 
     // If one request is made after another, the amounts should add to last amounts and the endTime should restart.
     it("should be able to stack redeem requests and reset time", async function(){
-      await shield.connect(user).redeemRequest(ether("50"), 0, 0, [])
+      await shield.connect(user).redeemRequest(ether("50"), 0, [])
       // By increasing half a day we can check timestamp changing
       let startTime = await getTimestamp();
       let requests = await shield.withdrawRequests(user.getAddress())
@@ -129,7 +149,7 @@ describe('RCAs baby', function(){
       // Wait half a day to make sure request time resets (don't want both requests starting at the same time or we can't check).
       increase(43200);
 
-      await shield.connect(user).redeemRequest(ether("50"), 0, 0, [])
+      await shield.connect(user).redeemRequest(ether("50"), 0, [])
       let secondTime = await getTimestamp();
       requests = await shield.withdrawRequests(user.getAddress());
       expect(requests[0]).to.be.equal(ether("100"));
@@ -144,39 +164,26 @@ describe('RCAs baby', function(){
 
     beforeEach(async function(){
       // Set capacity proof. Sorta faking, it's a 1 leaf proof. Won't provide super accurate gas pricing but shouldn't cost too much more.
-      let capacities = await controller.createLeaf(shield.address, ether("1000000"));
-      await controller.connect(capOracle).setCapacities(capacities);
-
       await uToken.connect(user).approve(shield.address, ether("1000"));
       //                  to address, uAmount, capacity, cap proof, for sale, old cumulative, for sale proof
-      await shield.connect(user).mintTo(user.getAddress(), ether("1000"), ether("1000000"), [], 0, 0, [])
-
-      let forSale = await controller.createForSale(shield.address, ether("1000"), 0);
-      await controller.connect(owner).setForSale(forSale);
-
-      // Create the prices, can re-use other leaf
-      let priceRoot = await controller.createLeaf(shield.address, 1);
-      await controller.connect(priceOracle).setPrices(priceRoot);
+      await shield.connect(user).mintTo(user.getAddress(), ether("1000"), ether("1000000"), capProof, 0, [])
+      await controller.connect(owner).setLiqTotal(liqTree.getHexRoot());
     });
 
     // Attempt to purchase 100 RCA tokens twice.
     it("should purchase an RCA token from liquidation", async function(){
-      await shield.purchaseRca(user.getAddress(), ether("100"), 1, [], ether("1000"), 0, [], {value: 100});
-      expect(await shield.balanceOf(user.getAddress(), )).to.be.equal(ether("1100"));
+      await shield.purchaseRca(user.getAddress(), ether("100"), ether("0.001"), priceProof, ether("100"), liqProof, {value: ether("0.098")});
+      expect(await shield.balanceOf(user.getAddress())).to.be.equal(ether("1100"));
     });
 
     it("should purchase underlying tokens from liquidation", async function(){
-      await shield.purchaseU(user.getAddress(), ether("100"), 1, [], ether("1000"), 0, [], {value: 100});
+      await shield.purchaseU(user.getAddress(), ether("100"), ether("0.001"), priceProof, ether("100"), liqProof, {value: ether("0.098")});
     });
   });
 
   describe('Controller Updates', function(){
 
     beforeEach(async function(){
-      // We're not updating for sale here because it resets percent paused.
-      let capacities = await controller.createLeaf(shield.address, ether("1000000"));
-      await controller.connect(capOracle).setCapacities(capacities);
-
       await controller.connect(owner).setWithdrawalDelay(100000);
       await controller.connect(owner).setDiscount(1000);
       await controller.connect(owner).setApr(1000);
@@ -194,7 +201,7 @@ describe('RCAs baby', function(){
       // Mint call should update all variables on shield
       await uToken.connect(user).approve(shield.address, ether("1000"));
       //                  to address, uAmount, capacity, cap proof, for sale, old cumulative, for sale proof
-      await shield.connect(user).mintTo(user.getAddress(), ether("1000"), ether("1000000"), [], ether("1000"), 0, [])
+      await shield.connect(user).mintTo(user.getAddress(), ether("1000"), ether("1000000"), capProof, ether("100"), liqProof)
 
       expect(await shield.apr()).to.be.equal(1000);
       expect(await shield.discount()).to.be.equal(1000);
@@ -203,14 +210,11 @@ describe('RCAs baby', function(){
       expect(await shield.percentPaused()).to.be.equal(1000);
 
       it("should update for sale", async function(){
-        let forSale = await controller.createForSale(shield.address, ether("1000"), 0);
-        await controller.connect(owner).setForSale(forSale);
-
         await uToken.connect(user).approve(shield.address, ether("1000"));
-        await shield.connect(user).mintTo(user.getAddress(), ether("1000"), ether("1000000"), [], ether("1000"), 0, []);
+        await shield.connect(user).mintTo(user.getAddress(), ether("1000"), ether("1000000"), capProof, ether("100"), liqProof);
 
-        expect(await shield.amtForSale()).to.be.equal(ether("1000"));
-        expect(await shield.cumForSale()).to.be.equal(ether("1000"));
+        expect(await shield.amtForSale()).to.be.equal(ether("100"));
+        expect(await shield.cumForSale()).to.be.equal(ether("100"));
         expect(await shield.percentPaused()).to.be.equal(0);
         expect(await controller.percentPaused()).to.be.equal(0);
       })
@@ -228,7 +232,7 @@ describe('RCAs baby', function(){
     });
   });
 
-  describe.only('Privileged', function(){
+  describe('Privileged', function(){
 
     it("should block from privileged functions", async function(){
       await expect(controller.connect(user).setWithdrawalDelay(100000)).to.be.revertedWith("msg.sender is not owner");
@@ -243,8 +247,8 @@ describe('RCAs baby', function(){
       await expect(shield.connect(user).setTreasury(user.getAddress())).to.be.revertedWith("Function must only be called by controller.");
       await expect(shield.connect(owner).setPercentPaused(1000)).to.be.revertedWith("Function must only be called by controller.");
 
-      await expect(controller.connect(owner).setPrices("0x")).to.be.revertedWith("msg.sender is not price oracle");
-      await expect(controller.connect(owner).setCapacities("0x")).to.be.revertedWith("msg.sender is not capacity oracle");
+      await expect(controller.connect(owner).setPrices(priceTree.getHexRoot())).to.be.revertedWith("msg.sender is not price oracle");
+      await expect(controller.connect(owner).setCapacities(capTree.getHexRoot())).to.be.revertedWith("msg.sender is not capacity oracle");
 
       await expect(shield.connect(user).setController(owner.getAddress())).to.be.revertedWith("msg.sender is not owner");
       await expect(shield.connect(user).proofOfLoss(owner.getAddress())).to.be.revertedWith("msg.sender is not owner");
