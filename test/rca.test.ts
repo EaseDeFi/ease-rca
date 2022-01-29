@@ -7,7 +7,8 @@ import BalanceTree from './balance-tree'
 import { userInfo } from "os";
 
 // Testing base RCA functionalities
-describe('RCAs baby', function(){
+// I'm really really sorry for the mess here but I only have a limited amount of organizational ability and it was all used on the Solidity.
+describe('RCAs and Controller', function(){
   let accounts: Signer[];
   let uToken: Contract;
   let shield: Contract;
@@ -22,6 +23,8 @@ describe('RCAs baby', function(){
   let capProof: String[];
   let priceProof: String[];
   let liqProof: String[];
+  let liqTree2: BalanceTree;
+  let liqProof2: String[];
 
   beforeEach(async function(){
     accounts    = await ethers.getSigners();
@@ -44,7 +47,7 @@ describe('RCAs baby', function(){
     shield       = await SHIELD.deploy("Test Token RCA", "TEST-RCA", uToken.address, owner.getAddress(), controller.address);
 
     //                                               shield, protocol Id, %
-    await controller.connect(owner).initializeShield(shield.address, [1], [10000]);
+    await controller.connect(owner).initializeShield(shield.address, [1, 2], [10000, 10000]);
 
     await uToken.mint(user.getAddress(), ether("1000000"));
       
@@ -62,6 +65,12 @@ describe('RCAs baby', function(){
       { account: controller.address, amount: ether("100") }
     ]);
 
+    // Set liquidation tree.
+    liqTree2 = new BalanceTree([
+      { account: shield.address, amount: ether("0") },
+      { account: controller.address, amount: ether("0") }
+    ]);
+
     // Set price tree.
     priceTree = new BalanceTree([
       { account: shield.address, amount: ether("0.001") },
@@ -73,22 +82,43 @@ describe('RCAs baby', function(){
     capProof   = capTree.getProof(shield.address, ether("1000000"));
     priceProof = priceTree.getProof(shield.address, ether("0.001"));
     liqProof   = liqTree.getProof(shield.address, ether("100"));
+    liqProof2  = liqTree2.getProof(shield.address, ether("0"));
   });
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////// Shield Functions //////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   describe('Initialize', function(){
 
-    beforeEach(async function(){
+    // Approve shield to take 1,000 underlying tokens, mint, should receive back 1,000 RCA tokens.
+    it("should initialize controller correctly", async function(){
+      expect(await controller.apr()).to.be.equal(0);
+      expect(await controller.discount()).to.be.equal(200);
+      expect(await controller.withdrawalDelay()).to.be.equal(86400);
+      expect(await controller.treasury()).to.be.equal(await owner.getAddress());
+      expect(await controller.percentPaused()).to.be.equal(0);
+      expect(await controller.priceOracle()).to.be.equal(await priceOracle.getAddress());
+      expect(await controller.capOracle()).to.be.equal(await capOracle.getAddress());
+      expect(await controller.governor()).to.be.equal(await owner.getAddress());
+      expect(await controller.guardian()).to.be.equal(await user.getAddress());
 
+      expect(await controller.shieldMapping(shield.address)).to.be.equal(true);
+      let protocolPercents = await controller.shieldProtocolPercents(shield.address);
+      expect(protocolPercents[0].protocolId).to.be.equal(1);
+      expect(protocolPercents[1].protocolId).to.be.equal(2);
+      expect(protocolPercents[0].percent).to.be.equal(10000);
+      expect(protocolPercents[1].percent).to.be.equal(10000);
     });
 
     // Approve shield to take 1,000 underlying tokens, mint, should receive back 1,000 RCA tokens.
-    it("should be able to mint an RCA token", async function(){
-
+    it("should initialize shield correctly", async function(){
+      expect(await shield.apr()).to.be.equal(0);
+      expect(await shield.discount()).to.be.equal(200);
+      expect(await shield.withdrawalDelay()).to.be.equal(86400);
+      expect(await shield.treasury()).to.be.equal(await user.getAddress());
+      expect(await shield.percentPaused()).to.be.equal(0);
+      expect(await shield.name()).to.be.equal("Test Token RCA");
+      expect(await shield.symbol()).to.be.equal("TEST-RCA");
+      expect(await shield.uToken()).to.be.equal(uToken.address);
     });
+
   });
 
   describe('Mint', function(){
@@ -106,6 +136,16 @@ describe('RCAs baby', function(){
       let rcaBal = await shield.balanceOf(user.getAddress());
       expect(rcaBal).to.be.equal(ether("100"));
     });
+
+    // Must reject an amount over the capacity
+
+    // Mint in correct ratios
+
+    // check different addresses
+
+    // TEST WITH TIME DELAYS?
+
+    // test weird updates
   });
 
   describe('Redeem', function(){
@@ -158,6 +198,10 @@ describe('RCAs baby', function(){
 
       requests = await shield.withdrawRequests(user.getAddress())
     });
+
+    // check with zapper
+    
+    // check in different ratios
   });
 
   describe('Purchase', function(){
@@ -178,7 +222,11 @@ describe('RCAs baby', function(){
 
     it("should purchase underlying tokens from liquidation", async function(){
       await shield.purchaseU(user.getAddress(), ether("100"), ether("0.001"), priceProof, ether("100"), liqProof, {value: ether("0.098")});
+      // expect
     });
+
+    // Check in different ratios
+
   });
 
   describe('Controller Updates', function(){
@@ -214,22 +262,54 @@ describe('RCAs baby', function(){
         await shield.connect(user).mintTo(user.getAddress(), ether("1000"), ether("1000000"), capProof, ether("100"), liqProof);
 
         expect(await shield.amtForSale()).to.be.equal(ether("100"));
-        expect(await shield.cumForSale()).to.be.equal(ether("100"));
+        expect(await shield.cumLiq()).to.be.equal(ether("100"));
         expect(await shield.percentPaused()).to.be.equal(0);
         expect(await controller.percentPaused()).to.be.equal(0);
       })
     });
   });
 
-  describe('APR Update', function(){
+  describe.only('Views', function(){
 
     beforeEach(async function(){
-
+      await controller.connect(owner).setApr(1000);
+      await uToken.connect(user).approve(shield.address, ether("1000"));
+      await controller.connect(owner).setLiqTotal(liqTree2.getHexRoot());
     });
 
     it("should update APR when needed", async function(){
+      await shield.connect(user).mintTo(user.getAddress(), ether("1000"), ether("1000000"), capProof, 0, liqProof2);
 
+      // Wait about half a year, so about 5% should be taken.
+      increase(31536000 / 2);
+      mine();
+
+      let uValue = await shield.uValue(ether("1"), 0, liqProof2);
+      let rcaValue = await shield.rcaValue(ether("1"), 0, liqProof2);
+      // Sometimes test speed discrepancies make this fail (off by a few seconds so slightly under 95%).
+      expect(uValue).to.be.equal(ether("0.95"));
+      expect(rcaValue).to.be.equal(ether("1.05"));
     });
+
+    it("should update correctly with tokens for sale", async function(){
+      await controller.connect(owner).setLiqTotal(liqTree.getHexRoot());
+      await shield.connect(user).mintTo(user.getAddress(), ether("1000"), ether("1000000"), capProof, ether("100"), liqProof);
+
+      // Wait about half a year, so about 5% should be taken.
+      increase(31536000 / 2);
+      mine();
+      
+      let uValue = await shield.uValue(ether("1"), ether("100"), liqProof);
+      let rcaValue = await shield.rcaValue(ether("1"), ether("100"), liqProof);
+      // 0.855 == 90% (because 10% is being liquidated) - (10% / 2 for APR)
+      expect(uValue).to.be.equal(ether("0.855"));
+      expect(rcaValue).to.be.equal(ether("1.145"));
+    });
+
+    // with percent paused
+
+    // 
+
   });
 
   describe('Privileged', function(){
@@ -252,21 +332,6 @@ describe('RCAs baby', function(){
 
       await expect(shield.connect(user).setController(owner.getAddress())).to.be.revertedWith("msg.sender is not owner");
       await expect(shield.connect(user).proofOfLoss(owner.getAddress())).to.be.revertedWith("msg.sender is not owner");
-    });
-  });
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////// Controller Functions ////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-  describe('Shield Initialization', function(){
-
-    beforeEach(async function(){
-
-    });
-
-    it("should ", async function(){
-
     });
   });
 

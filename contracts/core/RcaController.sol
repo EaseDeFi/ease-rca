@@ -62,7 +62,7 @@ contract RcaController is RcaGovernable {
      * If a system update is more recent than the shield update, value is changed.
      */
     struct SystemUpdates {
-        uint32 forSaleUpdate;
+        uint32 liqUpdate;
         uint32 pausedUpdate;
         uint32 withdrawalDelayUpdate;
         uint32 discountUpdate;
@@ -280,15 +280,22 @@ contract RcaController is RcaGovernable {
         // Seems kinda messy but not too bad on gas.
         SystemUpdates memory updates = systemUpdates;
 
-        if (lastUpdate < updates.aprUpdate) shield.setApr(apr);
-        if (lastUpdate < updates.treasuryUpdate) shield.setTreasury(treasury);
-        if (lastUpdate < updates.discountUpdate) shield.setDiscount(discount);
-        if (lastUpdate < updates.pausedUpdate) shield.setPercentPaused(percentPaused);
+        if (lastUpdate < updates.treasuryUpdate)        shield.setTreasury(treasury);
+        if (lastUpdate < updates.discountUpdate)        shield.setDiscount(discount);
         if (lastUpdate < updates.withdrawalDelayUpdate) shield.setWithdrawalDelay(withdrawalDelay);
-        if (lastUpdate < updates.forSaleUpdate) {
+        if (lastUpdate < updates.liqUpdate) {
             verifyLiq(msg.sender, _newCumLiq, _liqProof);
-            shield.setForSale(_newCumLiq);
+            shield.setLiq( _newCumLiq, uint256(updates.liqUpdate) );
         }
+        /**
+         * @dev There's a slight edge case brought on by the order of APR, percent paused,
+         * and liquidation updates when they're changing in which the shield will be updated with
+         * only one change. The safest solution (charge users the least) is to update liquidation
+         * first, then paused, then APR. This results in the old APR rate being used, but doesn't
+         * result in users charged for inactive funds.
+        */
+        if (lastUpdate < updates.pausedUpdate) shield.setPercentPaused( percentPaused, uint256(updates.pausedUpdate) );
+        if (lastUpdate < updates.aprUpdate)    shield.setApr( apr, uint256(updates.aprUpdate) );
                                                         
         lastShieldUpdate[msg.sender] = uint32(block.timestamp);
     }
@@ -300,7 +307,7 @@ contract RcaController is RcaGovernable {
     /**
      * @notice Verify the current amount for liquidation.
      * @param _newCumLiq New cumulative amount liquidated.
-     * @param _liqProof  Proof of the for sale amounts.
+     * @param _liqProof Proof of the for sale amounts.
      */
     function verifyLiq(
         address   _shield,
@@ -404,6 +411,14 @@ contract RcaController is RcaGovernable {
             shieldProtocolPercents[_shield][i].protocolId = _protocols[i];
             shieldProtocolPercents[_shield][i].percent    = _percents[i];
         }
+
+        emit ShieldCreated(
+            _shield,
+            address( IRcaShield(_shield).uToken() ),
+            IRcaShield(_shield).name(),
+            IRcaShield(_shield).symbol(),
+            block.timestamp
+        );
     }
 
     /**
@@ -426,7 +441,7 @@ contract RcaController is RcaGovernable {
 
         if ( _newLiqRoot != bytes32(0) ) {
             liqRoot                     = _newLiqRoot;
-            systemUpdates.forSaleUpdate = uint32(block.timestamp);
+            systemUpdates.liqUpdate = uint32(block.timestamp);
         }
     }
 
