@@ -19,6 +19,8 @@ contract RcaController is RcaGovernable {
 
     /// @notice Address => whether or not it's a verified shield.
     mapping (address => bool) public shieldMapping;
+    /// @notice Address => whether or not it's a verified zapper.
+    mapping (address => bool) public zappers;
 
     /// @notice Percents of coverage for each protocol of a specific shield, 1000 == 10%.
     mapping (address => ProtocolPercent[]) public shieldProtocolPercents;
@@ -235,6 +237,9 @@ contract RcaController is RcaGovernable {
           _liqProof
       )
       onlyShield
+      returns(
+          bool zapper
+      )
     {
         emit RedeemFinalize(
             msg.sender, 
@@ -243,6 +248,8 @@ contract RcaController is RcaGovernable {
             _rcaAmount,
             block.timestamp
         );
+
+        zapper = zappers[_to];
     }
 
     /**
@@ -523,6 +530,19 @@ contract RcaController is RcaGovernable {
     {
         treasury                     = _newTreasury;
         systemUpdates.treasuryUpdate = uint32(block.timestamp);
+    }
+
+    /**
+     * @notice Governance can add a new zapper allowed to exchange funds for users.
+     * @param _newZapper Address of the zapper contract.
+     */
+    function setZapper(
+        address _newZapper
+    )
+      external
+      onlyGov
+    {
+        zappers[_newZapper] = true;
     }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
