@@ -39,10 +39,10 @@ abstract contract RcaShieldBase is ERC20, Governable {
     uint256 public percentPaused;
 
     /** 
-     * @notice Cumulative total amount that has been for sale lol.
-     * @dev Used to make sure we don't run into a situation where forSale amount isn't updated,
-     * a new hack occurs and current forSale is added to, then forSale is updated while
-     * DAO votes on the new forSale. In this case we can subtract that interim addition.
+     * @notice Cumulative total amount that has been liquidated lol.
+     * @dev Used to make sure we don't run into a situation where liq amount isn't updated,
+     * a new hack occurs and current liq is added to, then liq is updated while
+     * DAO votes on the new liq. In this case we can subtract that interim addition.
      */
     uint256 public cumLiq;
     /// @notice Amount of tokens currently up for sale.
@@ -431,24 +431,18 @@ abstract contract RcaShieldBase is ERC20, Governable {
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
-     * @notice Get the total current amount that's for sale on the contract. Used by frontend.
-     */
-    function getCurrentForSale(
-        uint256   _newCumLiq,
-        bytes32[] calldata liqProof
-    )
-      external
-      view
-    returns(
-        uint256 curForSale
-    )
-    {
-        curForSale = getExtraForSale(_newCumLiq, liqProof) + amtForSale;
-    }
-
-    /**
-     * @notice Get the current amount a vault has for sale.
-     * TODO: needs to include APR changes and percent paused changes I guess?
+     * @notice Get the current amount a vault has for sale. Must include all updates.
+     * This function is sort of a pain. We need to check if any updates need to happen
+     * and adjust amount for sale (which affects conversion) accordingly. It all must
+     * be in the same order that it would happen when updates occur.
+     *
+     * If we don't do this, frontend conversions could be different from what a user
+     * actually receives.
+     *
+     * Not gas efficient in any way shape or form, but designed only for frontend.
+     * I feel like I've committed a sin with this function :(
+     * @param _newCumLiq New cumulative liquidation amount.
+     * @param _liqProof Merkle proof for liquidation.
      */
     function getExtraForSale(
         uint256   _newCumLiq,
@@ -460,23 +454,62 @@ abstract contract RcaShieldBase is ERC20, Governable {
         uint256 extraForSale
     )
     {
-        // Pretty annoying but we gotta do APR calculations if it's above 0.
-        if (apr > 0) {
-            uint256 secsElapsed = block.timestamp - lastUpdate;
-            uint256 active = _uBalance() - amtForSale;
-            extraForSale =
+        uint256 balance   = _uBalance();
+
+        // These can all change within this function.
+        extraForSale      = amtForSale;
+        uint256 curApr    = apr;
+        uint256 curPaused = percentPaused;
+
+        // Check for liquidation, then percent paused, then APR
+        (uint32 liqUpdate, uint32 pausedUpdate, /** */, /** */, uint32 aprUpdate, /** */) = controller.systemUpdates();
+        uint32 prevUpdate = uint32(lastUpdate);
+
+        if (liqUpdate > prevUpdate) {
+            // Fails on incorrect for sale amount.
+            controller.verifyLiq(address(this), _newCumLiq, _liqProof);
+            if (curApr > 0) {
+                extraForSale += ( balance - extraForSale - (balance * curPaused / DENOMINATOR) )
+                                * uint256(liqUpdate - prevUpdate)
+                                * curApr / YEAR_SECS / DENOMINATOR;
+            }
+            extraForSale += _newCumLiq - cumLiq;
+            prevUpdate = liqUpdate;
+        }
+
+        // If liquidation updated, prev update changes to that time.
+        // Incorporates any liquidation updates and only runs if after liqUpdate.
+        if (pausedUpdate > prevUpdate && curApr > 0) {
+            extraForSale += ( balance - extraForSale - (balance * curPaused / DENOMINATOR) )
+                            * uint256(pausedUpdate - prevUpdate)
+                            * curApr / YEAR_SECS / DENOMINATOR;
+            curPaused = controller.percentPaused();
+            prevUpdate = pausedUpdate;
+        }
+        
+        // APR will update first then
+        // Incorporates any liquidation updates and percent paused updates and only runs if after pausedUpdate.
+        if (aprUpdate > prevUpdate) {
+            if (curApr > 0) {
+                extraForSale += ( balance - extraForSale - (balance * curPaused / DENOMINATOR) )
+                                * uint256(aprUpdate - prevUpdate)
+                                * curApr / YEAR_SECS / DENOMINATOR;
+            }
+            curApr = controller.apr();
+            prevUpdate = aprUpdate;
+        }
+
+        // Final calculations of APR to current time after accounting for adjustments above.
+        if (curApr > 0) {
+            uint256 secsElapsed = block.timestamp - prevUpdate;
+            uint256 active = balance - extraForSale - (balance * curPaused / DENOMINATOR);
+            extraForSale +=
                 active
                 * secsElapsed 
                 * apr
                 / YEAR_SECS
                 / DENOMINATOR;
         }
-
-        // Fails on incorrect for sale amount.
-        controller.verifyLiq(address(this), _newCumLiq, _liqProof);
-
-        // This calculates whether extra needs to be added to amtForSale for these calcs.
-        extraForSale += _newCumLiq - cumLiq;
     }
 
     /**

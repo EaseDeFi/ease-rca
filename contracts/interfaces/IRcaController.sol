@@ -47,4 +47,8 @@ interface IRcaController {
         bytes32[] memory proof
     ) external view;
 
+    function apr() external view returns(uint256);
+    function percentPaused() external view returns(uint256);
+    function systemUpdates() external view returns(uint32, uint32, uint32, uint32, uint32, uint32);
+
 }

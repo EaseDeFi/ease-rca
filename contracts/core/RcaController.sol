@@ -69,7 +69,7 @@ contract RcaController is RcaGovernable {
         uint32 aprUpdate;
         uint32 treasuryUpdate;
     }
-    SystemUpdates private systemUpdates;
+    SystemUpdates public systemUpdates;
 
     /**
      * @dev Events are used to notify the frontend of events on shields. If we have 1,000 shields,
