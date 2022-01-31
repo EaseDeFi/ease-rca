@@ -285,11 +285,13 @@ abstract contract RcaShieldBase is ERC20, Governable {
      * @notice Used to exchange RCA tokens back to the underlying token. Will have a 2+ day delay upon withdrawal.
      * This can mint to a "zapper" contract that can exchange the asset for Ether and send to the user.
      * @param _to The destination of the tokens.
+     * @param _zapper Whether this is a contract that should be called once sent to.
      * @param _newCumLiq New cumulative liquidated if this must be updated.
      * @param _liqProof Merkle proof to verify new cumulative liquidation.
      */
     function redeemTo(
         address   _to,
+        bool      _zapper,
         uint256   _newCumLiq,
         bytes32[] calldata _liqProof
     )
@@ -303,15 +305,14 @@ abstract contract RcaShieldBase is ERC20, Governable {
         // endTime > 0 ensures request exists.
         require(request.endTime > 0 && uint32(block.timestamp) > request.endTime, "Withdrawal not yet allowed.");
 
-        // This function doubles as redeeming and determining whether user is a zapper.
-        bool zapper = 
-            controller.redeemFinalize(
-                _to,
-                user,
-                uint256(request.rcaAmount),
-                _newCumLiq,
-                _liqProof
-            );
+        // This function doubles as redeeming and determining whether `to` is a zapper.
+        controller.redeemFinalize(
+            _to,
+            user,
+            uint256(request.rcaAmount),
+            _newCumLiq,
+            _liqProof
+        );
 
         _update(block.timestamp);
 
@@ -321,7 +322,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
 
         // The cool part about doing it this way rather than having user send RCAs to zapper contract,
         // then it exchanging and returning Ether is that it's more gas efficient and no approvals are needed.
-        if (zapper) IZapper(_to).zapTo( user, uint256(request.uAmount) );
+        if (_zapper) IZapper(_to).zapTo( user, uint256(request.uAmount) );
 
         emit RedeemFinalize(
             user,

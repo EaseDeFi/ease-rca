@@ -174,7 +174,7 @@ describe('RCAs and Controller', function(){
       // A bit more than 1 day withdrawal
       increase(86500);
 
-      await shield.connect(user).redeemTo(user.getAddress(), 0, []);
+      await shield.connect(user).redeemTo(user.getAddress(), false, 0, []);
       let rcaBal = await shield.balanceOf(user.getAddress());
       let uBal   = await uToken.balanceOf(user.getAddress());
       expect(rcaBal).to.be.equal(0);
