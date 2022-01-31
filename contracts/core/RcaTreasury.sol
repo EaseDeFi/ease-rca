@@ -90,6 +90,21 @@ contract RcaTreasury is Governable {
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
+     * @notice Governance sends in hack ID and a Merkle root corresponding to individual loss in this hack.
+     * @param _hackId ID of the hack that this root is for. (Assigned by our protocol).
+     * @param _newClaimsRoot Merkle root for new capacities available for each protocol (in USD).
+     */
+    function setClaimsRoot(
+        uint256 _hackId,
+        bytes32 _newClaimsRoot
+    )
+      external
+      onlyGov
+    {
+        claimsRoots[_hackId] = _newClaimsRoot;
+    }
+
+    /**
      * @notice Governance may withdraw any amount to any address.
      * @param _to Address to send funds to.
      * @param _amount Amount of funds (in Ether) to send.

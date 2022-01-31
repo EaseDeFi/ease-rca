@@ -23,7 +23,7 @@ contract RcaController is RcaGovernable {
     mapping (address => bool) public zappers;
 
     /// @notice Percents of coverage for each protocol of a specific shield, 1000 == 10%.
-    mapping (address => ProtocolPercent[]) shieldProtocolPercents;
+    mapping (address => ProtocolPercent[]) public shieldProtocolPercents;
     /**
      * @dev For a Yearn vault with a Curve token with DAI, USDC, USDT:
      * Yearn|100%, Curve|100%, DAI|33%, USDC|33%, USDT|33%
@@ -53,7 +53,7 @@ contract RcaController is RcaGovernable {
     bytes32 public priceRoot;
 
     /// @notice Last time each individual shield was checked for update.
-    mapping (address => uint256) lastShieldUpdate;
+    mapping (address => uint256) public lastShieldUpdate;
     /**
      * @dev The update variable flow works in an interesting way to optimize efficiency:
      * Each time a user interacts with a specific shield vault, it calls Controller
@@ -119,6 +119,10 @@ contract RcaController is RcaGovernable {
      * @param _guardian Guardian multisig that can freeze percents after a hack.
      * @param _priceOracle Oracle that can submit price root to the ecosystem.
      * @param _capOracle Oracle that can submit capacity root to the ecosystem.
+     * @param _apr Initial fees for the shield (1000 == 10%).
+     * @param _discount Discount for purchasers of the token (1000 == 10%).
+     * @param _withdrawalDelay Amount of time (in seconds) users must wait before withdrawing.
+     * @param _treasury Address of the treasury that Ether funds will be sent to.
      */
     constructor(
         address _governor,
@@ -150,6 +154,12 @@ contract RcaController is RcaGovernable {
 
     /**
      * @notice Updates contract, emits event for minting, checks capacity.
+     * @param _user User that is minting tokens.
+     * @param _uAmount Underlying token amount being liquidated.
+     * @param _capacity Current extra capacity allowed on this shield (in underlying tokens).
+     * @param _capacityProof Merkle proof to verify the capacity above.
+     * @param _newCumLiq New cumulative amount of liquidated tokens if an update is needed.
+     * @param _liqProof Merkle proof to verify the new cumulative liquidated if needed.
      */
     function mint(
         address   _user,
@@ -182,6 +192,8 @@ contract RcaController is RcaGovernable {
      * @notice Updates contract, emits event for redeem action.
      * @param _user User that is redeeming tokens.
      * @param _rcaAmount The amount of RCAs they're redeeming.
+     * @param _newCumLiq New cumulative amount of liquidated tokens if an update is needed.
+     * @param _liqProof Merkle proof to verify the new cumulative liquidated if needed.
      */
     function redeemRequest(
         address   _user,
@@ -206,8 +218,11 @@ contract RcaController is RcaGovernable {
 
     /**
      * @notice Updates contract, emits event for redeem action.
+     * @param _to The address that the redeem is being made to.
      * @param _user User that is redeeming tokens.
      * @param _rcaAmount The amount of RCAs they're redeeming.
+     * @param _newCumLiq New cumulative amount of liquidated tokens if an update is needed.
+     * @param _liqProof Merkle proof to verify the new cumulative liquidated if needed.
      */
     function redeemFinalize(
         address   _to,
@@ -239,6 +254,11 @@ contract RcaController is RcaGovernable {
 
     /**
      * @notice Updates contract, emits event for purchase action, verifies price.
+     * @param _user The user that is making the purchase.
+     * @param _ethPrice The price of one token in Ether.
+     * @param _priceProof Merkle proof to verify the Ether price of the token.
+     * @param _newCumLiq New cumulative amount of liquidated tokens if an update is needed.
+     * @param _liqProof Merkle proof to verify the new cumulative liquidated if needed.
      */
     function purchase(
         address   _user,
@@ -267,6 +287,8 @@ contract RcaController is RcaGovernable {
      * @notice All general updating of shields for a variety of variables that could have changed
      * since the last interaction. Amount for sale, whether or not the system is paused, new
      * withdrawal delay, new discount for sales, new APR fee for general functionality.
+     * @param _newCumLiq New cumulative amount of liquidated tokens if an update is needed.
+     * @param _liqProof Merkle proof to verify the new cumulative liquidated if needed.
      */
     function _update(
         uint256   _newCumLiq,
@@ -306,6 +328,7 @@ contract RcaController is RcaGovernable {
 
     /**
      * @notice Verify the current amount for liquidation.
+     * @param _shield Address of the shield to verify.
      * @param _newCumLiq New cumulative amount liquidated.
      * @param _liqProof Proof of the for sale amounts.
      */
@@ -342,7 +365,10 @@ contract RcaController is RcaGovernable {
     }
 
     /**
-     * @notice Verify capacity of a shield.
+     * @notice Verify capacity of a shield (in underlying tokens).
+     * @param _shield Address of the shield to verify capacity of.
+     * @param _capacity Amount of capacity the shield has left.
+     * @param _proof The Merkle proof verifying the capacity.
      */
     function verifyCapacity(
         address   _shield,
@@ -385,6 +411,9 @@ contract RcaController is RcaGovernable {
 
     /**
      * @notice Initialize a new arShield from an already-created family.
+     * @param _shield Address of the shield to initialize.
+     * @param _protocols IDs of the protocols the shield is exposed to.
+     * @param _percents Percent (in hundredths, 1000 == 10%) of funds that are exposed to each protocol.
      */
     function initializeShield(
         address   _shield,
@@ -403,7 +432,8 @@ contract RcaController is RcaGovernable {
             withdrawalDelay
         );
         
-        shieldMapping[_shield] = true;
+        shieldMapping[_shield]    = true;
+        lastShieldUpdate[_shield] = block.timestamp;
 
         // Annoying stuff below because we can't push a struct to the mapping.
         for (uint256 i = 0; i < _protocols.length; i++) {

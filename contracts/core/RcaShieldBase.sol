@@ -7,7 +7,6 @@ import '../interfaces/IRcaController.sol';
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
-import 'hardhat/console.sol';
 
 /**
  * @title RCA Vault
@@ -41,8 +40,8 @@ abstract contract RcaShieldBase is ERC20, Governable {
     /** 
      * @notice Cumulative total amount that has been liquidated lol.
      * @dev Used to make sure we don't run into a situation where liq amount isn't updated,
-     * a new hack occurs and current liq is added to, then liq is updated while
-     * DAO votes on the new liq. In this case we can subtract that interim addition.
+     * a new hack occurs and current liq is added to, then current liq is updated while
+     * DAO votes on the new total liq. In this case we can subtract that interim addition.
      */
     uint256 public cumLiq;
     /// @notice Amount of tokens currently up for sale.
@@ -135,6 +134,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
      * @notice Construct shield and RCA ERC20 token.
      * @param _name Name of the RCA token.
      * @param _symbol Symbol of the RCA token.
+     * @param _uToken Address of the underlying token.
      * @param _governor Address of the governor (owner) of the shield.
      * @param _controller Address of the controller that maintains the shield.
      */
@@ -192,8 +192,12 @@ abstract contract RcaShieldBase is ERC20, Governable {
 
     /**
      * @notice Mint tokens to an address. Not automatically to msg.sender so we can more easily zap assets.
-     * @param _uAmount Amount of underlying tokens desired to use for mint.
      * @param _user The user to mint tokens to.
+     * @param _uAmount Amount of underlying tokens desired to use for mint.
+     * @param _capacity Capacity of the vault (in underlying tokens).
+     * @param _capacityProof Merkle proof to verify capacity.
+     * @param _newCumLiq New total cumulative liquidated if there is one.
+     * @param _liqProof Merkle proof to verify cumulative liquidated.
      */
     function mintTo(
         address   _user,
@@ -234,7 +238,10 @@ abstract contract RcaShieldBase is ERC20, Governable {
     }
 
     /**
-     * @notice Request redemption of RCAs back to the underlying token.
+     * @notice Request redemption of RCAs back to the underlying token. Has a withdrawal delay so it's 2 parts (request and finalize).
+     * @param _rcaAmount The amount of tokens (in RCAs) to be redeemed.
+     * @param _newCumLiq New cumulative liquidated if this must be updated.
+     * @param _liqProof Merkle proof to verify the new cumulative liquidated.
      */
     function redeemRequest(
         uint256   _rcaAmount,
@@ -276,19 +283,22 @@ abstract contract RcaShieldBase is ERC20, Governable {
 
     /**
      * @notice Used to exchange RCA tokens back to the underlying token. Will have a 2+ day delay upon withdrawal.
-     * @param _user The address to redeem tokens for. Since a previous request is required, there are no security implications.
+     * This can mint to a "zapper" contract that can exchange the asset for Ether and send to the user.
+     * @param _to The destination of the tokens.
+     * @param _newCumLiq New cumulative liquidated if this must be updated.
+     * @param _liqProof Merkle proof to verify new cumulative liquidation.
      */
     function redeemTo(
         address   _to,
-        address   _user,
         uint256   _newCumLiq,
         bytes32[] calldata _liqProof
     )
       external
     {
+        address user = msg.sender;
 
-        WithdrawRequest memory request = withdrawRequests[_user];
-        delete withdrawRequests[_user];
+        WithdrawRequest memory request = withdrawRequests[user];
+        delete withdrawRequests[user];
         
         // endTime > 0 ensures request exists.
         require(request.endTime > 0 && uint32(block.timestamp) > request.endTime, "Withdrawal not yet allowed.");
@@ -297,7 +307,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
         bool zapper = 
             controller.redeemFinalize(
                 _to,
-                _user,
+                user,
                 uint256(request.rcaAmount),
                 _newCumLiq,
                 _liqProof
@@ -307,15 +317,14 @@ abstract contract RcaShieldBase is ERC20, Governable {
 
         pendingWithdrawal -= uint256(request.rcaAmount);
 
-        uToken.safeTransfer( _user, uint256(request.uAmount) );
+        uToken.safeTransfer( _to, uint256(request.uAmount) );
 
-        // The cool part about doing it this way rather than having user RCAs to zapper contract,
+        // The cool part about doing it this way rather than having user send RCAs to zapper contract,
         // then it exchanging and returning Ether is that it's more gas efficient and no approvals are needed.
-        if (zapper) IZapper(_to).zapTo( _user, uint256(request.uAmount) );
-        else if (_to != _user) revert("Redeeming to invalid address.");
+        if (zapper) IZapper(_to).zapTo( user, uint256(request.uAmount) );
 
         emit RedeemFinalize(
-            _user,
+            user,
             _to,
             uint256(request.uAmount),
             uint256(request.rcaAmount),
@@ -330,7 +339,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
      * @param _uEthPrice Price of the underlying token in Ether per token.
      * @param _priceProof Merkle proof for the price.
      * @param _newCumLiq New cumulative amount for liquidation.
-     * @param _liqProof Merkle proof for for sale amounts.
+     * @param _liqProof Merkle proof for new liquidation amounts.
      */
     function purchaseU(
         address   _user,
@@ -355,7 +364,8 @@ abstract contract RcaShieldBase is ERC20, Governable {
         _update(block.timestamp);
 
         uint256 price = _uEthPrice  - (_uEthPrice * discount / DENOMINATOR);
-        uint256 ethAmount = price * _uAmount;
+        // divide by 1 ether because price also has 18 decimals.
+        uint256 ethAmount = price * _uAmount / 1 ether;
         require(msg.value == ethAmount, "Incorrect Ether sent.");
 
         // If amount is too big than for sale, tx will fail here.
@@ -410,8 +420,8 @@ abstract contract RcaShieldBase is ERC20, Governable {
         require(msg.value == ethAmount, "Incorrect Ether sent.");
         
         // If amount is too big than for sale, tx will fail here.
-        amtForSale       -= _uAmount;
         uint256 rcaAmount = _rcaValue(_uAmount, amtForSale);
+        amtForSale       -= _uAmount;
 
         _mint(_user, rcaAmount);
         treasury.transfer(msg.value);
@@ -515,10 +525,13 @@ abstract contract RcaShieldBase is ERC20, Governable {
     /**
      * @dev External version of RCA value is needed so that frontend can properly
      * calculate values in cases where the contract has not been recently updated.
+     * @param _rcaAmount Amount of RCA tokens (18 decimal) to find the underlying token value of.
+     * @param _newCumLiq New cumulative liquidated if this must be updated.
+     * @param _liqProof Merkle proof to verify new liquidated amounts.
      */
     function uValue(
-        uint256 _rcaAmount,
-        uint256 _newCumLiq,
+        uint256   _rcaAmount,
+        uint256   _newCumLiq,
         bytes32[] calldata _liqProof
     )
       external
@@ -534,10 +547,13 @@ abstract contract RcaShieldBase is ERC20, Governable {
     /**
      * @dev External version of RCA value is needed so that frontend can properly
      * calculate values in cases where the contract has not been recently updated.
+     * @param _uAmount Amount of underlying tokens (18 decimal).
+     * @param _newCumLiq New cumulative liquidated if this must be updated.
+     * @param _liqProof Merkle proof to verify new cumulative liquidated.
      */
     function rcaValue(
-        uint256 _uAmount,
-        uint256 _newCumLiq,
+        uint256   _uAmount,
+        uint256   _newCumLiq,
         bytes32[] calldata _liqProof
     )
       external
@@ -599,7 +615,6 @@ abstract contract RcaShieldBase is ERC20, Governable {
     {
         uint256 balance = _uBalance();
         if (balance == 0) return _uAmount;
-
         rcaAmount = 
             (totalSupply() + pendingWithdrawal)
             * _uAmount
@@ -612,6 +627,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
 
     /**
      * @notice Update the amtForSale if there's an active fee.
+     * @param updateTime Time to update up to (on normal txs, now; on controller updates, time of update).
      */
     function _update(
         uint256 updateTime
@@ -645,7 +661,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
     /// @notice Check balance of underlying token.
     function _uBalance() internal virtual view returns(uint256);
 
-    /// @notice Get reward for this token.
+    /// @notice Get reward for this token if there are rewards.
     function _updateReward(address _user) internal virtual;
 
     /// @notice Logic to run after a mint, such as if we need to stake the underlying token.
@@ -700,6 +716,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
     /**
      * @notice Change the percent paused on this vault. 1000 == 10%.
      * @param _newPercentPaused New percent paused.
+     * @param _updateTime Time at which this update was made.
     **/
     function setPercentPaused(
         uint256 _newPercentPaused,
@@ -741,6 +758,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
     /**
      * @notice Change the treasury address to which funds will be sent.
      * @param _newApr New APR. 1000 == 10%.
+     * @param _updateTime Time at which this update was made.
     **/
     function setApr(
         uint256 _newApr,
