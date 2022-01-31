@@ -161,6 +161,27 @@ describe('RCAs and Controller', function(){
     });
 
     it("should be able to initiate and finalize redeem of RCA token", async function(){
+      await shield.connect(user).redeemRequest(ether("100"), 0, liqProof2)
+
+      // Check request data
+      let timestamp = await getTimestamp();
+      let requests = await shield.withdrawRequests(user.getAddress())
+      expect(requests[0]).to.be.equal(ether("100"));
+      expect(requests[0]).to.be.equal(ether("100"));
+      let endTime = timestamp.add("86400");
+      expect(requests[2]).to.be.equal(endTime);
+
+      // A bit more than 1 day withdrawal
+      increase(86500);
+
+      await shield.connect(user).redeemTo(user.getAddress(), user.getAddress(), 0, []);
+      let rcaBal = await shield.balanceOf(user.getAddress());
+      let uBal   = await uToken.balanceOf(user.getAddress());
+      expect(rcaBal).to.be.equal(0);
+      expect(uBal).to.be.equal(ether("1000000"));
+    });
+
+    it("should not allow redeeming to your own address", async function(){
       await shield.connect(user).redeemRequest(ether("100"), 0, [])
 
       // Check request data
@@ -174,11 +195,7 @@ describe('RCAs and Controller', function(){
       // A bit more than 1 day withdrawal
       increase(86500);
 
-      await shield.connect(user).redeemTo(user.getAddress(), 0, []);
-      let rcaBal = await shield.balanceOf(user.getAddress());
-      let uBal   = await uToken.balanceOf(user.getAddress());
-      expect(rcaBal).to.be.equal(0);
-      expect(uBal).to.be.equal(ether("1000000"));
+      await expect(shield.connect(owner).redeemTo(owner.getAddress(), user.getAddress(), 0, [])).to.be.revertedWith("Invalid `to` address.");
     });
 
     // If one request is made after another, the amounts should add to last amounts and the endTime should restart.

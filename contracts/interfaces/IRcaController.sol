@@ -25,7 +25,7 @@ interface IRcaController {
         uint256   rcaAmount,
         uint256   _newCumLiq,
         bytes32[] calldata forSaleProof
-    ) external returns(bool);
+    ) external returns (bool);
 
     function purchase(
         address   user,

@@ -249,7 +249,7 @@ contract RcaController is RcaGovernable {
             block.timestamp
         );
 
-        return zappers[_to];
+        zapper = zappers[_to];
     }
 
     /**
