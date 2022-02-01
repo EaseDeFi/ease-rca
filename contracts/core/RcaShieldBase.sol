@@ -290,24 +290,23 @@ abstract contract RcaShieldBase is ERC20, Governable {
      */
     function redeemTo(
         address   _to,
+        address   _user,
         uint256   _newCumLiq,
         bytes32[] calldata _liqProof
     )
       external
     {
-        address user = msg.sender;
-
-        WithdrawRequest memory request = withdrawRequests[user];
-        delete withdrawRequests[user];
+        WithdrawRequest memory request = withdrawRequests[_user];
+        delete withdrawRequests[_user];
         
         // endTime > 0 ensures request exists.
         require(request.endTime > 0 && uint32(block.timestamp) > request.endTime, "Withdrawal not yet allowed.");
 
-        // This function doubles as redeeming and determining whether user is a zapper.
+        // This function doubles as redeeming and determining whether `to` is a zapper.
         bool zapper = 
             controller.redeemFinalize(
                 _to,
-                user,
+                _user,
                 uint256(request.rcaAmount),
                 _newCumLiq,
                 _liqProof
@@ -321,10 +320,11 @@ abstract contract RcaShieldBase is ERC20, Governable {
 
         // The cool part about doing it this way rather than having user send RCAs to zapper contract,
         // then it exchanging and returning Ether is that it's more gas efficient and no approvals are needed.
-        if (zapper) IZapper(_to).zapTo( user, uint256(request.uAmount) );
+        if (zapper) IZapper(_to).zapTo( _user, uint256(request.uAmount) );
+        else if (_user != _to) revert("Invalid `to` address.");
 
         emit RedeemFinalize(
-            user,
+            _user,
             _to,
             uint256(request.uAmount),
             uint256(request.rcaAmount),
