@@ -444,13 +444,10 @@ abstract contract RcaShieldBase is ERC20, Governable {
      * @notice Get the current amount a vault has for sale. Must include all updates.
      * This function is sort of a pain. We need to check if any updates need to happen
      * and adjust amount for sale (which affects conversion) accordingly. It all must
-     * be in the same order that it would happen when updates occur.
+     * be in the same order that it would happen when updates occur through controller.
      *
      * If we don't do this, frontend conversions could be different from what a user
      * actually receives.
-     *
-     * Not gas efficient in any way shape or form, but designed only for frontend.
-     * I feel like I've committed a sin with this function :(
      * @param _newCumLiq New cumulative liquidation amount.
      * @param _liqProof Merkle proof for liquidation.
      */
@@ -475,6 +472,12 @@ abstract contract RcaShieldBase is ERC20, Governable {
         (uint32 liqUpdate, uint32 pausedUpdate, /** */, /** */, uint32 aprUpdate, /** */) = controller.systemUpdates();
         uint32 prevUpdate = uint32(lastUpdate);
 
+        /**
+         * @dev The point of the following 3 blocks of code is to update balance of active tokens on
+         * the contract according to system-wide updates if they have not updated since the last
+         * interaction with this shield. In addition to the major updates such as tokens being liquidated,
+         * we must also calculate changes in fees throughout updates if they're currently being charged.
+         */  
         if (liqUpdate > prevUpdate) {
             // Fails on incorrect for sale amount.
             controller.verifyLiq(address(this), _newCumLiq, _liqProof);
@@ -497,7 +500,6 @@ abstract contract RcaShieldBase is ERC20, Governable {
             prevUpdate = pausedUpdate;
         }
         
-        // APR will update first then
         // Incorporates any liquidation updates and percent paused updates and only runs if after pausedUpdate.
         if (aprUpdate > prevUpdate) {
             if (curApr > 0) {
