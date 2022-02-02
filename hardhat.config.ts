@@ -2,6 +2,7 @@ import "@nomiclabs/hardhat-waffle";
 import "solidity-coverage";
 import "@nomiclabs/hardhat-ethers";
 import "hardhat-gas-reporter";
+import "hardhat-abi-exporter";
 
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
