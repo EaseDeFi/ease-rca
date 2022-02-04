@@ -294,7 +294,7 @@ describe('RCAs and Controller', function(){
     });
   });
 
-  describe('Views', function(){
+  describe.only('Views', function(){
 
     beforeEach(async function(){
       await controller.connect(owner).setApr(1000);
@@ -309,8 +309,8 @@ describe('RCAs and Controller', function(){
       increase(31536000 / 2);
       mine();
 
-      let uValue = await shield.uValue(ether("1"), 0, liqProof2);
-      let rcaValue = await shield.rcaValue(ether("0.95"), 0, liqProof2);
+      let uValue = await shield.uValue(ether("1"), 0);
+      let rcaValue = await shield.rcaValue(ether("0.95"), 0);
       // Sometimes test speed discrepancies make this fail (off by a few seconds so slightly under 95%).
       expect(uValue).to.be.equal(ether("0.95"));
       expect(rcaValue).to.be.equal(ether("1"));
@@ -324,8 +324,8 @@ describe('RCAs and Controller', function(){
       increase(31536000 / 2);
       mine();
       
-      let uValue = await shield.uValue(ether("1"), ether("100"), liqProof);
-      let rcaValue = await shield.rcaValue(ether("0.855"), ether("100"), liqProof);
+      let uValue = await shield.uValue(ether("1"), ether("100"));
+      let rcaValue = await shield.rcaValue(ether("0.855"), ether("100"));
       // 0.855 == 90% (because 10% is being liquidated) - (10% / 2 for APR)
       // hardcoded cause time was being annoying
       expect(uValue).to.be.equal("854999997146118721");

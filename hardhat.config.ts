@@ -41,6 +41,10 @@ export default {
     currency: 'USD',
     gasPrice: 100,
   },
+  abiExporter: {
+    path: './abi',
+    runOnCompile: true,
+  },
   solidity: {
     compilers :[
       {

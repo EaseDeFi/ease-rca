@@ -42,11 +42,11 @@ contract RcaController is RcaGovernable {
     uint256 public discount;
     /// @notice The amount of each contract that's currently paused. Only non-zero after multisig
     /// declares a hack occurred and before DAO confirms for sale amounts. 1000 == 10%.
-    uint256 public percentPaused;
+    uint256 public percentReserved;
     /// @notice Address that funds from selling tokens is sent to.
     address payable public treasury;
     /// @notice Amount of funds for sale on a protocol, sent in by DAO after a hack occurs (in token).
-    bytes32 public liqRoot;
+    bytes32 public liqForClaimsRoot;
     /// @notice Merkle root of the amount of capacity available for each protocol (in USD).
     bytes32 public capacitiesRoot;
     /// @notice Root of all underlying token prices--only used if the protocol is doing pricing.
@@ -63,7 +63,7 @@ contract RcaController is RcaGovernable {
      */
     struct SystemUpdates {
         uint32 liqUpdate;
-        uint32 pausedUpdate;
+        uint32 reservedUpdate;
         uint32 withdrawalDelayUpdate;
         uint32 discountUpdate;
         uint32 aprUpdate;
@@ -87,15 +87,15 @@ contract RcaController is RcaGovernable {
 
     /**
      * @notice Update is used before each onlyShield function to ensure the shield is up-to-date before actions.
-     * @param _newCumLiq Old cumulative amount of funds for sale. Needed to ensure additional is accurate.
-     * @param _liqProof Merkle proof for the for sale amount.
+     * @param _newCumLiqForClaims Old cumulative amount of funds for sale. Needed to ensure additional is accurate.
+     * @param _liqForClaimsProof Merkle proof for the for sale amount.
      */
     modifier update(
-        uint256   _newCumLiq,
-        bytes32[] memory _liqProof
+        uint256   _newCumLiqForClaims,
+        bytes32[] memory _liqForClaimsProof
     )
     {
-        _update(_newCumLiq, _liqProof);
+        _update(_newCumLiqForClaims, _liqForClaimsProof);
         _;
     }
     
@@ -158,21 +158,21 @@ contract RcaController is RcaGovernable {
      * @param _uAmount Underlying token amount being liquidated.
      * @param _capacity Current extra capacity allowed on this shield (in underlying tokens).
      * @param _capacityProof Merkle proof to verify the capacity above.
-     * @param _newCumLiq New cumulative amount of liquidated tokens if an update is needed.
-     * @param _liqProof Merkle proof to verify the new cumulative liquidated if needed.
+     * @param _newCumLiqForClaims New cumulative amount of liquidated tokens if an update is needed.
+     * @param _liqForClaimsProof Merkle proof to verify the new cumulative liquidated if needed.
      */
     function mint(
         address   _user,
         uint256   _uAmount,
         uint256   _capacity,
         bytes32[] calldata _capacityProof,
-        uint256   _newCumLiq,
-        bytes32[] calldata _liqProof
+        uint256   _newCumLiqForClaims,
+        bytes32[] calldata _liqForClaimsProof
     )
       external
       update(
-          _newCumLiq,
-          _liqProof
+          _newCumLiqForClaims,
+          _liqForClaimsProof
       )
       onlyShield
     {
@@ -192,19 +192,19 @@ contract RcaController is RcaGovernable {
      * @notice Updates contract, emits event for redeem action.
      * @param _user User that is redeeming tokens.
      * @param _rcaAmount The amount of RCAs they're redeeming.
-     * @param _newCumLiq New cumulative amount of liquidated tokens if an update is needed.
-     * @param _liqProof Merkle proof to verify the new cumulative liquidated if needed.
+     * @param _newCumLiqForClaims New cumulative amount of liquidated tokens if an update is needed.
+     * @param _liqForClaimsProof Merkle proof to verify the new cumulative liquidated if needed.
      */
     function redeemRequest(
         address   _user,
         uint256   _rcaAmount,
-        uint256   _newCumLiq,
-        bytes32[] calldata _liqProof
+        uint256   _newCumLiqForClaims,
+        bytes32[] calldata _liqForClaimsProof
     )
       external
       update(
-          _newCumLiq,
-          _liqProof
+          _newCumLiqForClaims,
+          _liqForClaimsProof
       )
       onlyShield
     {
@@ -221,20 +221,20 @@ contract RcaController is RcaGovernable {
      * @param _to The address that the redeem is being made to.
      * @param _user User that is redeeming tokens.
      * @param _rcaAmount The amount of RCAs they're redeeming.
-     * @param _newCumLiq New cumulative amount of liquidated tokens if an update is needed.
-     * @param _liqProof Merkle proof to verify the new cumulative liquidated if needed.
+     * @param _newCumLiqForClaims New cumulative amount of liquidated tokens if an update is needed.
+     * @param _liqForClaimsProof Merkle proof to verify the new cumulative liquidated if needed.
      */
     function redeemFinalize(
         address   _to,
         address   _user,
         uint256   _rcaAmount,
-        uint256   _newCumLiq,
-        bytes32[] calldata _liqProof
+        uint256   _newCumLiqForClaims,
+        bytes32[] calldata _liqForClaimsProof
     )
       external
       update(
-          _newCumLiq,
-          _liqProof
+          _newCumLiqForClaims,
+          _liqForClaimsProof
       )
       onlyShield
       returns(
@@ -257,20 +257,20 @@ contract RcaController is RcaGovernable {
      * @param _user The user that is making the purchase.
      * @param _ethPrice The price of one token in Ether.
      * @param _priceProof Merkle proof to verify the Ether price of the token.
-     * @param _newCumLiq New cumulative amount of liquidated tokens if an update is needed.
-     * @param _liqProof Merkle proof to verify the new cumulative liquidated if needed.
+     * @param _newCumLiqForClaims New cumulative amount of liquidated tokens if an update is needed.
+     * @param _liqForClaimsProof Merkle proof to verify the new cumulative liquidated if needed.
      */
     function purchase(
         address   _user,
         uint256   _ethPrice,
         bytes32[] calldata _priceProof,
-        uint256   _newCumLiq,
-        bytes32[] calldata _liqProof
+        uint256   _newCumLiqForClaims,
+        bytes32[] calldata _liqForClaimsProof
     )
       external
       update(
-          _newCumLiq,
-          _liqProof
+          _newCumLiqForClaims,
+          _liqForClaimsProof
       )
       onlyShield
     {
@@ -287,12 +287,12 @@ contract RcaController is RcaGovernable {
      * @notice All general updating of shields for a variety of variables that could have changed
      * since the last interaction. Amount for sale, whether or not the system is paused, new
      * withdrawal delay, new discount for sales, new APR fee for general functionality.
-     * @param _newCumLiq New cumulative amount of liquidated tokens if an update is needed.
-     * @param _liqProof Merkle proof to verify the new cumulative liquidated if needed.
+     * @param _newCumLiqForClaims New cumulative amount of liquidated tokens if an update is needed.
+     * @param _liqForClaimsProof Merkle proof to verify the new cumulative liquidated if needed.
      */
     function _update(
-        uint256   _newCumLiq,
-        bytes32[] memory _liqProof
+        uint256   _newCumLiqForClaims,
+        bytes32[] memory _liqForClaimsProof
     )
       internal
     {
@@ -302,23 +302,24 @@ contract RcaController is RcaGovernable {
         // Seems kinda messy but not too bad on gas.
         SystemUpdates memory updates = systemUpdates;
 
+        // Update shield here to account for interim period where variables were changed but shield had not updated.
+        if (lastUpdate < updates.liqUpdate || lastUpdate < updates.reservedUpdate || lastUpdate < updates.aprUpdate) {
+            verifyLiq(msg.sender, _newCumLiqForClaims, _liqForClaimsProof);
+            shield.controllerUpdate(_newCumLiqForClaims, uint256(updates.liqUpdate),
+                                    percentReserved, uint256(updates.reservedUpdate),
+                                    apr, uint256(updates.aprUpdate));
+        }
+
         if (lastUpdate < updates.treasuryUpdate)        shield.setTreasury(treasury);
         if (lastUpdate < updates.discountUpdate)        shield.setDiscount(discount);
         if (lastUpdate < updates.withdrawalDelayUpdate) shield.setWithdrawalDelay(withdrawalDelay);
+        if (lastUpdate < updates.reservedUpdate)        shield.setPercentReserved(percentReserved);
+        if (lastUpdate < updates.aprUpdate)             shield.setApr(apr);
         if (lastUpdate < updates.liqUpdate) {
-            verifyLiq(msg.sender, _newCumLiq, _liqProof);
-            shield.setLiq( _newCumLiq, uint256(updates.liqUpdate) );
+            verifyLiq(msg.sender, _newCumLiqForClaims, _liqForClaimsProof);
+            shield.setLiqForClaims(_newCumLiqForClaims);
         }
-        /**
-         * @dev There's a slight edge case brought on by the order of APR, percent paused,
-         * and liquidation updates when they're changing in which the shield will be updated with
-         * only one change. The safest solution (charge users the least) is to update liquidation
-         * first, then paused, then APR. This results in the old APR rate being used, but doesn't
-         * result in users charged for inactive funds.
-        */
-        if (lastUpdate < updates.pausedUpdate) shield.setPercentPaused( percentPaused, uint256(updates.pausedUpdate) );
-        if (lastUpdate < updates.aprUpdate)    shield.setApr( apr, uint256(updates.aprUpdate) );
-                                                        
+
         lastShieldUpdate[msg.sender] = uint32(block.timestamp);
     }
 
@@ -329,25 +330,25 @@ contract RcaController is RcaGovernable {
     /**
      * @notice Verify the current amount for liquidation.
      * @param _shield Address of the shield to verify.
-     * @param _newCumLiq New cumulative amount liquidated.
-     * @param _liqProof Proof of the for sale amounts.
+     * @param _newCumLiqForClaims New cumulative amount liquidated.
+     * @param _liqForClaimsProof Proof of the for sale amounts.
      */
     function verifyLiq(
         address   _shield,
-        uint256   _newCumLiq,
-        bytes32[] memory _liqProof
+        uint256   _newCumLiqForClaims,
+        bytes32[] memory _liqForClaimsProof
     )
       public
       view
     {
-        bytes32 leaf = keccak256(abi.encodePacked(_shield, _newCumLiq));
-        require(MerkleProof.verify(_liqProof, liqRoot, leaf), "Incorrect liq proof.");
+        bytes32 leaf = keccak256(abi.encodePacked(_shield, _newCumLiqForClaims));
+        require(MerkleProof.verify(_liqForClaimsProof, liqForClaimsRoot, leaf), "Incorrect liq proof.");
     }
 
     /**
      * @notice Verify price from Ease price oracle.
      * @param _shield Address of the shield to find price of.
-     * @param _value Price of the token (in Ether) for this shield.
+     * @param _value Price of the underlying token (in Ether) for this shield.
      * @param _proof Merkle proof.
      */
     function verifyPrice(
@@ -452,7 +453,7 @@ contract RcaController is RcaGovernable {
     }
 
     /**
-     * @notice Governance calls to set the new total amount for sale. This call also resets percentPaused
+     * @notice Governance calls to set the new total amount for sale. This call also resets percentReserved
      * because it implicitly signals the end of the pause period and beginning of selling period.
      * @dev Root will be determined by hashing current amount for sale and current cumulative amount
      * that has been put as for sale through this means in the past. This ensures that if the vault is
@@ -466,11 +467,11 @@ contract RcaController is RcaGovernable {
       onlyGov
     {
         // In some cases governance may just want to reset percent paused.
-        percentPaused              = 0;
-        systemUpdates.pausedUpdate = uint32(block.timestamp);
+        percentReserved              = 0;
+        systemUpdates.reservedUpdate = uint32(block.timestamp);
 
         if ( _newLiqRoot != bytes32(0) ) {
-            liqRoot                     = _newLiqRoot;
+            liqForClaimsRoot                     = _newLiqRoot;
             systemUpdates.liqUpdate = uint32(block.timestamp);
         }
     }
@@ -555,14 +556,14 @@ contract RcaController is RcaGovernable {
      * from any shield during this time, they will lose this percent of tokens.
      * @param _newPercentPaused Percent of shields to temporarily pause. 1000 == 10%.
      */
-    function setPercentPaused(
+    function setPercentReserved(
         uint256 _newPercentPaused
     )
       external
       onlyGuardian
     {
-        percentPaused = _newPercentPaused;
-        systemUpdates.pausedUpdate = uint32(block.timestamp);
+        percentReserved = _newPercentPaused;
+        systemUpdates.reservedUpdate = uint32(block.timestamp);
     }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////

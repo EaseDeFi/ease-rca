@@ -41,7 +41,7 @@ contract RcaShieldConvex is RcaShieldBase {
      }
 
     function getReward(IERC20[] memory _rewards) public override {
-        _update(block.timestamp);
+        _update();
         for(uint256 i = 0; i<_rewards.length; i++){
             uint256 reward = userInfo[_rewards[i]][msg.sender].reward;
             userInfo[_rewards[i]][msg.sender].reward = 0;
