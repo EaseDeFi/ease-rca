@@ -3,12 +3,16 @@
 pragma solidity ^0.8.11;
 
 import "./RcaShieldBase.sol";
-import "../external/Convex.sol";
+import { IMasterChefV2 } from "../external/Sushiswap.sol";
 
 contract RcaShieldConvex is RcaShieldBase {
     using SafeERC20 for IERC20;
 
-    IConvexRewardPool public immutable rewardPool;
+    IMasterChefV2 public immutable masterChef;
+
+    IERC20 public immutable sushi;
+
+    uint256 public immutable pid;
 
     constructor(
         string memory _name,
@@ -16,7 +20,9 @@ contract RcaShieldConvex is RcaShieldBase {
         address _uToken,
         address _governance,
         address _controller,
-        IConvexRewardPool _rewardPool
+        IMasterChefV2 _masterChef,
+        IERC20 _sushi,
+        uint256 _pid
     ) RcaShieldBase(
         _name,
         _symbol,
@@ -24,11 +30,13 @@ contract RcaShieldConvex is RcaShieldBase {
         _governance,
         _controller
     )  {
-        rewardPool = _rewardPool;
+        masterChef = _masterChef;
+        sushi = _sushi;
+        pid = _pid;
     }
 
     function getReward() external {
-        rewardPool.getReward(address(this), true);
+        masterChef.harvest(pid, address(this));
     }
 
     function purchase(
@@ -37,22 +45,22 @@ contract RcaShieldConvex is RcaShieldBase {
         uint256 _ethPrice,
         bytes32[] calldata _priceProof
     ) payable external {
+        require(_token == address(sushi), "only sushi on sale");
         require(msg.value > _amount * 1e18 / _ethPrice, "low");
-        controller.verifyPrice(address(this), _ethPrice, _priceProof);
+        controller.verifyPrice(address(this),  _ethPrice, _priceProof);
         IERC20(_token).transfer(msg.sender, _amount);
     }
 
     function _uBalance() internal view override returns(uint256) {
-        return uToken.balanceOf(address(this)) + rewardPool.balanceOf(address(this));
+        return uToken.balanceOf(address(this)) + masterChef.userInfo(pid, address(this)).amount;
     }
 
     function _afterMint(uint256 _uAmount) internal override {
-        uToken.safeApprove(address(rewardPool), _uAmount);
-        rewardPool.stake(_uAmount);
+        uToken.safeApprove(address(masterChef), _uAmount);
+        masterChef.deposit(pid, _uAmount, address(this));
     }
 
     function _afterRedeem(uint256 _uAmount) internal override {
-        // CHEK : we are not going to claims rewards here since it will be claimed on _update
-        rewardPool.withdraw(_uAmount, false);
+        masterChef.withdraw(pid, _uAmount, address(this));
     }
 }

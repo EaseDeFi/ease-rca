@@ -35,6 +35,12 @@ interface IRcaController {
         bytes32[] calldata forSaleProof
     ) external;
 
+    function verifyPrice(
+        address shield,
+        uint256 _value,
+        bytes32[] memory _proof
+    ) external view;
+
     function verifyLiq(
         address   shield,
         uint256   _newCumLiq,
