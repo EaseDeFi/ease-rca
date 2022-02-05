@@ -300,11 +300,10 @@ describe('RCAs and Controller', function(){
       await controller.connect(owner).setApr(1000);
       await uToken.connect(user).approve(shield.address, ether("1000"));
       await controller.connect(owner).setLiqTotal(liqTree2.getHexRoot());
+      await shield.connect(user).mintTo(user.getAddress(), ether("1000"), ether("1000000"), capProof, 0, liqProof2);
     });
 
     it("should update APR when needed", async function(){
-      await shield.connect(user).mintTo(user.getAddress(), ether("1000"), ether("1000000"), capProof, 0, liqProof2);
-
       // Wait about half a year, so about 5% should be taken.
       increase(31536000 / 2);
       mine();
@@ -316,23 +315,52 @@ describe('RCAs and Controller', function(){
       expect(rcaValue).to.be.equal(ether("1"));
     });
 
+    // Mint => wait for half a year => set liquidity => wait half a year => check. 
+    // Should result in 50% of original being APR and 45% (90% of 50%) of subsequent
     it("should update correctly with tokens for sale", async function(){
+      increase(31536000 / 2);
+      mine();
+
       await controller.connect(owner).setLiqTotal(liqTree.getHexRoot());
-      await shield.connect(user).mintTo(user.getAddress(), ether("1000"), ether("1000000"), capProof, ether("100"), liqProof);
+
+      increase(31536000 / 2);
+      mine();
+      
+      let uValue = await shield.uValue(ether("1"), ether("100"));
+      let rcaValue = await shield.rcaValue(ether("1"), ether("100"));
+      expect(uValue).to.be.equal("804999996829020801");
+      expect(rcaValue).to.be.equal("1242236029738018148");
+    });
+
+    // Verify APR updates for 
+    it("should update correctly with tokens for sale, percent paused, and APR change", async function(){      
+      increase(31536000 / 2);
+      mine();
+
+      await controller.connect(owner).setLiqTotal(liqTree.getHexRoot());
+      await controller.connect(owner).setApr(2000);
+      await controller.connect(user).setPercentReserved(1000);
 
       // Wait about half a year, so about 5% should be taken.
       increase(31536000 / 2);
       mine();
       
+      let rcaValue = await shield.rcaValue(ether("1"), ether("100"));
       let uValue = await shield.uValue(ether("1"), ether("100"));
-      let rcaValue = await shield.rcaValue(ether("0.855"), ether("100"));
-      // 0.855 == 90% (because 10% is being liquidated) - (10% / 2 for APR)
-      // hardcoded cause time was being annoying
-      expect(uValue).to.be.equal("854999997146118721");
-      expect(rcaValue).to.be.equal("1000000003337872851");
-    });
+      let extraForSale = await shield.getExtraForSale(ether("100"));
 
-    // with percent paused
+      /*
+       * Okay let's see if I can do basic math:
+       * Starting tokens == 1000, 10% APR for half a year on that is 5% or 50 tokens
+       * 100 tokens are removed for liquidation, total for sale is now 150 so active is 850
+       * 10% of that reserved is 85 tokens so active is 765 but total for sale is still 150.
+       * 20% APR for half a year on active is then 76.5 tokens, so for sale is 226.5 and active is 688.5.
+       * uValue takes into account reserved and should return ~0.6885 underlying per RCA.
+       * rcaValue does not take into account reserved, so its value is 1000 / 773.5 or ~1.2928 per u.
+      */
+      expect(uValue).to.be.equal("688162489290810508");
+      expect(rcaValue).to.be.equal("1307830656285116265");
+    });
 
   });
 

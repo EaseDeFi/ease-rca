@@ -315,10 +315,8 @@ contract RcaController is RcaGovernable {
         if (lastUpdate < updates.withdrawalDelayUpdate) shield.setWithdrawalDelay(withdrawalDelay);
         if (lastUpdate < updates.reservedUpdate)        shield.setPercentReserved(percentReserved);
         if (lastUpdate < updates.aprUpdate)             shield.setApr(apr);
-        if (lastUpdate < updates.liqUpdate) {
-            verifyLiq(msg.sender, _newCumLiqForClaims, _liqForClaimsProof);
-            shield.setLiqForClaims(_newCumLiqForClaims);
-        }
+        // liqUpdate previously verified before setting, but the block above accounts for that.
+        if (lastUpdate < updates.liqUpdate)             shield.setLiqForClaims(_newCumLiqForClaims);
 
         lastShieldUpdate[msg.sender] = uint32(block.timestamp);
     }
@@ -471,7 +469,7 @@ contract RcaController is RcaGovernable {
         systemUpdates.reservedUpdate = uint32(block.timestamp);
 
         if ( _newLiqRoot != bytes32(0) ) {
-            liqForClaimsRoot                     = _newLiqRoot;
+            liqForClaimsRoot        = _newLiqRoot;
             systemUpdates.liqUpdate = uint32(block.timestamp);
         }
     }

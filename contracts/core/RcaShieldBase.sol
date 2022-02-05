@@ -27,12 +27,12 @@ abstract contract RcaShieldBase is ERC20, Governable {
     IRcaController public controller;
     /// @notice Underlying token that is protected by the shield.
     IERC20 public uToken;
-    /// @notice Treasury for all funds that accepts payments.
-    address payable public treasury;
-    /// @notice Current sale discount to sell tokens cheaper.
-    uint256 public discount;
     /// @notice Percent to pay per year. 1000 == 10%.
     uint256 public apr;
+    /// @notice Current sale discount to sell tokens cheaper.
+    uint256 public discount;
+    /// @notice Treasury for all funds that accepts payments.
+    address payable public treasury;
     /// @notice Percent of the contract that is currently paused and cannot be withdrawn.
     /// Set > 0 when a hack has happened and DAO has not submitted for sales.
     /// Withdrawals during this time will lose this percent. 1000 == 10%.
@@ -228,7 +228,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
 
         _update();
 
-        uint256 uAmount = _uValue(_rcaAmount, amtForSale);
+        uint256 uAmount = _uValue(_rcaAmount, amtForSale, percentReserved);
         _burn(msg.sender, _rcaAmount);
 
         _afterRedeem(uAmount);
@@ -337,7 +337,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
         uint256 ethAmount = price * _uAmount / 1 ether;
         require(msg.value == ethAmount, "Incorrect Ether sent.");
 
-        // If amount is too big than for sale, tx will fail here.
+        // If amount is bigger than for sale, tx will fail here.
         amtForSale -= _uAmount;
 
         uToken.safeTransfer(_user, _uAmount);
@@ -425,8 +425,8 @@ abstract contract RcaShieldBase is ERC20, Governable {
         uint256 uAmount
     )
     {
-        uint256 extraForSale = _getExtraForSale(_newCumLiqForClaims);
-        uAmount = _uValue(_rcaAmount, extraForSale);
+        (uint256 extraForSale, uint256 _percentReserved) = getExtraForSale(_newCumLiqForClaims);
+        uAmount = _uValue(_rcaAmount, extraForSale, _percentReserved);
     }
 
     /**
@@ -445,7 +445,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
         uint256 rcaAmount
     )
     {
-        uint256 extraForSale = _getExtraForSale(_newCumLiqForClaims);
+        (uint256 extraForSale, /* percentReserved */) = getExtraForSale(_newCumLiqForClaims);
         rcaAmount = _rcaValue(_uAmount, extraForSale);
     }
 
@@ -454,10 +454,12 @@ abstract contract RcaShieldBase is ERC20, Governable {
      * for sale amounts will already have been retrieved and updated.
      * @param _rcaAmount The amount of RCAs to find the underlying value of.
      * @param _extraForSale Used by external value calls cause updates aren't made on those.
+     * @param _percentReserved Percent of funds reserved if a hack is being examined.
      */
     function _uValue(
         uint256 _rcaAmount,
-        uint256 _extraForSale
+        uint256 _extraForSale,
+        uint256 _percentReserved
     )
       internal
       view
@@ -465,15 +467,15 @@ abstract contract RcaShieldBase is ERC20, Governable {
         uint256 uAmount
     )
     {
-        uint256 totalSupply = totalSupply();
-        if (totalSupply == 0) return _rcaAmount;
+        uint256 subtrahend = _extraForSale - pendingWithdrawal;
+        uint256 balance = _uBalance();
+        if (totalSupply() == 0 || balance < subtrahend) return _rcaAmount;
 
         uAmount = 
-            (_uBalance() - _extraForSale - pendingWithdrawal)
+            (balance - subtrahend)
             * _rcaAmount
-            / (totalSupply);
+            / (totalSupply());
 
-        uint256 _percentReserved = percentReserved;
         if (_percentReserved > 0)
             uAmount -= 
             (uAmount 
@@ -497,23 +499,25 @@ abstract contract RcaShieldBase is ERC20, Governable {
     )
     {
         uint256 balance = _uBalance();
-        if (balance == 0) return _uAmount;
+        uint256 subtrahend = _extraForSale + pendingWithdrawal;
+        if (balance == 0 || balance < subtrahend) return _uAmount;
         rcaAmount = 
-            (totalSupply())
+            totalSupply()
             * _uAmount
-            / (balance - _extraForSale - pendingWithdrawal);
+            / (balance - subtrahend);
     }
 
     /**
      * @notice For frontend calls. Doesn't need to verify info because it's not changing state.
      */
-    function _getExtraForSale(
+    function getExtraForSale(
         uint256 _newCumLiqForClaims
     )
-      internal
+      public
       view
     returns(
-        uint256 extraForSale
+        uint256 extraForSale,
+        uint256 _percentReserved
     )
     {
         // Check for liquidation, then percent paused, then APR
@@ -528,6 +532,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
                                 uint256(aprUpdate)
                             );
         extraForSale = extraFees + extraLiqForClaims;
+        return (extraForSale, controller.percentReserved());
     }
 
     /**
@@ -550,23 +555,24 @@ abstract contract RcaShieldBase is ERC20, Governable {
     )
     {
         // Get all variables that are currently in this contract's state.
+        // 1e18 used as a buffer.
         uint256 uBalance         = _uBalance();
-        uint256 aprAvg           = apr;
+        uint256 aprAvg           = apr * 1e18;
         uint256 liqAmtAvg        = amtForSale;
-        uint256 reservedPctAvg   = percentReserved;
+        uint256 reservedPctAvg   = percentReserved * 1e18;
         uint256 totalTimeElapsed = block.timestamp - lastUpdate;
 
         // Find average APR throughout period if it has been updated.
         if (_aprUpdate > lastUpdate) {
             uint256 aprPrev = apr * (_aprUpdate - lastUpdate);
             uint256 aprCur  = _newApr * (block.timestamp - _aprUpdate);
-            aprAvg          = (aprPrev + aprCur) / totalTimeElapsed;
+            aprAvg          = (aprPrev + aprCur) * 1e18 / totalTimeElapsed;
         }
 
         // Find average amount of funds liquidated for claims throughout the period.
         if (_liqForClaimsUpdate > lastUpdate) {
             uint256 liqAmtPrev = amtForSale * (_liqForClaimsUpdate - lastUpdate);
-            uint256 liqAmtCur  = ( amtForSale + (_newCumLiqForClaims - cumLiqForClaims) ) * (block.timestamp - _liqForClaimsUpdate);
+            uint256 liqAmtCur  = (amtForSale + (_newCumLiqForClaims - cumLiqForClaims)) * (block.timestamp - _liqForClaimsUpdate);
             liqAmtAvg          = (liqAmtPrev + liqAmtCur) / totalTimeElapsed;
         }
 
@@ -574,13 +580,13 @@ abstract contract RcaShieldBase is ERC20, Governable {
         if (_reservedUpdate > lastUpdate) {
             uint256 reservedPctPrev = percentReserved * (_reservedUpdate - lastUpdate); 
             uint256 reservedPctCur  = _newPercentReserved * (block.timestamp - _reservedUpdate);
-            reservedPctAvg          = (reservedPctPrev + reservedPctCur) / totalTimeElapsed;
+            reservedPctAvg          = (reservedPctPrev + reservedPctCur) * 1e18 / totalTimeElapsed;
         }
 
-        console.log("Liq Amt Avg:", liqAmtAvg);
+        if (uBalance < pendingWithdrawal + liqAmtAvg) return 0;
         uint256 activeInclReserved = uBalance - pendingWithdrawal - liqAmtAvg;
-        uint256 activeExclReserved = activeInclReserved - (activeInclReserved * reservedPctAvg / DENOMINATOR);
-        fees = activeExclReserved * aprAvg * totalTimeElapsed / YEAR_SECS / DENOMINATOR;
+        uint256 activeExclReserved = activeInclReserved - (activeInclReserved * reservedPctAvg / DENOMINATOR / 1e18);
+        fees = activeExclReserved * aprAvg * totalTimeElapsed / YEAR_SECS / DENOMINATOR / 1e18;
     }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -595,17 +601,17 @@ abstract contract RcaShieldBase is ERC20, Governable {
     {
         if (apr > 0) {
             uint256 balance    = _uBalance();
-            uint256 forSale    = amtForSale;
+            uint256 subtrahend = amtForSale + pendingWithdrawal;
 
-            // TODO: underflow possibility if a large amount is reserved
+            // If liquidation for claims is set incorrectly this could occur and break the contract.
+            if (balance < subtrahend) return;
+
             uint256 secsElapsed = block.timestamp - lastUpdate;
-            uint256 active = balance
-                             - forSale
-                             - pendingWithdrawal
-                             - (balance * percentReserved / DENOMINATOR);
+            uint256 active = balance - subtrahend;
+            uint256 activeExclReserved = active - (active * percentReserved / DENOMINATOR);
 
             amtForSale += 
-                active
+                activeExclReserved
                 * secsElapsed 
                 * apr
                 / YEAR_SECS
@@ -631,6 +637,11 @@ abstract contract RcaShieldBase is ERC20, Governable {
 /////////////////////////////////////////////// onlyController //////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+    /**
+     * @notice Update function to be called by controller. This is only called when a controller has made
+     * an update since the last shield update was made, so it must do extra calculations to determine
+     * what the exact costs throughout the period were according to when system updates were made.
+     */
     function controllerUpdate(
         uint256 _newCumLiqForClaims,
         uint256 _liqForClaimsUpdate,

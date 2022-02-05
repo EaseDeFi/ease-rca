@@ -37,7 +37,7 @@ if (process.env.MAINNET_FORK) {
 }
 export default {
   gasReporter: {
-    enabled: false,
+    enabled: true,
     currency: 'USD',
     gasPrice: 100,
   },
