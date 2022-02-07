@@ -558,7 +558,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
         // 1e18 used as a buffer.
         uint256 uBalance         = _uBalance();
         uint256 aprAvg           = apr * 1e18;
-        uint256 liqAmtAvg        = amtForSale;
+        uint256 amtForSaleAvg    = amtForSale;
         uint256 reservedPctAvg   = percentReserved * 1e18;
         uint256 totalTimeElapsed = block.timestamp - lastUpdate;
 
@@ -571,9 +571,9 @@ abstract contract RcaShieldBase is ERC20, Governable {
 
         // Find average amount of funds liquidated for claims throughout the period.
         if (_liqForClaimsUpdate > lastUpdate) {
-            uint256 liqAmtPrev = amtForSale * (_liqForClaimsUpdate - lastUpdate);
-            uint256 liqAmtCur  = (amtForSale + (_newCumLiqForClaims - cumLiqForClaims)) * (block.timestamp - _liqForClaimsUpdate);
-            liqAmtAvg          = (liqAmtPrev + liqAmtCur) / totalTimeElapsed;
+            uint256 amtForSalePrev = amtForSale * (_liqForClaimsUpdate - lastUpdate);
+            uint256 amtForSaleCur  = (amtForSale + (_newCumLiqForClaims - cumLiqForClaims)) * (block.timestamp - _liqForClaimsUpdate);
+            amtForSaleAvg          = (amtForSalePrev + amtForSaleCur) / totalTimeElapsed;
         }
 
         // Find average percent of reserved funds through the period.
@@ -583,10 +583,12 @@ abstract contract RcaShieldBase is ERC20, Governable {
             reservedPctAvg          = (reservedPctPrev + reservedPctCur) * 1e18 / totalTimeElapsed;
         }
 
-        if (uBalance < pendingWithdrawal + liqAmtAvg) return 0;
-        uint256 activeInclReserved = uBalance - pendingWithdrawal - liqAmtAvg;
-        uint256 activeExclReserved = activeInclReserved - (activeInclReserved * reservedPctAvg / DENOMINATOR / 1e18);
-        fees = activeExclReserved * aprAvg * totalTimeElapsed / YEAR_SECS / DENOMINATOR / 1e18;
+        if (uBalance < pendingWithdrawal + amtForSaleAvg) return 0;
+
+        // Calculate fees based on average active amount (excl reserved)
+        uint256 activeInclReservedAvg = uBalance - pendingWithdrawal - amtForSaleAvg;
+        uint256 activeExclReservedAvg = activeInclReservedAvg - (activeInclReservedAvg * reservedPctAvg / DENOMINATOR / 1e18);
+        fees = activeExclReservedAvg * aprAvg * totalTimeElapsed / YEAR_SECS / DENOMINATOR / 1e18;
     }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
