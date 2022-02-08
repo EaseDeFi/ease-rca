@@ -53,6 +53,8 @@ contract RcaShieldConvex is RcaShieldBase {
         uint256 underlyingAmount = _amount * _tokenPrice / _underlyingPrice;
         IERC20(_token).safeTransfer(msg.sender, _amount);
         uToken.safeTransferFrom(msg.sender,address(this), underlyingAmount);
+        uToken.safeApprove(address(masterChef), underlyingAmount);
+        masterChef.deposit(pid, underlyingAmount, address(this));
     }
 
     function _uBalance() internal view override returns(uint256) {

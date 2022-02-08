@@ -42,6 +42,7 @@ contract RcaShieldAave is RcaShieldBase {
         uint256 _underlyingPrice,
         bytes32[] calldata _underlyinPriceProof
     ) external {
+        require(_token != address(uToken), "cannot buy underlyingToken");
         controller.verifyPrice(_token,  _tokenPrice, _tokenPriceProof);
         controller.verifyPrice(address(this), _underlyingPrice, _underlyinPriceProof);
         uint256 underlyingAmount = _amount * _tokenPrice / _underlyingPrice;
