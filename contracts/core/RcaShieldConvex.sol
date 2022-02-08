@@ -39,11 +39,14 @@ contract RcaShieldConvex is RcaShieldBase {
         uint256 _underlyingPrice,
         bytes32[] calldata _underlyinPriceProof
     ) external {
+        require(_token != address(uToken), "cannot buy underlying token");
         controller.verifyPrice(_token,  _tokenPrice, _tokenPriceProof);
         controller.verifyPrice(address(this), _underlyingPrice, _underlyinPriceProof);
         uint256 underlyingAmount = _amount * _tokenPrice / _underlyingPrice;
         IERC20(_token).safeTransfer(msg.sender, _amount);
         uToken.safeTransferFrom(msg.sender,address(this), underlyingAmount);
+        uToken.safeApprove(address(rewardPool), underlyingAmount);
+        rewardPool.stake(underlyingAmount);
     }
 
     function _uBalance() internal view override returns(uint256) {
