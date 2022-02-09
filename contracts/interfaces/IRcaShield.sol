@@ -15,11 +15,7 @@ interface IRcaShield {
     function name() external returns(string calldata);
     function symbol() external returns(string calldata);
     function uToken() external returns(IERC20);
-    function controllerUpdate(uint256 liqForClaims, 
-                              uint256 liqUpdate, 
-                              uint256 percentReserved, 
-                              uint256 reservedUpdate,
-                              uint256 apr, 
+    function controllerUpdate(uint256 apr,
                               uint256 aprUpdate)
                             external;
 }

@@ -521,13 +521,9 @@ abstract contract RcaShieldBase is ERC20, Governable {
     )
     {
         // Check for liquidation, then percent paused, then APR
-        (uint32 liqForClaimsUpdate, uint32 reservedUpdate, /** */, /** */, uint32 aprUpdate, /** */) = controller.systemUpdates();
+        (/** */, /** */, /** */, /** */, uint32 aprUpdate, /** */) = controller.systemUpdates();
         uint256 extraLiqForClaims = _newCumLiqForClaims - cumLiqForClaims;
         uint256 extraFees = _getInterimFees(
-                                _newCumLiqForClaims,
-                                uint256(liqForClaimsUpdate),
-                                controller.percentReserved(),
-                                uint256(reservedUpdate),
                                 controller.apr(),
                                 uint256(aprUpdate)
                             );
@@ -538,13 +534,10 @@ abstract contract RcaShieldBase is ERC20, Governable {
     /**
      * @notice Get the amount that should be added to "amtForSale" based on actions within the time since last update.
      * @dev If values have changed within the interim period, this function averages them to find new owed amounts for fees.
-     * @param _newCumLiqForClaims New cumulative liquidation amount.
+     * @param _newApr new APR.
+     * @param _aprUpdate start time for new APR.
      */
     function _getInterimFees(
-        uint256 _newCumLiqForClaims,
-        uint256 _liqForClaimsUpdate,
-        uint256 _newPercentReserved,
-        uint256 _reservedUpdate,
         uint256 _newApr,
         uint256 _aprUpdate
     )
@@ -558,8 +551,6 @@ abstract contract RcaShieldBase is ERC20, Governable {
         // 1e18 used as a buffer.
         uint256 uBalance         = _uBalance();
         uint256 aprAvg           = apr * 1e18;
-        uint256 amtForSaleAvg    = amtForSale;
-        uint256 reservedPctAvg   = percentReserved * 1e18;
         uint256 totalTimeElapsed = block.timestamp - lastUpdate;
 
         // Find average APR throughout period if it has been updated.
@@ -569,26 +560,11 @@ abstract contract RcaShieldBase is ERC20, Governable {
             aprAvg          = (aprPrev + aprCur) * 1e18 / totalTimeElapsed;
         }
 
-        // Find average amount of funds liquidated for claims throughout the period.
-        if (_liqForClaimsUpdate > lastUpdate) {
-            uint256 amtForSalePrev = amtForSale * (_liqForClaimsUpdate - lastUpdate);
-            uint256 amtForSaleCur  = (amtForSale + (_newCumLiqForClaims - cumLiqForClaims)) * (block.timestamp - _liqForClaimsUpdate);
-            amtForSaleAvg          = (amtForSalePrev + amtForSaleCur) / totalTimeElapsed;
-        }
-
-        // Find average percent of reserved funds through the period.
-        if (_reservedUpdate > lastUpdate) {
-            uint256 reservedPctPrev = percentReserved * (_reservedUpdate - lastUpdate); 
-            uint256 reservedPctCur  = _newPercentReserved * (block.timestamp - _reservedUpdate);
-            reservedPctAvg          = (reservedPctPrev + reservedPctCur) * 1e18 / totalTimeElapsed;
-        }
-
         if (uBalance < pendingWithdrawal + amtForSaleAvg) return 0;
 
         // Calculate fees based on average active amount (excl reserved)
-        uint256 activeInclReservedAvg = uBalance - pendingWithdrawal - amtForSaleAvg;
-        uint256 activeExclReservedAvg = activeInclReservedAvg - (activeInclReservedAvg * reservedPctAvg / DENOMINATOR / 1e18);
-        fees = activeExclReservedAvg * aprAvg * totalTimeElapsed / YEAR_SECS / DENOMINATOR / 1e18;
+        uint256 activeInclReserved = uBalance - pendingWithdrawal - amtForSale;
+        fees = activeInclReserved * aprAvg * totalTimeElapsed / YEAR_SECS / DENOMINATOR / 1e18;
     }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -645,10 +621,6 @@ abstract contract RcaShieldBase is ERC20, Governable {
      * what the exact costs throughout the period were according to when system updates were made.
      */
     function controllerUpdate(
-        uint256 _newCumLiqForClaims,
-        uint256 _liqForClaimsUpdate,
-        uint256 _newPercentReserved,
-        uint256 _reservedUpdate,
         uint256 _newApr,
         uint256 _aprUpdate
     )
@@ -659,10 +631,6 @@ abstract contract RcaShieldBase is ERC20, Governable {
         if (apr == 0 && _newApr == 0) return;
 
         uint256 extraFees = _getInterimFees(
-                                _newCumLiqForClaims,
-                                _liqForClaimsUpdate,
-                                _newPercentReserved,
-                                _reservedUpdate,
                                 _newApr,
                                 _aprUpdate
                             );

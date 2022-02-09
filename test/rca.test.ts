@@ -328,12 +328,12 @@ describe('RCAs and Controller', function(){
       
       let uValue = await shield.uValue(ether("1"), ether("100"));
       let rcaValue = await shield.rcaValue(ether("1"), ether("100"));
-      expect(uValue).to.be.equal("804999996829020801");
-      expect(rcaValue).to.be.equal("1242236029738018148");
+      expect(uValue/1e18).to.be.approximately(0.8, 1e-6);
+      expect(rcaValue/1e18).to.be.approximately(1.25, 1e-6);
     });
 
     // Verify APR updates for 
-    it("should update correctly with tokens for sale, percent paused, and APR change", async function(){      
+    it("should update correctly with tokens for sale, percent paused, and APR change", async function(){
       increase(31536000 / 2);
       mine();
 
@@ -344,22 +344,23 @@ describe('RCAs and Controller', function(){
       // Wait about half a year, so about 5% should be taken.
       increase(31536000 / 2);
       mine();
-      
+
       let rcaValue = await shield.rcaValue(ether("1"), ether("100"));
       let uValue = await shield.uValue(ether("1"), ether("100"));
       let extraForSale = await shield.getExtraForSale(ether("100"));
 
       /*
        * Okay let's see if I can do basic math:
-       * Starting tokens == 1000, 10% APR for half a year on that is 5% or 50 tokens
+       * Starting tokens == 1000, 10% APR for half a year (simplifying for (1+APR)^n==1+APR*n) on that is 5% or 50 tokens
        * 100 tokens are removed for liquidation, total for sale is now 150 so active is 850
        * 10% of that reserved is 85 tokens so active is 765 but total for sale is still 150.
-       * 20% APR for half a year on active is then 76.5 tokens, so for sale is 226.5 and active is 688.5.
-       * uValue takes into account reserved and should return ~0.6885 underlying per RCA.
-       * rcaValue does not take into account reserved, so its value is 1000 / 773.5 or ~1.2928 per u.
+       * 20% APR for half a year on active (not compounding APR and ignoring reserved and additional liquidations) is
+       * then 100 tokens, so for sale is 250, reserved is 75 and active is 675.
+       * uValue takes into account reserved and should return 0.675 underlying per RCA.
+       * rcaValue does not take into account reserved, so its value is 1000 / 750 or ~1.333 per u.
       */
-      expect(uValue).to.be.equal("688162489290810508");
-      expect(rcaValue).to.be.equal("1307830656285116265");
+      expect(uValue/1e18).to.be.approximately(0.675, 1e-6);
+      expect(rcaValue/1e18).to.be.approximately(1.333333, 1e-6);
     });
 
   });
