@@ -305,9 +305,7 @@ contract RcaController is RcaGovernable {
         // Update shield here to account for interim period where variables were changed but shield had not updated.
         if (lastUpdate < updates.liqUpdate || lastUpdate < updates.reservedUpdate || lastUpdate < updates.aprUpdate) {
             verifyLiq(msg.sender, _newCumLiqForClaims, _liqForClaimsProof);
-            shield.controllerUpdate(_newCumLiqForClaims, uint256(updates.liqUpdate),
-                                    percentReserved, uint256(updates.reservedUpdate),
-                                    apr, uint256(updates.aprUpdate));
+            shield.controllerUpdate(apr, uint256(updates.aprUpdate));
         }
 
         if (lastUpdate < updates.treasuryUpdate)        shield.setTreasury(treasury);
