@@ -257,17 +257,18 @@ abstract contract RcaShieldBase is ERC20, Governable {
      * @param _newCumLiqForClaims New cumulative liquidated if this must be updated.
      * @param _liqForClaimsProof Merkle proof to verify new cumulative liquidation.
      */
-    function redeemTo(
+    function redeemFinalize(
         address   _to,
-        address   _user,
         bytes     calldata _zapperData,
         uint256   _newCumLiqForClaims,
         bytes32[] calldata _liqForClaimsProof
     )
       external
     {
-        WithdrawRequest memory request = withdrawRequests[_user];
-        delete withdrawRequests[_user];
+        address user = msg.sender;
+
+        WithdrawRequest memory request = withdrawRequests[user];
+        delete withdrawRequests[user];
         
         // endTime > 0 ensures request exists.
         require(request.endTime > 0 && uint32(block.timestamp) > request.endTime, "Withdrawal not yet allowed.");
@@ -276,7 +277,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
         bool zapper = 
             controller.redeemFinalize(
                 _to,
-                _user,
+                user,
                 uint256(request.rcaAmount),
                 _newCumLiqForClaims,
                 _liqForClaimsProof
@@ -290,11 +291,10 @@ abstract contract RcaShieldBase is ERC20, Governable {
 
         // The cool part about doing it this way rather than having user send RCAs to zapper contract,
         // then it exchanging and returning Ether is that it's more gas efficient and no approvals are needed.
-        if (zapper) IZapper(_to).zapTo(_user, uint256(request.uAmount), _zapperData);
-        else if (_user != _to) revert("Invalid `to` address.");
+        if (zapper) IZapper(_to).zapTo(user, uint256(request.uAmount), _zapperData);
 
         emit RedeemFinalize(
-            _user,
+            user,
             _to,
             uint256(request.uAmount),
             uint256(request.rcaAmount),

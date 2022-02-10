@@ -1,0 +1,250 @@
+[
+  {
+    "inputs": [],
+    "name": "apr",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "user",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "uAmount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "capacity",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes32[]",
+        "name": "capacityProof",
+        "type": "bytes32[]"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_newCumLiq",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes32[]",
+        "name": "forSaleProof",
+        "type": "bytes32[]"
+      }
+    ],
+    "name": "mint",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "percentReserved",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "user",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "uEthPrice",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes32[]",
+        "name": "priceProof",
+        "type": "bytes32[]"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_newCumLiq",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes32[]",
+        "name": "forSaleProof",
+        "type": "bytes32[]"
+      }
+    ],
+    "name": "purchase",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "to",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "user",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "rcaAmount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_newCumLiq",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes32[]",
+        "name": "forSaleProof",
+        "type": "bytes32[]"
+      }
+    ],
+    "name": "redeemFinalize",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "user",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "rcaAmount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_newCumLiq",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes32[]",
+        "name": "forSaleProof",
+        "type": "bytes32[]"
+      }
+    ],
+    "name": "redeemRequest",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "systemUpdates",
+    "outputs": [
+      {
+        "internalType": "uint32",
+        "name": "",
+        "type": "uint32"
+      },
+      {
+        "internalType": "uint32",
+        "name": "",
+        "type": "uint32"
+      },
+      {
+        "internalType": "uint32",
+        "name": "",
+        "type": "uint32"
+      },
+      {
+        "internalType": "uint32",
+        "name": "",
+        "type": "uint32"
+      },
+      {
+        "internalType": "uint32",
+        "name": "",
+        "type": "uint32"
+      },
+      {
+        "internalType": "uint32",
+        "name": "",
+        "type": "uint32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "shield",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "capacity",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes32[]",
+        "name": "proof",
+        "type": "bytes32[]"
+      }
+    ],
+    "name": "verifyCapacity",
+    "outputs": [],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "shield",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_newCumLiq",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes32[]",
+        "name": "forSaleProof",
+        "type": "bytes32[]"
+      }
+    ],
+    "name": "verifyLiq",
+    "outputs": [],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]
