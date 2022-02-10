@@ -5,3 +5,5 @@ cache/
 artifacts/
 coverage/
 coverage.json
+.idea/
+/armor-rca.iml
