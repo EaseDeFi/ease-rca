@@ -120,7 +120,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
     )
     {
         initializeGovernable(_governor);
-        uToken = IERC20(_uToken);
+        uToken     = IERC20(_uToken);
         controller = IRcaController(_controller);
     }
 
@@ -145,11 +145,11 @@ abstract contract RcaShieldBase is ERC20, Governable {
       onlyController
     {
         require(treasury == address(0), "Contract has already been initialized.");
-        apr = _apr;
-        discount = _discount;
-        treasury = _treasury;
+        apr             = _apr;
+        discount        = _discount;
+        treasury        = _treasury;
         withdrawalDelay = _withdrawalDelay;
-        lastUpdate = block.timestamp;
+        lastUpdate      = block.timestamp;
     }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -260,6 +260,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
     function redeemTo(
         address   _to,
         address   _user,
+        bytes     calldata _zapperData,
         uint256   _newCumLiqForClaims,
         bytes32[] calldata _liqForClaimsProof
     )
@@ -289,7 +290,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
 
         // The cool part about doing it this way rather than having user send RCAs to zapper contract,
         // then it exchanging and returning Ether is that it's more gas efficient and no approvals are needed.
-        if (zapper) IZapper(_to).zapTo( _user, uint256(request.uAmount) );
+        if (zapper) IZapper(_to).zapTo(_user, uint256(request.uAmount), _zapperData);
         else if (_user != _to) revert("Invalid `to` address.");
 
         emit RedeemFinalize(
@@ -390,7 +391,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
         
         // If amount is too big than for sale, tx will fail here.
         uint256 rcaAmount = _rcaValue(_uAmount, amtForSale);
-        amtForSale       -= _uAmount;
+        amtForSale        -= _uAmount;
 
         _mint(_user, rcaAmount);
         treasury.transfer(msg.value);
@@ -468,7 +469,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
     )
     {
         uint256 subtrahend = _extraForSale - pendingWithdrawal;
-        uint256 balance = _uBalance();
+        uint256 balance    = _uBalance();
         if (totalSupply() == 0 || balance < subtrahend) return _rcaAmount;
 
         uAmount = 
@@ -498,7 +499,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
         uint256 rcaAmount
     )
     {
-        uint256 balance = _uBalance();
+        uint256 balance    = _uBalance();
         uint256 subtrahend = _extraForSale + pendingWithdrawal;
         if (balance == 0 || balance < subtrahend) return _uAmount;
         rcaAmount = 
@@ -560,9 +561,10 @@ abstract contract RcaShieldBase is ERC20, Governable {
             aprAvg          = (aprPrev + aprCur) * 1e18 / totalTimeElapsed;
         }
 
+        // Will probably never occur, but just in case.
         if (uBalance < pendingWithdrawal + amtForSale) return 0;
 
-        // Calculate fees based on average active amount (excl reserved)
+        // Calculate fees based on average active amount
         uint256 activeInclReserved = uBalance - pendingWithdrawal - amtForSale;
         fees = activeInclReserved * aprAvg * totalTimeElapsed / YEAR_SECS / DENOMINATOR / 1e18;
     }
@@ -584,8 +586,8 @@ abstract contract RcaShieldBase is ERC20, Governable {
             // If liquidation for claims is set incorrectly this could occur and break the contract.
             if (balance < subtrahend) return;
 
-            uint256 secsElapsed = block.timestamp - lastUpdate;
-            uint256 active = balance - subtrahend;
+            uint256 secsElapsed        = block.timestamp - lastUpdate;
+            uint256 active             = balance - subtrahend;
             uint256 activeExclReserved = active - (active * percentReserved / DENOMINATOR);
 
             amtForSale += 
@@ -651,8 +653,8 @@ abstract contract RcaShieldBase is ERC20, Governable {
     {
         // Do this here rather than on controller for slight savings.
         uint256 addForSale = _newCumLiqForClaims - cumLiqForClaims;
-        amtForSale += addForSale;
-        cumLiqForClaims = _newCumLiqForClaims;
+        amtForSale         += addForSale;
+        cumLiqForClaims    = _newCumLiqForClaims;
     }
 
     /**
