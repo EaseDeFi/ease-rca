@@ -20,8 +20,9 @@ import 'hardhat/console.sol';
 abstract contract RcaShieldBase is ERC20, Governable {
     using SafeERC20 for IERC20;
 
-    uint256 constant YEAR_SECS = 31536000;
+    uint256 constant YEAR_SECS   = 31536000;
     uint256 constant DENOMINATOR = 10000;
+    uint256 constant BUFFER      = 1e18;
 
     /// @notice Controller of RCA contract that takes care of actions.
     IRcaController public controller;
@@ -549,16 +550,15 @@ abstract contract RcaShieldBase is ERC20, Governable {
     )
     {
         // Get all variables that are currently in this contract's state.
-        // 1e18 used as a buffer.
         uint256 uBalance         = _uBalance();
-        uint256 aprAvg           = apr * 1e18;
+        uint256 aprAvg           = apr * BUFFER;
         uint256 totalTimeElapsed = block.timestamp - lastUpdate;
 
         // Find average APR throughout period if it has been updated.
         if (_aprUpdate > lastUpdate) {
             uint256 aprPrev = apr * (_aprUpdate - lastUpdate);
             uint256 aprCur  = _newApr * (block.timestamp - _aprUpdate);
-            aprAvg          = (aprPrev + aprCur) * 1e18 / totalTimeElapsed;
+            aprAvg          = (aprPrev + aprCur) * BUFFER / totalTimeElapsed;
         }
 
         // Will probably never occur, but just in case.
@@ -566,7 +566,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
 
         // Calculate fees based on average active amount
         uint256 activeInclReserved = uBalance - pendingWithdrawal - amtForSale;
-        fees = activeInclReserved * aprAvg * totalTimeElapsed / YEAR_SECS / DENOMINATOR / 1e18;
+        fees = activeInclReserved * aprAvg * totalTimeElapsed / YEAR_SECS / DENOMINATOR / BUFFER;
     }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
