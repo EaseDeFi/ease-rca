@@ -512,6 +512,7 @@ contract RcaController is RcaGovernable {
       external
       onlyGov
     {
+        require(_newApr <= 500, "Fees attempting to be set too high.");
         apr                     = _newApr;
         systemUpdates.aprUpdate = uint32(block.timestamp);
     }
@@ -551,15 +552,17 @@ contract RcaController is RcaGovernable {
      * @notice Admin can set the percent paused. This pauses this percent of tokens from every single shield
      * while the DAO analyzes losses. This percent will be the maximum loss possible. If a withdrawal occurs 
      * from any shield during this time, they will lose this percent of tokens.
-     * @param _newPercentPaused Percent of shields to temporarily pause. 1000 == 10%.
+     * @param _newPercentReserved Percent of shields to temporarily pause. 1000 == 10%.
      */
     function setPercentReserved(
-        uint256 _newPercentPaused
+        uint256 _newPercentReserved
     )
       external
       onlyGuardian
     {
-        percentReserved = _newPercentPaused;
+        // Will likely never be this much, but will lead to problems if it's set higher than this.
+        require(_newPercentReserved <= DENOMINATOR, "Too much attempting to be reserved.");
+        percentReserved = _newPercentReserved;
         systemUpdates.reservedUpdate = uint32(block.timestamp);
     }
 
