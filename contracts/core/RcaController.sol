@@ -363,19 +363,20 @@ contract RcaController is RcaGovernable {
 
     /**
      * @notice Verify capacity of a shield (in underlying tokens).
-     * @param _shield Address of the shield to verify capacity of.
+     * @param _token Address of the shield/token to verify capacity of. Although delineated
+     * in underlying tokens for shields, the shield address is used.
      * @param _capacity Amount of capacity the shield has left.
      * @param _proof The Merkle proof verifying the capacity.
      */
     function verifyCapacity(
-        address   _shield,
+        address   _token,
         uint256   _capacity,
         bytes32[] memory _proof
     )
       public
       view
     {
-        bytes32 leaf = keccak256(abi.encodePacked(_shield, _capacity));
+        bytes32 leaf = keccak256(abi.encodePacked(_token, _capacity));
         require(MerkleProof.verify(_proof, capacitiesRoot, leaf), "Incorrect capacity proof.");
     }
 
