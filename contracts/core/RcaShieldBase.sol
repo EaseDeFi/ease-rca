@@ -15,7 +15,7 @@ import 'hardhat/console.sol';
  * Each underlying token (not protocol) has its own RCA vault. This contract
  * doubles as the vault and the RCA token.
  * @dev This contract assumes uToken decimals of 18.
- * @author Robert M.C. Forster & Romke Jonker
+ * @author Robert M.C. Forster, Romke Jonker, Taek Lee
 **/
 abstract contract RcaShieldBase is ERC20, Governable {
     using SafeERC20 for IERC20;
@@ -212,19 +212,24 @@ abstract contract RcaShieldBase is ERC20, Governable {
      * @param _rcaAmount The amount of tokens (in RCAs) to be redeemed.
      * @param _newCumLiqForClaims New cumulative liquidated if this must be updated.
      * @param _liqForClaimsProof Merkle proof to verify the new cumulative liquidated.
+     * @param _newPercentReserved New percent of funds in shield that are reserved.
+     * @param _percentReservedProof Merkle proof for the new percent reserved.
      */
     function redeemRequest(
         uint256   _rcaAmount,
         uint256   _newCumLiqForClaims,
-        bytes32[] calldata _liqForClaimsProof
+        bytes32[] calldata _liqForClaimsProof,
+        uint256   _newPercentReserved,
+        bytes32[] calldata _percentReservedProof
     )
       external
     {
         controller.redeemRequest(
             msg.sender,
-            _rcaAmount,
             _newCumLiqForClaims,
-            _liqForClaimsProof
+            _liqForClaimsProof,
+            _newPercentReserved,
+            _percentReservedProof
         );
 
         _update();
@@ -252,7 +257,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
     }
 
     /**
-     * @notice Used to exchange RCA tokens back to the underlying token. Will have a 2+ day delay upon withdrawal.
+     * @notice Used to exchange RCA tokens back to the underlying token. Will have a 1-2 day delay upon withdrawal.
      * This can mint to a "zapper" contract that can exchange the asset for Ether and send to the user.
      * @param _to The destination of the tokens.
      * @param _newCumLiqForClaims New cumulative liquidated if this must be updated.
@@ -260,6 +265,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
      */
     function redeemFinalize(
         address   _to,
+        bool      _zapper,
         bytes     calldata _zapperData,
         uint256   _newCumLiqForClaims,
         bytes32[] calldata _liqForClaimsProof
@@ -274,15 +280,11 @@ abstract contract RcaShieldBase is ERC20, Governable {
         // endTime > 0 ensures request exists.
         require(request.endTime > 0 && uint32(block.timestamp) > request.endTime, "Withdrawal not yet allowed.");
 
-        // This function doubles as redeeming and determining whether `to` is a zapper.
-        bool zapper = 
-            controller.redeemFinalize(
-                _to,
-                user,
-                uint256(request.rcaAmount),
-                _newCumLiqForClaims,
-                _liqForClaimsProof
-            );
+        controller.redeemFinalize(
+            user,
+            _newCumLiqForClaims,
+            _liqForClaimsProof
+        );
 
         _update();
 
@@ -292,7 +294,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
 
         // The cool part about doing it this way rather than having user send RCAs to zapper contract,
         // then it exchanging and returning Ether is that it's more gas efficient and no approvals are needed.
-        if (zapper) IZapper(_to).zapTo(user, uint256(request.uAmount), _zapperData);
+        if (_zapper) IZapper(_to).zapTo(user, uint256(request.uAmount), _zapperData);
 
         emit RedeemFinalize(
             user,
@@ -415,11 +417,13 @@ abstract contract RcaShieldBase is ERC20, Governable {
      * @dev External version of RCA value is needed so that frontend can properly
      * calculate values in cases where the contract has not been recently updated.
      * @param _rcaAmount Amount of RCA tokens (18 decimal) to find the underlying token value of.
-     * @param _newCumLiqForClaims New cumulative liquidated if this must be updated.
+     * @param _cumLiqForClaims New cumulative liquidated if this must be updated.
+     * @param _percentReserved Percent of tokens that are reserved after a hack payout.
      */
     function uValue(
         uint256 _rcaAmount,
-        uint256 _newCumLiqForClaims
+        uint256 _cumLiqForClaims,
+        uint256 _percentReserved
     )
       external
       view
@@ -427,7 +431,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
         uint256 uAmount
     )
     {
-        (uint256 extraForSale, uint256 _percentReserved) = getExtraForSale(_newCumLiqForClaims);
+        uint256 extraForSale = getExtraForSale(_cumLiqForClaims);
         uAmount = _uValue(_rcaAmount, extraForSale, _percentReserved);
     }
 
@@ -435,11 +439,11 @@ abstract contract RcaShieldBase is ERC20, Governable {
      * @dev External version of RCA value is needed so that frontend can properly
      * calculate values in cases where the contract has not been recently updated.
      * @param _uAmount Amount of underlying tokens (18 decimal).
-     * @param _newCumLiqForClaims New cumulative liquidated if this must be updated.
+     * @param _cumLiqForClaims New cumulative liquidated if this must be updated.
      */
     function rcaValue(
         uint256   _uAmount,
-        uint256   _newCumLiqForClaims
+        uint256   _cumLiqForClaims
     )
       external
       view
@@ -447,7 +451,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
         uint256 rcaAmount
     )
     {
-        (uint256 extraForSale, /* percentReserved */) = getExtraForSale(_newCumLiqForClaims);
+        uint256 extraForSale = getExtraForSale(_cumLiqForClaims);
         rcaAmount = _rcaValue(_uAmount, extraForSale);
     }
 
@@ -518,8 +522,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
       public
       view
     returns(
-        uint256 extraForSale,
-        uint256 _percentReserved
+        uint256 extraForSale
     )
     {
         // Check for liquidation, then percent paused, then APR
@@ -530,7 +533,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
                                 uint256(aprUpdate)
                             );
         extraForSale = extraFees + extraLiqForClaims;
-        return (extraForSale, controller.percentReserved());
+        return extraForSale;
     }
 
     /**
@@ -619,7 +622,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
 
     /**
      * @notice Update function to be called by controller. This is only called when a controller has made
-     * an update since the last shield update was made, so it must do extra calculations to determine
+     * an APR update since the last shield update was made, so it must do extra calculations to determine
      * what the exact costs throughout the period were according to when system updates were made.
      */
     function controllerUpdate(
@@ -629,9 +632,6 @@ abstract contract RcaShieldBase is ERC20, Governable {
       external
       onlyController
     {
-        // This update only affects the contract when APR is active.
-        if (apr == 0 && _newApr == 0) return;
-
         uint256 extraFees = _getInterimFees(
                                 _newApr,
                                 _aprUpdate
@@ -651,10 +651,9 @@ abstract contract RcaShieldBase is ERC20, Governable {
       external
       onlyController
     {
-        // Do this here rather than on controller for slight savings.
-        uint256 addForSale = _newCumLiqForClaims - cumLiqForClaims;
-        amtForSale         += addForSale;
-        cumLiqForClaims    = _newCumLiqForClaims;
+        if (_newCumLiqForClaims > cumLiqForClaims) amtForSale += _newCumLiqForClaims - cumLiqForClaims;
+        else amtForSale -= cumLiqForClaims - _newCumLiqForClaims;
+        cumLiqForClaims = _newCumLiqForClaims;
     }
 
     /**
@@ -671,8 +670,8 @@ abstract contract RcaShieldBase is ERC20, Governable {
     }
 
     /**
-     * @notice Change the percent paused on this vault. 1000 == 10%.
-     * @param _newPercentReserved New percent paused.
+     * @notice Change the percent reserved on this vault. 1000 == 10%.
+     * @param _newPercentReserved New percent reserved.
     **/
     function setPercentReserved(
         uint256 _newPercentReserved

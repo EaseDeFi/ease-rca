@@ -187,18 +187,6 @@
         "type": "address"
       },
       {
-        "indexed": true,
-        "internalType": "address",
-        "name": "to",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "rcaAmount",
-        "type": "uint256"
-      },
-      {
         "indexed": false,
         "internalType": "uint256",
         "name": "timestamp",
@@ -222,12 +210,6 @@
         "internalType": "address",
         "name": "user",
         "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "rcaAmount",
-        "type": "uint256"
       },
       {
         "indexed": false,
@@ -485,8 +467,14 @@
     "type": "function"
   },
   {
-    "inputs": [],
-    "name": "percentReserved",
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "nonces",
     "outputs": [
       {
         "internalType": "uint256",
@@ -567,18 +555,8 @@
     "inputs": [
       {
         "internalType": "address",
-        "name": "_to",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
         "name": "_user",
         "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_rcaAmount",
-        "type": "uint256"
       },
       {
         "internalType": "uint256",
@@ -592,13 +570,7 @@
       }
     ],
     "name": "redeemFinalize",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "zapper",
-        "type": "bool"
-      }
-    ],
+    "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
   },
@@ -611,11 +583,6 @@
       },
       {
         "internalType": "uint256",
-        "name": "_rcaAmount",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
         "name": "_newCumLiqForClaims",
         "type": "uint256"
       },
@@ -623,11 +590,34 @@
         "internalType": "bytes32[]",
         "name": "_liqForClaimsProof",
         "type": "bytes32[]"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_newPercentReserved",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes32[]",
+        "name": "_percentReservedProof",
+        "type": "bytes32[]"
       }
     ],
     "name": "redeemRequest",
     "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "reservedRoot",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -701,6 +691,11 @@
         "internalType": "bytes32",
         "name": "_newLiqRoot",
         "type": "bytes32"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "_newReservedRoot",
+        "type": "bytes32"
       }
     ],
     "name": "setLiqTotal",
@@ -711,9 +706,9 @@
   {
     "inputs": [
       {
-        "internalType": "uint256",
-        "name": "_newPercentPaused",
-        "type": "uint256"
+        "internalType": "bytes32",
+        "name": "_newReservedRoot",
+        "type": "bytes32"
       }
     ],
     "name": "setPercentReserved",
@@ -769,19 +764,6 @@
       }
     ],
     "name": "setWithdrawalDelay",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_newZapper",
-        "type": "address"
-      }
-    ],
-    "name": "setZapper",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -902,7 +884,7 @@
     "inputs": [
       {
         "internalType": "address",
-        "name": "_shield",
+        "name": "_token",
         "type": "address"
       },
       {
@@ -968,6 +950,29 @@
     "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_shield",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_percentReserved",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes32[]",
+        "name": "_proof",
+        "type": "bytes32[]"
+      }
+    ],
+    "name": "verifyReserved",
+    "outputs": [],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [],
     "name": "withdrawalDelay",
     "outputs": [
@@ -975,25 +980,6 @@
         "internalType": "uint256",
         "name": "",
         "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "name": "zappers",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
       }
     ],
     "stateMutability": "view",

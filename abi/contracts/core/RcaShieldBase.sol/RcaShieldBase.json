@@ -460,11 +460,6 @@
         "internalType": "uint256",
         "name": "extraForSale",
         "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_percentReserved",
-        "type": "uint256"
       }
     ],
     "stateMutability": "view",
@@ -736,7 +731,7 @@
       },
       {
         "internalType": "uint256",
-        "name": "_newCumLiqForClaims",
+        "name": "_cumLiqForClaims",
         "type": "uint256"
       }
     ],
@@ -764,6 +759,11 @@
         "internalType": "address",
         "name": "_to",
         "type": "address"
+      },
+      {
+        "internalType": "bool",
+        "name": "_zapper",
+        "type": "bool"
       },
       {
         "internalType": "bytes",
@@ -801,6 +801,16 @@
       {
         "internalType": "bytes32[]",
         "name": "_liqForClaimsProof",
+        "type": "bytes32[]"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_newPercentReserved",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes32[]",
+        "name": "_percentReservedProof",
         "type": "bytes32[]"
       }
     ],
@@ -1027,7 +1037,12 @@
       },
       {
         "internalType": "uint256",
-        "name": "_newCumLiqForClaims",
+        "name": "_cumLiqForClaims",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_percentReserved",
         "type": "uint256"
       }
     ],

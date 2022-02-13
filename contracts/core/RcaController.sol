@@ -12,21 +12,18 @@ import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
  * This contract creates vaults, emits events when anything happens on a vault,
  * keeps track of variables relevant to vault functionality, keeps track of capacities,
  * amounts for sale on each vault, prices of tokens, and updates vaults when needed.
- * @author Robert M.C. Forster
+ * @author Robert M.C. Forster, Romke Jonker, Taek Lee
  */
 
 contract RcaController is RcaGovernable {
 
     /// @notice Address => whether or not it's a verified shield.
     mapping (address => bool) public shieldMapping;
-    /// @notice Address => whether or not it's a verified zapper.
-    mapping (address => bool) public zappers;
-
     /// @notice Percents of coverage for each protocol of a specific shield, 1000 == 10%.
     mapping (address => ProtocolPercent[]) public shieldProtocolPercents;
     /**
      * @dev For a Yearn vault with a Curve token with DAI, USDC, USDT:
-     * Yearn|100%, Curve|100%, DAI|33%, USDC|33%, USDT|33%
+     * Yearn|100%, Curve|100%, DAI|100%, USDC|100%, USDT|100%
      * Just used by frontend at the moment.
     */
     struct ProtocolPercent {
@@ -38,26 +35,28 @@ contract RcaController is RcaGovernable {
     uint256 public apr;
     /// @notice Amount of time users must wait to withdraw tokens after requesting redemption. In seconds.
     uint256 public withdrawalDelay;
-    /// @notice Discount for purchasing tokens being liquidated from a shield.
+    /// @notice Discount for purchasing tokens being liquidated from a shield. 1000 == 10%.
     uint256 public discount;
-    /// @notice The amount of each contract that's currently paused. Only non-zero after multisig
-    /// declares a hack occurred and before DAO confirms for sale amounts. 1000 == 10%.
-    uint256 public percentReserved;
     /// @notice Address that funds from selling tokens is sent to.
     address payable public treasury;
     /// @notice Amount of funds for sale on a protocol, sent in by DAO after a hack occurs (in token).
     bytes32 public liqForClaimsRoot;
-    /// @notice Merkle root of the amount of capacity available for each protocol (in USD).
+    /// @notice Merkle root of the amount of capacity available for each protocol (in underlying tokens).
     bytes32 public capacitiesRoot;
-    /// @notice Root of all underlying token prices--only used if the protocol is doing pricing.
+    /// @notice The amount of each shield that's currently reserved for hack payouts. 1000 == 10%.
+    bytes32 public reservedRoot;
+    /// @notice Root of all underlying token prices--only used if the protocol is doing pricing. Price in Ether.
     bytes32 public priceRoot;
 
+    /// @notice Nonce to prevent replays of capacity signatures. User => RCA nonce.
+    mapping (address => uint256) public nonces;
     /// @notice Last time each individual shield was checked for update.
     mapping (address => uint256) public lastShieldUpdate;
+
     /**
      * @dev The update variable flow works in an interesting way to optimize efficiency:
      * Each time a user interacts with a specific shield vault, it calls Controller
-     * for all necessary interactions (events, updates, etc.). The general Controller function
+     * for all necessary interactions (events & updates). The general Controller function
      * will check when when the last shield update was made vs. all recent other updates.
      * If a system update is more recent than the shield update, value is changed.
      */
@@ -75,30 +74,16 @@ contract RcaController is RcaGovernable {
      * @dev Events are used to notify the frontend of events on shields. If we have 1,000 shields,
      * a centralized event system can tell the frontend which shields to check for a specific user.
      */
-    event Mint(address indexed rcaShield, address indexed user, uint256 timestamp);
-    event RedeemRequest(address indexed rcaShield, address indexed user, uint256 rcaAmount, uint256 timestamp);
-    event RedeemFinalize(address indexed rcaShield, address indexed user, address indexed to, uint256 rcaAmount, uint256 timestamp);
-    event Purchase(address indexed rcaShield, address indexed user, uint256 timestamp);
-    event ShieldCreated(address indexed rcaShield, address indexed underlyingToken, string name, string symbol, uint256 timestamp);
+    event Mint          (address indexed rcaShield, address indexed user, uint256 timestamp);
+    event RedeemRequest (address indexed rcaShield, address indexed user, uint256 timestamp);
+    event RedeemFinalize(address indexed rcaShield, address indexed user, uint256 timestamp);
+    event Purchase      (address indexed rcaShield, address indexed user, uint256 timestamp);
+    event ShieldCreated (address indexed rcaShield, address indexed underlyingToken, string name, string symbol, uint256 timestamp);
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////// modifiers //////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    /**
-     * @notice Update is used before each onlyShield function to ensure the shield is up-to-date before actions.
-     * @param _newCumLiqForClaims Old cumulative amount of funds for sale. Needed to ensure additional is accurate.
-     * @param _liqForClaimsProof Merkle proof for the for sale amount.
-     */
-    modifier update(
-        uint256   _newCumLiqForClaims,
-        bytes32[] memory _liqForClaimsProof
-    )
-    {
-        _update(_newCumLiqForClaims, _liqForClaimsProof);
-        _;
-    }
-    
     /**
      * @notice Ensure the sender is a shield.
      * @dev We don't want non-shield contracts creating mint, redeem, purchase events.
@@ -170,12 +155,16 @@ contract RcaController is RcaGovernable {
         bytes32[] calldata _liqForClaimsProof
     )
       external
-      update(
-          _newCumLiqForClaims,
-          _liqForClaimsProof
-      )
       onlyShield
     {
+        _update(
+          _newCumLiqForClaims,
+          _liqForClaimsProof,
+          0,
+          new bytes32[](0),
+          false
+        );
+
         /** 
          * @dev Capacity isn't really bulletproof here because shields don't keep track on-chain, so 
          * between updates people can technically overload the shield if a lot of transactions suddenly 
@@ -191,65 +180,63 @@ contract RcaController is RcaGovernable {
     /**
      * @notice Updates contract, emits event for redeem action.
      * @param _user User that is redeeming tokens.
-     * @param _rcaAmount The amount of RCAs they're redeeming.
      * @param _newCumLiqForClaims New cumulative amount of liquidated tokens if an update is needed.
      * @param _liqForClaimsProof Merkle proof to verify the new cumulative liquidated if needed.
+     * @param _newPercentReserved New percent of the shield that is reserved for hack payouts.
+     * @param _percentReservedProof Merkle proof to verify the new percent reserved.
      */
     function redeemRequest(
         address   _user,
-        uint256   _rcaAmount,
         uint256   _newCumLiqForClaims,
-        bytes32[] calldata _liqForClaimsProof
+        bytes32[] calldata _liqForClaimsProof,
+        uint256   _newPercentReserved,
+        bytes32[] calldata _percentReservedProof
     )
       external
-      update(
-          _newCumLiqForClaims,
-          _liqForClaimsProof
-      )
       onlyShield
     {
+        _update(
+            _newCumLiqForClaims,
+            _liqForClaimsProof,
+            _newPercentReserved,
+            _percentReservedProof,
+            true
+        );
+    
         emit RedeemRequest(
             msg.sender,
             _user,
-            _rcaAmount,
             block.timestamp
         );
     }
 
     /**
      * @notice Updates contract, emits event for redeem action.
-     * @param _to The address that the redeem is being made to.
      * @param _user User that is redeeming tokens.
-     * @param _rcaAmount The amount of RCAs they're redeeming.
      * @param _newCumLiqForClaims New cumulative amount of liquidated tokens if an update is needed.
      * @param _liqForClaimsProof Merkle proof to verify the new cumulative liquidated if needed.
      */
     function redeemFinalize(
-        address   _to,
         address   _user,
-        uint256   _rcaAmount,
         uint256   _newCumLiqForClaims,
         bytes32[] calldata _liqForClaimsProof
     )
       external
-      update(
-          _newCumLiqForClaims,
-          _liqForClaimsProof
-      )
       onlyShield
-      returns(
-          bool zapper
-      )
     {
+        _update(
+          _newCumLiqForClaims,
+          _liqForClaimsProof,
+          0,
+          new bytes32[](0),
+          false
+        );
+
         emit RedeemFinalize(
             msg.sender, 
             _user,
-            _to,
-            _rcaAmount,
             block.timestamp
         );
-
-        zapper = zappers[_to];
     }
 
     /**
@@ -268,14 +255,17 @@ contract RcaController is RcaGovernable {
         bytes32[] calldata _liqForClaimsProof
     )
       external
-      update(
-          _newCumLiqForClaims,
-          _liqForClaimsProof
-      )
       onlyShield
     {
-        verifyPrice(msg.sender, _ethPrice, _priceProof);
+        _update(
+          _newCumLiqForClaims,
+          _liqForClaimsProof,
+          0,
+          new bytes32[](0),
+          false
+        );
 
+        verifyPrice(msg.sender, _ethPrice, _priceProof);
         emit Purchase(msg.sender, _user, block.timestamp);
     }
 
@@ -289,10 +279,16 @@ contract RcaController is RcaGovernable {
      * withdrawal delay, new discount for sales, new APR fee for general functionality.
      * @param _newCumLiqForClaims New cumulative amount of liquidated tokens if an update is needed.
      * @param _liqForClaimsProof Merkle proof to verify the new cumulative liquidated if needed.
+     * @param _newPercentReserved New percent of tokens of this shield that are reserved.
+     * @param _percentReservedProof Merkle proof to verify the new percent reserved.
+     * @param _redeemRequest Whether or not this is a redeem request to know whether to update reserved.
      */
     function _update(
         uint256   _newCumLiqForClaims,
-        bytes32[] memory _liqForClaimsProof
+        bytes32[] memory _liqForClaimsProof,
+        uint256   _newPercentReserved,
+        bytes32[] memory _percentReservedProof,
+        bool      _redeemRequest
     )
       internal
     {
@@ -302,19 +298,23 @@ contract RcaController is RcaGovernable {
         // Seems kinda messy but not too bad on gas.
         SystemUpdates memory updates = systemUpdates;
 
-        // Update shield here to account for interim period where variables were changed but shield had not updated.
-        if (lastUpdate < updates.liqUpdate || lastUpdate < updates.reservedUpdate || lastUpdate < updates.aprUpdate) {
-            verifyLiq(msg.sender, _newCumLiqForClaims, _liqForClaimsProof);
-            shield.controllerUpdate(apr, uint256(updates.aprUpdate));
-        }
-
         if (lastUpdate < updates.treasuryUpdate)        shield.setTreasury(treasury);
         if (lastUpdate < updates.discountUpdate)        shield.setDiscount(discount);
         if (lastUpdate < updates.withdrawalDelayUpdate) shield.setWithdrawalDelay(withdrawalDelay);
-        if (lastUpdate < updates.reservedUpdate)        shield.setPercentReserved(percentReserved);
-        if (lastUpdate < updates.aprUpdate)             shield.setApr(apr);
-        // liqUpdate previously verified before setting, but the block above accounts for that.
-        if (lastUpdate < updates.liqUpdate)             shield.setLiqForClaims(_newCumLiqForClaims);
+        if (lastUpdate < updates.aprUpdate) {
+            // Update shield here to account for interim period where variables were changed but shield had not updated.
+            shield.controllerUpdate(apr, uint256(updates.aprUpdate));
+            shield.setApr(apr);
+        }
+        // Only updates if it's a redeem request (which is the only call that's affected by reserved).
+        if (lastUpdate < updates.reservedUpdate && _redeemRequest) {
+            verifyReserved(msg.sender, _newPercentReserved, _percentReservedProof);
+            shield.setPercentReserved(_newPercentReserved);
+        }
+        if (lastUpdate < updates.liqUpdate) {
+            verifyLiq(msg.sender, _newCumLiqForClaims, _liqForClaimsProof);
+            shield.setLiqForClaims(_newCumLiqForClaims);
+        }
 
         lastShieldUpdate[msg.sender] = uint32(block.timestamp);
     }
@@ -381,6 +381,24 @@ contract RcaController is RcaGovernable {
     }
 
     /**
+     * @notice Verify the percent reserved for a particular shield.
+     * @param _shield Address of the shield/token to verify reserved.
+     * @param _percentReserved Percent of shield that's reserved. 10% == 1000.
+     * @param _proof The Merkle proof verifying the percent reserved.
+     */
+    function verifyReserved(
+        address   _shield,
+        uint256   _percentReserved,
+        bytes32[] memory _proof
+    )
+      public
+      view
+    {
+        bytes32 leaf = keccak256(abi.encodePacked(_shield, _percentReserved));
+        require(MerkleProof.verify(_proof, reservedRoot, leaf), "Incorrect capacity proof.");
+    }
+
+    /**
      * @notice Makes it easier for frontend to get the balances on many shields.
      * @param _user User to find balances of.
      * @param _tokens The shields (also tokens) to find the RCA balances for.
@@ -408,7 +426,7 @@ contract RcaController is RcaGovernable {
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
-     * @notice Initialize a new arShield from an already-created family.
+     * @notice Initialize a new shield.
      * @param _shield Address of the shield to initialize.
      * @param _protocols IDs of the protocols the shield is exposed to.
      * @param _percents Percent (in hundredths, 1000 == 10%) of funds that are exposed to each protocol.
@@ -450,27 +468,21 @@ contract RcaController is RcaGovernable {
     }
 
     /**
-     * @notice Governance calls to set the new total amount for sale. This call also resets percentReserved
-     * because it implicitly signals the end of the pause period and beginning of selling period.
-     * @dev Root will be determined by hashing current amount for sale and current cumulative amount
-     * that has been put as for sale through this means in the past. This ensures that if the vault is
-     * updated after this new root has been created, the new cumulative amount can be accounted for.
+     * @notice Governance calls to set the new total amount for sale.
      * @param _newLiqRoot Merkle root for new total amounts for sale for each protocol (in token).
+     * @param _newReservedRoot Reserved root setting all percent reserved back to 0.
      */
     function setLiqTotal(
-        bytes32 _newLiqRoot
+        bytes32 _newLiqRoot,
+        bytes32 _newReservedRoot
     )
       external
       onlyGov
     {
-        // In some cases governance may just want to reset percent paused.
-        percentReserved              = 0;
+        liqForClaimsRoot             = _newLiqRoot;
+        systemUpdates.liqUpdate      = uint32(block.timestamp);
+        reservedRoot                 = _newReservedRoot;
         systemUpdates.reservedUpdate = uint32(block.timestamp);
-
-        if ( _newLiqRoot != bytes32(0) ) {
-            liqForClaimsRoot        = _newLiqRoot;
-            systemUpdates.liqUpdate = uint32(block.timestamp);
-        }
     }
 
     /**
@@ -484,6 +496,7 @@ contract RcaController is RcaGovernable {
       external
       onlyGov
     {
+        require(_newWithdrawalDelay <= 86400 * 7, "Withdrawal delay may not be more than 7 days.");
         withdrawalDelay                     = _newWithdrawalDelay;
         systemUpdates.withdrawalDelayUpdate = uint32(block.timestamp);
     }
@@ -498,6 +511,7 @@ contract RcaController is RcaGovernable {
       external
       onlyGov
     {
+        require(_newDiscount <= 5000, "Discount may not be more than 50%.");
         discount                     = _newDiscount;
         systemUpdates.discountUpdate = uint32(block.timestamp);
     }
@@ -512,7 +526,7 @@ contract RcaController is RcaGovernable {
       external
       onlyGov
     {
-        require(_newApr <= 500, "Fees attempting to be set too high.");
+        require(_newApr <= 1000, "APR may not be more than 10%.");
         apr                     = _newApr;
         systemUpdates.aprUpdate = uint32(block.timestamp);
     }
@@ -531,38 +545,22 @@ contract RcaController is RcaGovernable {
         systemUpdates.treasuryUpdate = uint32(block.timestamp);
     }
 
-    /**
-     * @notice Governance can add a new zapper allowed to exchange funds for users.
-     * @param _newZapper Address of the zapper contract.
-     */
-    function setZapper(
-        address _newZapper
-    )
-      external
-      onlyGov
-    {
-        zappers[_newZapper] = true;
-    }
-
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////// onlyGuardian ///////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
-     * @notice Admin can set the percent paused. This pauses this percent of tokens from every single shield
-     * while the DAO analyzes losses. This percent will be the maximum loss possible. If a withdrawal occurs 
-     * from any shield during this time, they will lose this percent of tokens.
-     * @param _newPercentReserved Percent of shields to temporarily pause. 1000 == 10%.
+     * @notice Admin can set the percent paused. This pauses this percent of tokens from each shield
+     * while the DAO analyzes losses. If a withdrawal occurs while reserved > 0, the user will lose this percent of tokens.
+     * @param _newReservedRoot Percent of shields to temporarily pause for each shield. 1000 == 10%.
      */
     function setPercentReserved(
-        uint256 _newPercentReserved
+        bytes32 _newReservedRoot
     )
       external
       onlyGuardian
     {
-        // Will likely never be this much, but will lead to problems if it's set higher than this.
-        require(_newPercentReserved <= DENOMINATOR, "Too much attempting to be reserved.");
-        percentReserved = _newPercentReserved;
+        reservedRoot                 = _newReservedRoot;
         systemUpdates.reservedUpdate = uint32(block.timestamp);
     }
 
@@ -573,7 +571,7 @@ contract RcaController is RcaGovernable {
     /**
      * @notice Capacity oracle calls to set new capacities available for each protocol.
      * Capacity oracle is fairly centralized because we see little enough risk (only temporary DoS).
-     * @param _newCapacitiesRoot Merkle root for new capacities available for each protocol (in USD).
+     * @param _newCapacitiesRoot Merkle root for new capacities available for each protocol (in underlying tokens).
      */
     function setCapacities(
         bytes32 _newCapacitiesRoot
@@ -589,9 +587,9 @@ contract RcaController is RcaGovernable {
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
-     * @notice Set prices of all tokens with our oracle. This will be expanded so that price oracle is a
+     * @notice Set prices of all tokens with our oracle. This will likely be expanded so that price oracle is a
      * smart contract that accepts input from a few sources to increase decentralization.
-     * @param _newPriceRoot Merkle root for new capacities available for each protocol (in USD).
+     * @param _newPriceRoot Merkle root for new prices of each underlying token in Ether (key is shield address or token for rewards).
      */
     function setPrices(
         bytes32 _newPriceRoot

@@ -41,26 +41,13 @@
       },
       {
         "internalType": "bytes32[]",
-        "name": "forSaleProof",
+        "name": "cumLiqProof",
         "type": "bytes32[]"
       }
     ],
     "name": "mint",
     "outputs": [],
     "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "percentReserved",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -87,7 +74,7 @@
       },
       {
         "internalType": "bytes32[]",
-        "name": "forSaleProof",
+        "name": "cumLiqProof",
         "type": "bytes32[]"
       }
     ],
@@ -100,18 +87,8 @@
     "inputs": [
       {
         "internalType": "address",
-        "name": "to",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
         "name": "user",
         "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "rcaAmount",
-        "type": "uint256"
       },
       {
         "internalType": "uint256",
@@ -120,18 +97,12 @@
       },
       {
         "internalType": "bytes32[]",
-        "name": "forSaleProof",
+        "name": "cumLiqProof",
         "type": "bytes32[]"
       }
     ],
     "name": "redeemFinalize",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
-    ],
+    "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
   },
@@ -144,17 +115,22 @@
       },
       {
         "internalType": "uint256",
-        "name": "rcaAmount",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
         "name": "_newCumLiq",
         "type": "uint256"
       },
       {
         "internalType": "bytes32[]",
-        "name": "forSaleProof",
+        "name": "cumLiqProof",
+        "type": "bytes32[]"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_newPercentReserved",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes32[]",
+        "name": "_percentReservedProof",
         "type": "bytes32[]"
       }
     ],
@@ -238,7 +214,7 @@
       },
       {
         "internalType": "bytes32[]",
-        "name": "forSaleProof",
+        "name": "cumLiqProof",
         "type": "bytes32[]"
       }
     ],

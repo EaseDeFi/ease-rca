@@ -4,7 +4,6 @@ pragma solidity ^0.8.11;
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 
 interface IRcaShield {
-    function cumForSale() external returns(uint256);
     function setApr(uint256 apr) external;
     function setTreasury(address treasury) external;
     function setDiscount(uint256 discount) external;
