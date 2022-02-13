@@ -526,7 +526,7 @@ contract RcaController is RcaGovernable {
       external
       onlyGov
     {
-        require(_newApr <= 1000, "APR may not be more than 10%.");
+        require(_newApr <= 2000, "APR may not be more than 20%.");
         apr                     = _newApr;
         systemUpdates.aprUpdate = uint32(block.timestamp);
     }

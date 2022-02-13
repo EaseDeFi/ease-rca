@@ -475,7 +475,9 @@ abstract contract RcaShieldBase is ERC20, Governable {
     {
         uint256 subtrahend = _extraForSale - pendingWithdrawal;
         uint256 balance    = _uBalance();
-        if (totalSupply() == 0 || balance < subtrahend) return _rcaAmount;
+
+        if (totalSupply() == 0)        return _rcaAmount; 
+        else if (balance < subtrahend) return 0;
 
         uAmount = 
             (balance - subtrahend)
