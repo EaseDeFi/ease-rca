@@ -276,7 +276,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
 
         WithdrawRequest memory request = withdrawRequests[user];
         delete withdrawRequests[user];
-        
+
         // endTime > 0 ensures request exists.
         require(request.endTime > 0 && uint32(block.timestamp) > request.endTime, "Withdrawal not yet allowed.");
 
@@ -432,7 +432,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
     )
     {
         uint256 extraForSale = getExtraForSale(_cumLiqForClaims);
-        uAmount = _uValue(_rcaAmount, extraForSale, _percentReserved);
+        uAmount = _uValue(_rcaAmount, amtForSale + extraForSale, _percentReserved);
     }
 
     /**
@@ -452,19 +452,19 @@ abstract contract RcaShieldBase is ERC20, Governable {
     )
     {
         uint256 extraForSale = getExtraForSale(_cumLiqForClaims);
-        rcaAmount = _rcaValue(_uAmount, extraForSale);
+        rcaAmount = _rcaValue(_uAmount, amtForSale + extraForSale);
     }
 
     /**
      * @notice Convert RCA value to underlying tokens. This is internal because new 
      * for sale amounts will already have been retrieved and updated.
      * @param _rcaAmount The amount of RCAs to find the underlying value of.
-     * @param _extraForSale Used by external value calls cause updates aren't made on those.
+     * @param _totalForSale Used by external value calls cause updates aren't made on those.
      * @param _percentReserved Percent of funds reserved if a hack is being examined.
      */
     function _uValue(
         uint256 _rcaAmount,
-        uint256 _extraForSale,
+        uint256 _totalForSale,
         uint256 _percentReserved
     )
       internal
@@ -473,8 +473,8 @@ abstract contract RcaShieldBase is ERC20, Governable {
         uint256 uAmount
     )
     {
-        uint256 subtrahend = _extraForSale - pendingWithdrawal;
         uint256 balance    = _uBalance();
+        uint256 subtrahend = _totalForSale + pendingWithdrawal;
 
         if (totalSupply() == 0)        return _rcaAmount; 
         else if (balance < subtrahend) return 0;
@@ -494,11 +494,11 @@ abstract contract RcaShieldBase is ERC20, Governable {
     /**
      * @notice Find the RCA value of an amount of underlying tokens.
      * @param _uAmount Amount of underlying tokens to find RCA value of.
-     * @param _extraForSale Used by external value calls cause updates aren't made on those.
+     * @param _totalForSale Used by external value calls cause updates aren't made on those.
      */
     function _rcaValue(
         uint256 _uAmount,
-        uint256 _extraForSale
+        uint256 _totalForSale
     )
       internal
       view
@@ -507,8 +507,10 @@ abstract contract RcaShieldBase is ERC20, Governable {
     )
     {
         uint256 balance    = _uBalance();
-        uint256 subtrahend = _extraForSale + pendingWithdrawal;
+        uint256 subtrahend = _totalForSale + pendingWithdrawal;
+
         if (balance == 0 || balance < subtrahend) return _uAmount;
+        
         rcaAmount = 
             totalSupply()
             * _uAmount
@@ -653,8 +655,13 @@ abstract contract RcaShieldBase is ERC20, Governable {
       external
       onlyController
     {
-        if (_newCumLiqForClaims > cumLiqForClaims) amtForSale += _newCumLiqForClaims - cumLiqForClaims;
-        else amtForSale -= cumLiqForClaims - _newCumLiqForClaims;
+        if (_newCumLiqForClaims > cumLiqForClaims) {
+            amtForSale += _newCumLiqForClaims - cumLiqForClaims;
+        } else {
+            uint256 subtrahend = cumLiqForClaims - _newCumLiqForClaims;
+            amtForSale = amtForSale > subtrahend ? amtForSale - subtrahend : 0;
+        }
+
         cumLiqForClaims = _newCumLiqForClaims;
     }
 
