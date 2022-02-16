@@ -17,6 +17,9 @@ import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 
 contract RcaController is RcaGovernable {
 
+    /// @notice Used for signing to ensure the signature being used is for this specific contract.
+    bytes32 public constant DOMAIN_SEPARATOR = keccak256(abi.encode("EASE_RCA_CONTROLLER_V0.1", /*block.chainid*/1, /*address(this)*/1));
+
     /// @notice Address => whether or not it's a verified shield.
     mapping (address => bool) public shieldMapping;
     /// @notice Percents of coverage for each protocol of a specific shield, 1000 == 10%.
@@ -41,8 +44,6 @@ contract RcaController is RcaGovernable {
     address payable public treasury;
     /// @notice Amount of funds for sale on a protocol, sent in by DAO after a hack occurs (in token).
     bytes32 public liqForClaimsRoot;
-    /// @notice Merkle root of the amount of capacity available for each protocol (in underlying tokens).
-    bytes32 public capacitiesRoot;
     /// @notice The amount of each shield that's currently reserved for hack payouts. 1000 == 10%.
     bytes32 public reservedRoot;
     /// @notice Root of all underlying token prices--only used if the protocol is doing pricing. Price in Ether.
@@ -127,9 +128,9 @@ contract RcaController is RcaGovernable {
             _priceOracle
         );
 
-        apr = _apr;
-        discount = _discount;
-        treasury = _treasury;
+        apr             = _apr;
+        discount        = _discount;
+        treasury        = _treasury;
         withdrawalDelay = _withdrawalDelay;
     }
 
@@ -141,16 +142,20 @@ contract RcaController is RcaGovernable {
      * @notice Updates contract, emits event for minting, checks capacity.
      * @param _user User that is minting tokens.
      * @param _uAmount Underlying token amount being liquidated.
-     * @param _capacity Current extra capacity allowed on this shield (in underlying tokens).
-     * @param _capacityProof Merkle proof to verify the capacity above.
+     * @param _expiry Time (Unix timestamp) that this request expires.
+     * @param _v The recovery byte of the signature.
+     * @param _r Half of the ECDSA signature pair.
+     * @param _s Half of the ECDSA signature pair.
      * @param _newCumLiqForClaims New cumulative amount of liquidated tokens if an update is needed.
      * @param _liqForClaimsProof Merkle proof to verify the new cumulative liquidated if needed.
      */
     function mint(
         address   _user,
         uint256   _uAmount,
-        uint256   _capacity,
-        bytes32[] calldata _capacityProof,
+        uint256   _expiry,
+        uint8     _v,
+        bytes32   _r,
+        bytes32   _s,
         uint256   _newCumLiqForClaims,
         bytes32[] calldata _liqForClaimsProof
     )
@@ -165,14 +170,8 @@ contract RcaController is RcaGovernable {
           false
         );
 
-        /** 
-         * @dev Capacity isn't really bulletproof here because shields don't keep track on-chain, so 
-         * between updates people can technically overload the shield if a lot of transactions suddenly 
-         * happen. We don't keep track on-chain because we'll be on multiple chains without 
-         * cross-communication. We've decided there's not enough risk to keep capacities fully on-chain.
-         */ 
-        verifyCapacity(msg.sender, _capacity, _capacityProof);
-        require(_uAmount < _capacity, "Not enough capacity available.");
+        // Confirm the capacity oracle approved this transaction.
+        verifyCapacitySig(_user, _uAmount, _expiry, _v, _r, _s);
         
         emit Mint(msg.sender, _user, block.timestamp);
     }
@@ -334,7 +333,7 @@ contract RcaController is RcaGovernable {
         uint256   _newCumLiqForClaims,
         bytes32[] memory _liqForClaimsProof
     )
-      public
+      internal
       view
     {
         bytes32 leaf = keccak256(abi.encodePacked(_shield, _newCumLiqForClaims));
@@ -352,7 +351,7 @@ contract RcaController is RcaGovernable {
         uint256   _value,
         bytes32[] memory _proof
     )
-      public
+      internal
       view
     {
         bytes32 leaf = keccak256(abi.encodePacked(_shield, _value));
@@ -362,22 +361,31 @@ contract RcaController is RcaGovernable {
     }
 
     /**
-     * @notice Verify capacity of a shield (in underlying tokens).
-     * @param _token Address of the shield/token to verify capacity of. Although delineated
-     * in underlying tokens for shields, the shield address is used.
-     * @param _capacity Amount of capacity the shield has left.
-     * @param _proof The Merkle proof verifying the capacity.
+     * @notice Verify the signature approving the transaction
+     * @param _user User that is being minted to.
+     * @param _amount Amount of underlying tokens being deposited.
+     * @param _expiry Time (Unix timestamp) that this request expires.
+     * @param _v The recovery byte of the signature.
+     * @param _r Half of the ECDSA signature pair.
+     * @param _s Half of the ECDSA signature pair.
      */
-    function verifyCapacity(
-        address   _token,
-        uint256   _capacity,
-        bytes32[] memory _proof
+    function verifyCapacitySig(
+        address _user,
+        uint256 _amount,
+        uint256 _expiry,
+        uint8   _v,
+        bytes32 _r,
+        bytes32 _s
     )
-      public
+      internal
       view
     {
-        bytes32 leaf = keccak256(abi.encodePacked(_token, _capacity));
-        require(MerkleProof.verify(_proof, capacitiesRoot, leaf), "Incorrect capacity proof.");
+        bytes32 structHash = keccak256(abi.encodePacked(_user, msg.sender, _amount, nonces[_user]++, _expiry));
+        bytes32 digest     = keccak256(abi.encodePacked("\x19\x01", DOMAIN_SEPARATOR, structHash));
+        address signatory  = ecrecover(digest, _v, _r, _s);
+
+        require(signatory == capOracle, "Invalid capacity oracle signature.");
+        require(block.timestamp <= _expiry, "Capacity permission has expired.");
     }
 
     /**
@@ -391,7 +399,7 @@ contract RcaController is RcaGovernable {
         uint256   _percentReserved,
         bytes32[] memory _proof
     )
-      public
+      internal
       view
     {
         bytes32 leaf = keccak256(abi.encodePacked(_shield, _percentReserved));
@@ -419,6 +427,31 @@ contract RcaController is RcaGovernable {
             uint256 balance = IERC20(_tokens[i]).balanceOf(_user);
             balances[i] = balance;
         }
+    }
+
+    /**
+     * @notice Used by frontend to craft signature for a requested transaction.
+     * @param _user User that is being minted to.
+     * @param _shield Address of the shield that tokens are being deposited into.
+     * @param _amount Amount of underlying tokens to mint.
+     * @param _nonce User nonce (current nonce +1) that this transaction will be.
+     * @param _expiry Time (Unix timestamp) that this request will expire.
+     */
+    function getMessageHash(
+        address _user,
+        address _shield,
+        uint256 _amount,
+        uint256 _nonce,
+        uint256 _expiry
+    )
+      external
+      view
+    returns(
+        bytes32 digest
+    )
+    {
+        bytes32 structHash = keccak256(abi.encodePacked(_user, _shield, _amount, _nonce, _expiry));
+        digest = keccak256(abi.encodePacked("\x19\x01", DOMAIN_SEPARATOR, structHash));     
     }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -562,24 +595,6 @@ contract RcaController is RcaGovernable {
     {
         reservedRoot                 = _newReservedRoot;
         systemUpdates.reservedUpdate = uint32(block.timestamp);
-    }
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////// onlyCapOracle ///////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-    /**
-     * @notice Capacity oracle calls to set new capacities available for each protocol.
-     * Capacity oracle is fairly centralized because we see little enough risk (only temporary DoS).
-     * @param _newCapacitiesRoot Merkle root for new capacities available for each protocol (in underlying tokens).
-     */
-    function setCapacities(
-        bytes32 _newCapacitiesRoot
-    )
-      external
-      onlyCapOracle
-    {
-        capacitiesRoot = _newCapacitiesRoot;
     }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////

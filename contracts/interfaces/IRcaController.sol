@@ -6,8 +6,10 @@ interface IRcaController {
     function mint(
         address   user,
         uint256   uAmount,
-        uint256   capacity,
-        bytes32[] calldata capacityProof,
+        uint256   expiry,
+        uint8     v,
+        bytes32   r,
+        bytes32   s,
         uint256   _newCumLiq,
         bytes32[] calldata cumLiqProof
     ) external;

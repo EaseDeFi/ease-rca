@@ -164,16 +164,20 @@ abstract contract RcaShieldBase is ERC20, Governable {
      * @notice Mint tokens to an address. Not automatically to msg.sender so we can more easily zap assets.
      * @param _user The user to mint tokens to.
      * @param _uAmount Amount of underlying tokens desired to use for mint.
-     * @param _capacity Capacity of the vault (in underlying tokens).
-     * @param _capacityProof Merkle proof to verify capacity.
+     * @param _expiry Time (Unix timestamp) that this request expires.
+     * @param _v The recovery byte of the signature.
+     * @param _r Half of the ECDSA signature pair.
+     * @param _s Half of the ECDSA signature pair.
      * @param _newCumLiqForClaims New total cumulative liquidated if there is one.
      * @param _liqForClaimsProof Merkle proof to verify cumulative liquidated.
      */
     function mintTo(
         address   _user,
         uint256   _uAmount,
-        uint256   _capacity,
-        bytes32[] calldata _capacityProof,
+        uint256   _expiry,
+        uint8     _v,
+        bytes32   _r,
+        bytes32   _s,
         uint256   _newCumLiqForClaims,
         bytes32[] calldata _liqForClaimsProof
     )
@@ -183,8 +187,10 @@ abstract contract RcaShieldBase is ERC20, Governable {
         controller.mint(
             _user,
             _uAmount,
-            _capacity,
-            _capacityProof,
+            _expiry,
+            _v,
+            _r,
+            _s,
             _newCumLiqForClaims,
             _liqForClaimsProof
         );
