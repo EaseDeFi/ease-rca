@@ -334,7 +334,7 @@ contract RcaController is RcaGovernable {
     )
       internal
     {
-        bytes32 domainSeparator = keccak256(abi.encode("EASE_RCA_CONTROLLER_V0.1", block.chainid, address(this)));
+        bytes32 domainSeparator = keccak256(abi.encodePacked("EASE_RCA_CONTROLLER_V0.1", block.chainid, address(this)));
         bytes32 structHash      = keccak256(abi.encodePacked(_user, msg.sender, _amount, nonces[_user]++, _expiry));
         bytes32 digest          = keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));
         address signatory       = ecrecover(digest, _v, _r, _s);
@@ -447,9 +447,9 @@ contract RcaController is RcaGovernable {
         bytes32 digest
     )
     {
-        bytes32 domainSeparator = keccak256(abi.encode("EASE_RCA_CONTROLLER_V0.1", block.chainid, address(this)));
-        bytes32 structHash = keccak256(abi.encodePacked(_user, _shield, _amount, _nonce, _expiry));
-        digest = keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));     
+        bytes32 domainSeparator = keccak256(abi.encodePacked("EASE_RCA_CONTROLLER_V0.1", block.chainid, address(this)));
+        bytes32 structHash      = keccak256(abi.encodePacked(_user, _shield, _amount, _nonce, _expiry));
+        digest                  = keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));     
     }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
