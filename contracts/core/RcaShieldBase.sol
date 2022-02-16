@@ -157,9 +157,6 @@ abstract contract RcaShieldBase is ERC20, Governable {
 ///////////////////////////////////////////////// external //////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    /// Get reward of a protocol includes rewards
-    function getReward(IERC20[] memory _tokens) public virtual;
-
     /**
      * @notice Mint tokens to an address. Not automatically to msg.sender so we can more easily zap assets.
      * @param _user The user to mint tokens to.
@@ -616,9 +613,6 @@ abstract contract RcaShieldBase is ERC20, Governable {
 
     /// @notice Check balance of underlying token.
     function _uBalance() internal virtual view returns(uint256);
-
-    /// @notice Get reward for this token if there are rewards.
-    function _updateReward(address _user) internal virtual;
 
     /// @notice Logic to run after a mint, such as if we need to stake the underlying token.
     function _afterMint(uint256 _uAmount) internal virtual;

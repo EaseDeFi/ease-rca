@@ -30,11 +30,6 @@
         "internalType": "contract IConvexRewardPool",
         "name": "_rewardPool",
         "type": "address"
-      },
-      {
-        "internalType": "contract IERC20",
-        "name": "_rewardToken",
-        "type": "address"
       }
     ],
     "stateMutability": "nonpayable",
@@ -507,13 +502,7 @@
     "type": "function"
   },
   {
-    "inputs": [
-      {
-        "internalType": "contract IERC20[]",
-        "name": "_rewards",
-        "type": "address[]"
-      }
-    ],
+    "inputs": [],
     "name": "getReward",
     "outputs": [],
     "stateMutability": "nonpayable",
@@ -554,30 +543,6 @@
       }
     ],
     "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "contract IERC20",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "name": "info",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "reward",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "index",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -717,6 +682,44 @@
       }
     ],
     "name": "proofOfLoss",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_token",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_amount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_tokenPrice",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes32[]",
+        "name": "_tokenPriceProof",
+        "type": "bytes32[]"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_underlyingPrice",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes32[]",
+        "name": "_underlyinPriceProof",
+        "type": "bytes32[]"
+      }
+    ],
+    "name": "purchase",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -900,19 +903,6 @@
     "outputs": [
       {
         "internalType": "contract IConvexRewardPool",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "rewardToken",
-    "outputs": [
-      {
-        "internalType": "contract IERC20",
         "name": "",
         "type": "address"
       }
@@ -1152,35 +1142,6 @@
       {
         "internalType": "uint256",
         "name": "uAmount",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "contract IERC20",
-        "name": "",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "name": "userInfo",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "reward",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "index",
         "type": "uint256"
       }
     ],

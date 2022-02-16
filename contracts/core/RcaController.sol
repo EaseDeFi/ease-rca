@@ -360,7 +360,7 @@ contract RcaController is RcaGovernable {
         uint256   _newCumLiqForClaims,
         bytes32[] memory _liqForClaimsProof
     )
-      internal
+      public
       view
     {
         bytes32 leaf = keccak256(abi.encodePacked(_shield, _newCumLiqForClaims));
@@ -378,7 +378,7 @@ contract RcaController is RcaGovernable {
         uint256   _value,
         bytes32[] memory _proof
     )
-      internal
+      public
       view
     {
         bytes32 leaf = keccak256(abi.encodePacked(_shield, _value));
@@ -398,7 +398,7 @@ contract RcaController is RcaGovernable {
         uint256   _percentReserved,
         bytes32[] memory _proof
     )
-      internal
+      public
       view
     {
         bytes32 leaf = keccak256(abi.encodePacked(_shield, _percentReserved));

@@ -26,10 +26,6 @@ contract RcaShield is RcaShieldBase {
         return uToken.balanceOf(address(this));
     }
 
-    function _updateReward(address) internal override {
-        // no-op
-    }
-
     function _afterMint(uint256) internal override {
         // no-op
     }
@@ -37,8 +33,5 @@ contract RcaShield is RcaShieldBase {
     function _afterRedeem(uint256) internal override{
         // no-op
     }
-
-    function getReward(IERC20[] memory) public override {
-        // no-op
-    }
+    
 }

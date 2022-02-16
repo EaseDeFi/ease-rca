@@ -42,10 +42,10 @@ interface IRcaController {
         bytes32[] memory cumLiqProof
     ) external view;
 
-    function verifyCapacity(
-        address   shield,
-        uint256   capacity,
-        bytes32[] memory proof
+    function verifyPrice(
+        address shield,
+        uint256 _value,
+        bytes32[] memory _proof
     ) external view;
 
     function apr() external view returns(uint256);

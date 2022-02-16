@@ -904,6 +904,75 @@
     "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_shield",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_newCumLiqForClaims",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes32[]",
+        "name": "_liqForClaimsProof",
+        "type": "bytes32[]"
+      }
+    ],
+    "name": "verifyLiq",
+    "outputs": [],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_shield",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_value",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes32[]",
+        "name": "_proof",
+        "type": "bytes32[]"
+      }
+    ],
+    "name": "verifyPrice",
+    "outputs": [],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_shield",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_percentReserved",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes32[]",
+        "name": "_proof",
+        "type": "bytes32[]"
+      }
+    ],
+    "name": "verifyReserved",
+    "outputs": [],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [],
     "name": "withdrawalDelay",
     "outputs": [

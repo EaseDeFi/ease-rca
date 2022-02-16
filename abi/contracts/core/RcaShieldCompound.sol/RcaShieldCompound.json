@@ -1,5 +1,41 @@
 [
   {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "_name",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "_symbol",
+        "type": "string"
+      },
+      {
+        "internalType": "address",
+        "name": "_uToken",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_governance",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_controller",
+        "type": "address"
+      },
+      {
+        "internalType": "contract IComptroller",
+        "name": "_comptroller",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
     "anonymous": false,
     "inputs": [
       {
@@ -354,6 +390,19 @@
   },
   {
     "inputs": [],
+    "name": "comptroller",
+    "outputs": [
+      {
+        "internalType": "contract IComptroller",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "controller",
     "outputs": [
       {
@@ -463,6 +512,13 @@
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getReward",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -639,6 +695,44 @@
       }
     ],
     "name": "proofOfLoss",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_token",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_amount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_tokenPrice",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes32[]",
+        "name": "_tokenPriceProof",
+        "type": "bytes32[]"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_underlyingPrice",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes32[]",
+        "name": "_underlyinPriceProof",
+        "type": "bytes32[]"
+      }
+    ],
+    "name": "purchase",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"

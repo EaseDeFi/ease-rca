@@ -3,12 +3,12 @@
 pragma solidity ^0.8.11;
 
 import "./RcaShieldBase.sol";
-import "../external/Convex.sol";
+import "../external/Compound.sol";
 
-contract RcaShieldConvex is RcaShieldBase {
+contract RcaShieldCompound is RcaShieldBase {
     using SafeERC20 for IERC20;
 
-    IConvexRewardPool public immutable rewardPool;
+    IComptroller public immutable comptroller;
 
     constructor(
         string memory _name,
@@ -16,7 +16,7 @@ contract RcaShieldConvex is RcaShieldBase {
         address _uToken,
         address _governance,
         address _controller,
-        IConvexRewardPool _rewardPool
+        IComptroller _comptroller
     ) RcaShieldBase(
         _name,
         _symbol,
@@ -24,11 +24,14 @@ contract RcaShieldConvex is RcaShieldBase {
         _governance,
         _controller
     )  {
-        rewardPool = _rewardPool;
+        comptroller = _comptroller;
+        address[] memory markets = new address[](1);
+        markets[0] = _uToken;
+        _comptroller.enterMarkets(markets);
     }
 
     function getReward() external {
-        rewardPool.getReward(address(this), true);
+        comptroller.claimComp(address(this));
     }
 
     function purchase(
@@ -39,27 +42,23 @@ contract RcaShieldConvex is RcaShieldBase {
         uint256 _underlyingPrice,
         bytes32[] calldata _underlyinPriceProof
     ) external {
-        require(_token != address(uToken), "cannot buy underlying token");
+        require(_token != address(uToken), "cannot buy underlyingToken");
         controller.verifyPrice(_token,  _tokenPrice, _tokenPriceProof);
         controller.verifyPrice(address(this), _underlyingPrice, _underlyinPriceProof);
         uint256 underlyingAmount = _amount * _tokenPrice / _underlyingPrice;
         IERC20(_token).safeTransfer(msg.sender, _amount);
         uToken.safeTransferFrom(msg.sender,address(this), underlyingAmount);
-        uToken.safeApprove(address(rewardPool), underlyingAmount);
-        rewardPool.stake(underlyingAmount);
     }
 
     function _uBalance() internal view override returns(uint256) {
-        return uToken.balanceOf(address(this)) + rewardPool.balanceOf(address(this));
+        return uToken.balanceOf(address(this));
     }
 
     function _afterMint(uint256 _uAmount) internal override {
-        uToken.safeApprove(address(rewardPool), _uAmount);
-        rewardPool.stake(_uAmount);
+        // no-op since we get aToken
     }
 
     function _afterRedeem(uint256 _uAmount) internal override {
-        // CHEK : we are not going to claims rewards here since it will be claimed on _update
-        rewardPool.withdraw(_uAmount, false);
+        // no-op since we get aToken
     }
 }

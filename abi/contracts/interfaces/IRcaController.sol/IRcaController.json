@@ -196,16 +196,16 @@
       },
       {
         "internalType": "uint256",
-        "name": "capacity",
+        "name": "_newCumLiq",
         "type": "uint256"
       },
       {
         "internalType": "bytes32[]",
-        "name": "proof",
+        "name": "cumLiqProof",
         "type": "bytes32[]"
       }
     ],
-    "name": "verifyCapacity",
+    "name": "verifyLiq",
     "outputs": [],
     "stateMutability": "view",
     "type": "function"
@@ -219,16 +219,16 @@
       },
       {
         "internalType": "uint256",
-        "name": "_newCumLiq",
+        "name": "_value",
         "type": "uint256"
       },
       {
         "internalType": "bytes32[]",
-        "name": "cumLiqProof",
+        "name": "_proof",
         "type": "bytes32[]"
       }
     ],
-    "name": "verifyLiq",
+    "name": "verifyPrice",
     "outputs": [],
     "stateMutability": "view",
     "type": "function"
