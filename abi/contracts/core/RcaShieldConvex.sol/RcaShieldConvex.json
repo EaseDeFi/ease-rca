@@ -635,13 +635,23 @@
       },
       {
         "internalType": "uint256",
-        "name": "_capacity",
+        "name": "_expiry",
         "type": "uint256"
       },
       {
-        "internalType": "bytes32[]",
-        "name": "_capacityProof",
-        "type": "bytes32[]"
+        "internalType": "uint8",
+        "name": "_v",
+        "type": "uint8"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "_r",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "_s",
+        "type": "bytes32"
       },
       {
         "internalType": "uint256",

@@ -17,9 +17,6 @@ import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 
 contract RcaController is RcaGovernable {
 
-    /// @notice Used for signing to ensure the signature being used is for this specific contract.
-    bytes32 public constant DOMAIN_SEPARATOR = keccak256(abi.encode("EASE_RCA_CONTROLLER_V0.1", /*block.chainid*/1, /*address(this)*/1));
-
     /// @notice Address => whether or not it's a verified shield.
     mapping (address => bool) public shieldMapping;
     /// @notice Percents of coverage for each protocol of a specific shield, 1000 == 10%.
@@ -318,6 +315,34 @@ contract RcaController is RcaGovernable {
         lastShieldUpdate[msg.sender] = uint32(block.timestamp);
     }
 
+    /**
+     * @notice Verify the signature approving the transaction.
+     * @param _user User that is being minted to.
+     * @param _amount Amount of underlying tokens being deposited.
+     * @param _expiry Time (Unix timestamp) that this request expires.
+     * @param _v The recovery byte of the signature.
+     * @param _r Half of the ECDSA signature pair.
+     * @param _s Half of the ECDSA signature pair.
+     */
+    function verifyCapacitySig(
+        address _user,
+        uint256 _amount,
+        uint256 _expiry,
+        uint8   _v,
+        bytes32 _r,
+        bytes32 _s
+    )
+      internal
+    {
+        bytes32 domainSeparator = keccak256(abi.encode("EASE_RCA_CONTROLLER_V0.1", block.chainid, address(this)));
+        bytes32 structHash      = keccak256(abi.encodePacked(_user, msg.sender, _amount, nonces[_user]++, _expiry));
+        bytes32 digest          = keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));
+        address signatory       = ecrecover(digest, _v, _r, _s);
+
+        require(signatory == capOracle, "Invalid capacity oracle signature.");
+        require(block.timestamp <= _expiry, "Capacity permission has expired.");
+    }
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////// view ////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -358,34 +383,6 @@ contract RcaController is RcaGovernable {
         // This doesn't protect against oracle hacks, but does protect against some bugs.
         require(_value > 0, "Invalid price submitted.");
         require(MerkleProof.verify(_proof, priceRoot, leaf), "Incorrect price proof.");
-    }
-
-    /**
-     * @notice Verify the signature approving the transaction
-     * @param _user User that is being minted to.
-     * @param _amount Amount of underlying tokens being deposited.
-     * @param _expiry Time (Unix timestamp) that this request expires.
-     * @param _v The recovery byte of the signature.
-     * @param _r Half of the ECDSA signature pair.
-     * @param _s Half of the ECDSA signature pair.
-     */
-    function verifyCapacitySig(
-        address _user,
-        uint256 _amount,
-        uint256 _expiry,
-        uint8   _v,
-        bytes32 _r,
-        bytes32 _s
-    )
-      internal
-      view
-    {
-        bytes32 structHash = keccak256(abi.encodePacked(_user, msg.sender, _amount, nonces[_user]++, _expiry));
-        bytes32 digest     = keccak256(abi.encodePacked("\x19\x01", DOMAIN_SEPARATOR, structHash));
-        address signatory  = ecrecover(digest, _v, _r, _s);
-
-        require(signatory == capOracle, "Invalid capacity oracle signature.");
-        require(block.timestamp <= _expiry, "Capacity permission has expired.");
     }
 
     /**
@@ -433,7 +430,7 @@ contract RcaController is RcaGovernable {
      * @notice Used by frontend to craft signature for a requested transaction.
      * @param _user User that is being minted to.
      * @param _shield Address of the shield that tokens are being deposited into.
-     * @param _amount Amount of underlying tokens to mint.
+     * @param _amount Amount of underlying tokens to deposit.
      * @param _nonce User nonce (current nonce +1) that this transaction will be.
      * @param _expiry Time (Unix timestamp) that this request will expire.
      */
@@ -450,8 +447,9 @@ contract RcaController is RcaGovernable {
         bytes32 digest
     )
     {
+        bytes32 domainSeparator = keccak256(abi.encode("EASE_RCA_CONTROLLER_V0.1", block.chainid, address(this)));
         bytes32 structHash = keccak256(abi.encodePacked(_user, _shield, _amount, _nonce, _expiry));
-        digest = keccak256(abi.encodePacked("\x19\x01", DOMAIN_SEPARATOR, structHash));     
+        digest = keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));     
     }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////

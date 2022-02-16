@@ -310,25 +310,51 @@
   },
   {
     "inputs": [],
-    "name": "capacitiesRoot",
-    "outputs": [
-      {
-        "internalType": "bytes32",
-        "name": "",
-        "type": "bytes32"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
     "name": "discount",
     "outputs": [
       {
         "internalType": "uint256",
         "name": "",
         "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_user",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_shield",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_amount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_nonce",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_expiry",
+        "type": "uint256"
+      }
+    ],
+    "name": "getMessageHash",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "name": "digest",
+        "type": "bytes32"
       }
     ],
     "stateMutability": "view",
@@ -442,13 +468,23 @@
       },
       {
         "internalType": "uint256",
-        "name": "_capacity",
+        "name": "_expiry",
         "type": "uint256"
       },
       {
-        "internalType": "bytes32[]",
-        "name": "_capacityProof",
-        "type": "bytes32[]"
+        "internalType": "uint8",
+        "name": "_v",
+        "type": "uint8"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "_r",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "_s",
+        "type": "bytes32"
       },
       {
         "internalType": "uint256",
@@ -642,19 +678,6 @@
       }
     ],
     "name": "setCapOracle",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bytes32",
-        "name": "_newCapacitiesRoot",
-        "type": "bytes32"
-      }
-    ],
-    "name": "setCapacities",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -877,98 +900,6 @@
         "type": "address"
       }
     ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_token",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_capacity",
-        "type": "uint256"
-      },
-      {
-        "internalType": "bytes32[]",
-        "name": "_proof",
-        "type": "bytes32[]"
-      }
-    ],
-    "name": "verifyCapacity",
-    "outputs": [],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_shield",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_newCumLiqForClaims",
-        "type": "uint256"
-      },
-      {
-        "internalType": "bytes32[]",
-        "name": "_liqForClaimsProof",
-        "type": "bytes32[]"
-      }
-    ],
-    "name": "verifyLiq",
-    "outputs": [],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_shield",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_value",
-        "type": "uint256"
-      },
-      {
-        "internalType": "bytes32[]",
-        "name": "_proof",
-        "type": "bytes32[]"
-      }
-    ],
-    "name": "verifyPrice",
-    "outputs": [],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_shield",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_percentReserved",
-        "type": "uint256"
-      },
-      {
-        "internalType": "bytes32[]",
-        "name": "_proof",
-        "type": "bytes32[]"
-      }
-    ],
-    "name": "verifyReserved",
-    "outputs": [],
     "stateMutability": "view",
     "type": "function"
   },
