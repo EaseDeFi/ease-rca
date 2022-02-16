@@ -5,6 +5,7 @@ import '../general/RcaGovernable.sol';
 import '../library/MerkleProof.sol';
 import '../interfaces/IRcaShield.sol';
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
+import 'hardhat/console.sol';
 
 /**
  * @title RCA Controller
@@ -336,8 +337,9 @@ contract RcaController is RcaGovernable {
     {
         bytes32 domainSeparator = keccak256(abi.encodePacked("EASE_RCA_CONTROLLER_V0.1", block.chainid, address(this)));
         bytes32 structHash      = keccak256(abi.encodePacked(_user, msg.sender, _amount, nonces[_user]++, _expiry));
-        bytes32 digest          = keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));
-        address signatory       = ecrecover(digest, _v, _r, _s);
+        bytes32 digest          = keccak256(abi.encodePacked(domainSeparator, structHash));
+        bytes32 message         = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", digest));
+        address signatory       = ecrecover(message, _v, _r, _s);
 
         require(signatory == capOracle, "Invalid capacity oracle signature.");
         require(block.timestamp <= _expiry, "Capacity permission has expired.");
@@ -449,7 +451,7 @@ contract RcaController is RcaGovernable {
     {
         bytes32 domainSeparator = keccak256(abi.encodePacked("EASE_RCA_CONTROLLER_V0.1", block.chainid, address(this)));
         bytes32 structHash      = keccak256(abi.encodePacked(_user, _shield, _amount, _nonce, _expiry));
-        digest                  = keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));     
+        digest                  = keccak256(abi.encodePacked(domainSeparator, structHash)); 
     }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
