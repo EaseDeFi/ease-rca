@@ -353,7 +353,7 @@
     "outputs": [
       {
         "internalType": "bytes32",
-        "name": "digest",
+        "name": "",
         "type": "bytes32"
       }
     ],

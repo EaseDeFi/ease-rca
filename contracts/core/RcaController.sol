@@ -335,11 +335,10 @@ contract RcaController is RcaGovernable {
     )
       internal
     {
-        bytes32 domainSeparator = keccak256(abi.encodePacked("EASE_RCA_CONTROLLER_V0.1", block.chainid, address(this)));
-        bytes32 structHash      = keccak256(abi.encodePacked(_user, msg.sender, _amount, nonces[_user]++, _expiry));
-        bytes32 digest          = keccak256(abi.encodePacked(domainSeparator, structHash));
-        bytes32 message         = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", digest));
-        address signatory       = ecrecover(message, _v, _r, _s);
+        bytes32 digest    = keccak256(abi.encodePacked("EASE_RCA_CONTROLLER_V0.1", block.chainid, address(this),
+                                                        _user, msg.sender, _amount, nonces[_user]++, _expiry));
+        bytes32 message   = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", digest));
+        address signatory = ecrecover(message, _v, _r, _s);
 
         require(signatory == capOracle, "Invalid capacity oracle signature.");
         require(block.timestamp <= _expiry, "Capacity permission has expired.");
@@ -446,12 +445,11 @@ contract RcaController is RcaGovernable {
       external
       view
     returns(
-        bytes32 digest
+        bytes32
     )
     {
-        bytes32 domainSeparator = keccak256(abi.encodePacked("EASE_RCA_CONTROLLER_V0.1", block.chainid, address(this)));
-        bytes32 structHash      = keccak256(abi.encodePacked(_user, _shield, _amount, _nonce, _expiry));
-        digest                  = keccak256(abi.encodePacked(domainSeparator, structHash)); 
+        return keccak256(abi.encodePacked("EASE_RCA_CONTROLLER_V0.1", block.chainid, address(this),
+                                          _user, _shield, _amount, _nonce, _expiry));
     }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
