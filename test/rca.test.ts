@@ -158,10 +158,6 @@ describe('RCAs and Controller', function(){
       console.log("r", r);
       console.log("s", s);
 
-      const recoveredAddress = ethers.utils.verifyMessage(hash, signature);
-      console.log("test recovered", recoveredAddress);
-      console.log("cap oracle", await capOracle.getAddress());
-
       await shield.connect(user).mintTo(user.getAddress(), amount, expiry, parseInt(v, 16), "0x"+r, "0x"+s, 0, liqProof);
 
       let rcaBal = await shield.balanceOf(user.getAddress());
