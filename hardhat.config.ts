@@ -1,7 +1,6 @@
 import "@nomiclabs/hardhat-waffle";
 import "solidity-coverage";
 import "@nomiclabs/hardhat-ethers";
-import "hardhat-gas-reporter";
 import "hardhat-abi-exporter";
 
 // You need to export an object to set up your config
@@ -30,7 +29,7 @@ if (process.env.MAINNET_FORK) {
       accounts: {
         accountsBalance: "1000000000000000000000000"
       },
-    forking: { url: "https://eth-mainnet.alchemyapi.io/v2/90dtUWHmLmwbYpvIeC53UpAICALKyoIu", blockNumber: 12633224 },
+    forking: { url: "https://eth-mainnet.alchemyapi.io/v2/90dtUWHmLmwbYpvIeC53UpAICALKyoIu", blockNumber: 14186060 },
       allowUnlimitedContractSize: true,
       timeout: 6000000
     };
