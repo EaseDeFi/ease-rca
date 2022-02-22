@@ -688,6 +688,8 @@ abstract contract RcaShieldBase is ERC20, Governable {
       external
       onlyController
     {
+        // Protection to not have too much reserved from any single vault.
+        require(_newPercentReserved <= 5000, "May not reserve more than 50%.");
         percentReserved = _newPercentReserved;
     }
 
