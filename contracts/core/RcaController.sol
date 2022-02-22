@@ -542,7 +542,7 @@ contract RcaController is RcaGovernable {
       external
       onlyGov
     {
-        require(_newDiscount <= 5000, "Discount may not be more than 50%.");
+        require(_newDiscount <= 2500, "Discount may not be more than 25%.");
         discount                     = _newDiscount;
         systemUpdates.discountUpdate = uint32(block.timestamp);
     }
