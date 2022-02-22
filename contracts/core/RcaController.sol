@@ -84,6 +84,20 @@ contract RcaController is RcaGovernable {
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
+     * @notice Update is used before each onlyShield function to ensure the shield is up-to-date before actions.
+     * @param _newCumLiq Old cumulative amount of funds for sale. Needed to ensure additional is accurate.
+     * @param _liqProof Merkle proof for the for sale amount.
+     */
+    modifier update(
+        uint256   _newCumLiq,
+        bytes32[] memory _liqProof
+    )
+    {
+        _update(_newCumLiq, _liqProof);
+        _;
+    }
+    
+    /**
      * @notice Ensure the sender is a shield.
      * @dev We don't want non-shield contracts creating mint, redeem, purchase events.
      */

@@ -3,6 +3,7 @@
 pragma solidity ^0.8.11;
 
 interface IConvexRewardPool {
+    function rewardToken() external view returns(address);
     function balanceOf(address account) external view returns (uint256);
     function extraRewardsLength() external view returns(uint256);
     function extraRewards(uint256 idx) external view returns(address);
