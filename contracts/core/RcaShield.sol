@@ -33,5 +33,4 @@ contract RcaShield is RcaShieldBase {
     function _afterRedeem(uint256) internal override{
         // no-op
     }
-    
 }
