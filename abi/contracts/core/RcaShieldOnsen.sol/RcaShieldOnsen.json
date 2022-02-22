@@ -1,5 +1,51 @@
 [
   {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "_name",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "_symbol",
+        "type": "string"
+      },
+      {
+        "internalType": "address",
+        "name": "_uToken",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_governance",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_controller",
+        "type": "address"
+      },
+      {
+        "internalType": "contract IMasterChefV2",
+        "name": "_masterChef",
+        "type": "address"
+      },
+      {
+        "internalType": "contract IERC20",
+        "name": "_sushi",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_pid",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
     "anonymous": false,
     "inputs": [
       {
@@ -467,6 +513,13 @@
   },
   {
     "inputs": [],
+    "name": "getReward",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "governor",
     "outputs": [
       {
@@ -538,6 +591,19 @@
         "internalType": "bool",
         "name": "",
         "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "masterChef",
+    "outputs": [
+      {
+        "internalType": "contract IMasterChefV2",
+        "name": "",
+        "type": "address"
       }
     ],
     "stateMutability": "view",
@@ -631,6 +697,19 @@
     "type": "function"
   },
   {
+    "inputs": [],
+    "name": "pid",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
         "internalType": "address payable",
@@ -639,6 +718,44 @@
       }
     ],
     "name": "proofOfLoss",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_token",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_amount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_tokenPrice",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes32[]",
+        "name": "_tokenPriceProof",
+        "type": "bytes32[]"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_underlyingPrice",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes32[]",
+        "name": "_underlyinPriceProof",
+        "type": "bytes32[]"
+      }
+    ],
+    "name": "purchase",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -905,6 +1022,19 @@
     "name": "setWithdrawalDelay",
     "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "sushi",
+    "outputs": [
+      {
+        "internalType": "contract IERC20",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {
