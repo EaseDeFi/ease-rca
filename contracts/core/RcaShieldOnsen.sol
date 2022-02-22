@@ -5,7 +5,7 @@ pragma solidity ^0.8.11;
 import "./RcaShieldBase.sol";
 import { IMasterChefV2 } from "../external/Sushiswap.sol";
 
-contract RcaShieldConvex is RcaShieldBase {
+contract RcaShieldOnsen is RcaShieldBase {
     using SafeERC20 for IERC20;
 
     IMasterChefV2 public immutable masterChef;
