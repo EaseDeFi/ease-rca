@@ -5,3 +5,16 @@ cache/
 artifacts/
 coverage/
 coverage.json
+
+#files
+.env
+
+# types
+src/types/*
+!src/types/common.ts
+!src/types/Greeter.ts
+
+# factories
+!src/types/factories
+src/types/factories/*
+!src/types/factories/Greeter__Factory.ts

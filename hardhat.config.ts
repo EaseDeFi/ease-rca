@@ -1,84 +1,136 @@
-import "@nomiclabs/hardhat-waffle";
-import "solidity-coverage";
 import "@nomiclabs/hardhat-ethers";
 import "hardhat-abi-exporter";
+import "@nomiclabs/hardhat-waffle";
+import "@nomiclabs/hardhat-etherscan";
+import "@typechain/hardhat";
+import "hardhat-gas-reporter";
+import "solidity-coverage";
 
-// You need to export an object to set up your config
-// Go to https://hardhat.org/config/ to learn more
-const RINKEBY_ACCOUNT_ONE =
-  "765c64d0a64adc0eaa761d2839e5fc747cab445ebe3ff84594ad6f1c4ba36f4e";
-const RINKEBY_ACCOUNT_TWO =
-  "4fa830745751c589f293ff64667ab6c6887cfde9e4291c659d01844be7db80f8";
-const RINKEBY_ACCOUNT_THREE =
-  "582962dfd214d9b405f46b956d3b468d7691ac4675b0887a54330aa209763aab";
-const RINKEBY_ACCOUNT_FOUR =
-  "8b21d3fa24e560354e88e60125b7fe0c2cfb156ed70a092357e361300fc02a56";
-// not real dun even think about it
-const MAINNET_PRIVATE_KEY =
-  "8b21d3fa24e560354e88e60125b7fe0c2cfb156ed70a092357e361300fc02a56";
+import { resolve } from "path";
 
-let hardhatSettings: any = {
-  gas: 10000000,
-  accounts: {
-    accountsBalance: "1000000000000000000000000",
-  },
-  allowUnlimitedContractSize: true,
-  timeout: 1000000,
+import { config as dotenvConfig } from "dotenv";
+import { HardhatUserConfig } from "hardhat/config";
+import { NetworkUserConfig } from "hardhat/types";
+
+dotenvConfig({ path: resolve(__dirname, "./.env") });
+
+// Ensure that we have all the environment variables we need.
+const mnemonic: string | undefined = process.env.MNEMONIC;
+if (!mnemonic) {
+  throw new Error("Please set your MNEMONIC in a .env file");
+}
+
+const infuraApiKey: string | undefined = process.env.INFURA_API_KEY;
+if (!infuraApiKey) {
+  throw new Error("Please set your INFURA_API_KEY in a .env file");
+}
+
+// TODO: Replace below accounts with pnemonic
+const accounts: string[] = [];
+function populateAccounts() {
+  let i = 1;
+  while (process.env[`RINKEBY_PRIVATE_KEY${i}`] !== undefined) {
+    accounts.push(`0x${process.env[`RINKEBY_PRIVATE_KEY${i}`] as string}`);
+    i++;
+  }
+}
+
+populateAccounts();
+
+const chainIds = {
+  arbitrumOne: 42161,
+  avalanche: 43114,
+  bsc: 56,
+  goerli: 5,
+  hardhat: 31337,
+  kovan: 42,
+  mainnet: 1,
+  optimism: 10,
+  polygon: 137,
+  rinkeby: 4,
+  ropsten: 3,
 };
 
-if (process.env.MAINNET_FORK) {
-  hardhatSettings = {
-    gas: 10000000,
-    chainId: 1,
-    accounts: {
-      accountsBalance: "1000000000000000000000000",
-    },
-    forking: {
-      url:
-        "https://eth-mainnet.alchemyapi.io/v2/90dtUWHmLmwbYpvIeC53UpAICALKyoIu",
-      blockNumber: 14186060,
-    },
-    allowUnlimitedContractSize: true,
-    timeout: 6000000,
+function getChainConfig(network: keyof typeof chainIds): NetworkUserConfig {
+  const url: string = "https://" + network + ".infura.io/v3/" + infuraApiKey;
+  return {
+    accounts, // TODO: Change this to pnemonic
+    chainId: chainIds[network],
+    url,
   };
 }
-export default {
+
+const config: HardhatUserConfig = {
+  defaultNetwork: "hardhat",
+  etherscan: {
+    apiKey: {
+      arbitrumOne: process.env.ARBSCAN_API_KEY,
+      goerli: process.env.ETHERSCAN_API_KEY,
+      kovan: process.env.ETHERSCAN_API_KEY,
+      mainnet: process.env.ETHERSCAN_API_KEY,
+      optimisticEthereum: process.env.OPTIMISM_API_KEY,
+      polygon: process.env.POLYGONSCAN_API_KEY,
+      rinkeby: process.env.ETHERSCAN_API_KEY,
+      ropsten: process.env.ETHERSCAN_API_KEY,
+    },
+  },
   gasReporter: {
     enabled: true,
     currency: "USD",
     gasPrice: 100,
+    excludeContracts: [],
+    src: "./contracts",
   },
   abiExporter: {
     path: "./abi",
     runOnCompile: true,
   },
-  solidity: {
-    compilers: [
-      {
-        version: "0.8.11",
-        settings: {
-          optimizer: {
-            enabled: true,
-            runs: 200,
-          },
-        },
-      },
-    ],
-  },
+
   networks: {
-    rinkeby: {
-      url: `https://rinkeby.infura.io/v3/2b73630f6f6f4eacbba6c76cdd511c23`,
-      accounts: [
-        `0x${RINKEBY_ACCOUNT_ONE}`,
-        `0x${RINKEBY_ACCOUNT_TWO}`,
-        `0x${RINKEBY_ACCOUNT_THREE}`,
-        `0x${RINKEBY_ACCOUNT_FOUR}`,
-      ],
+    hardhat: {
+      accounts: {
+        mnemonic,
+      },
+      chainId: chainIds.hardhat,
     },
-    mainnet: {
-      url: `https://mainnet.infura.io/v3/2b73630f6f6f4eacbba6c76cdd511c23`,
-      accounts: [`0x${MAINNET_PRIVATE_KEY}`],
-      gasPrice: 100000000000,
+    arbitrumOne: getChainConfig("arbitrumOne"),
+    goerli: getChainConfig("goerli"),
+    kovan: getChainConfig("kovan"),
+    mainnet: getChainConfig("mainnet"),
+    optimism: getChainConfig("optimism"),
+    polygon: getChainConfig("polygon"),
+    rinkeby: getChainConfig("rinkeby"),
+    ropsten: getChainConfig("ropsten"),
+  },
+  paths: {
+    artifacts: "./artifacts",
+    cache: "./cache",
+    sources: "./contracts",
+    tests: "./test",
+  },
+  solidity: {
+    version: "0.8.11",
+    settings: {
+      metadata: {
+        // Not including the metadata hash
+        // https://github.com/paulrberg/solidity-template/issues/31
+        bytecodeHash: "none",
+      },
+      // Disable the optimizer when debugging
+      // https://hardhat.org/hardhat-network/#solidity-optimizer-support
+      optimizer: {
+        enabled: true,
+        runs: 200,
+      },
     },
+  },
+  typechain: {
+    outDir: "src/types",
+    target: "ethers-v5",
   },
 };
+
+export default config;
+
+// You need to export an object to set up your config
+// Go to https://hardhat.org/config/ to learn more
