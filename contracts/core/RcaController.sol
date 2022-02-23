@@ -295,20 +295,20 @@ contract RcaController is RcaGovernable {
         // Seems kinda messy but not too bad on gas.
         SystemUpdates memory updates = systemUpdates;
 
-        if (lastUpdate < updates.treasuryUpdate)        shield.setTreasury(treasury);
-        if (lastUpdate < updates.discountUpdate)        shield.setDiscount(discount);
-        if (lastUpdate < updates.withdrawalDelayUpdate) shield.setWithdrawalDelay(withdrawalDelay);
+        if (lastUpdate <= updates.treasuryUpdate)        shield.setTreasury(treasury);
+        if (lastUpdate <= updates.discountUpdate)        shield.setDiscount(discount);
+        if (lastUpdate <= updates.withdrawalDelayUpdate) shield.setWithdrawalDelay(withdrawalDelay);
         // Update shield here to account for interim period where APR was changed but shield had not updated.
-        if (lastUpdate < updates.aprUpdate) {
+        if (lastUpdate <= updates.aprUpdate) {
             shield.controllerUpdate(apr, uint256(updates.aprUpdate));
             shield.setApr(apr);
         }
-        if (lastUpdate < updates.liqUpdate) {
+        if (lastUpdate <= updates.liqUpdate) {
             verifyLiq(msg.sender, _newCumLiqForClaims, _liqForClaimsProof);
             shield.setLiqForClaims(_newCumLiqForClaims);
         }
         // Only updates if it's a redeem request (which is the only call that's affected by reserved).
-        if (lastUpdate < updates.reservedUpdate && _redeemRequest) {
+        if (lastUpdate <= updates.reservedUpdate && _redeemRequest) {
             verifyReserved(msg.sender, _newPercentReserved, _percentReservedProof);
             shield.setPercentReserved(_newPercentReserved);
         }
