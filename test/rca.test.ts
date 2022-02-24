@@ -5,7 +5,7 @@ import { increase, getTimestamp, mine, ether } from "./utils";
 import { providers, Contract, Signer, BigNumber } from "ethers";
 import BalanceTree from './balance-tree'
 import { userInfo } from "os";
-import { hashPersonalMessage } from "hardhat/node_modules/ethereumjs-util";
+// import { hashPersonalMessage } from "hardhat/node_modules/ethereumjs-util";
 import { getPackedSettings } from "http2";
 
 // Testing base RCA functionalities
@@ -180,7 +180,7 @@ describe('RCAs and Controller', function(){
 
       // returns: expiry, v, r, s
       let userAddy = await user.getAddress()
-      let sigValues = getSig(userAddy, ether("100"));
+      let sigValues = await getSig(userAddy, ether("100"));
       await shield.connect(user).mintTo(user.getAddress(), user.getAddress(), ether("100"), sigValues[0], sigValues[1], sigValues[2], sigValues[3], 0, liqProof);
 
       let rcaBal = await shield.balanceOf(user.getAddress());
