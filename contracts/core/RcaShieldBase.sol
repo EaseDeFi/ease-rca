@@ -160,7 +160,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
     /**
      * @notice Mint tokens to an address. Not automatically to msg.sender so we can more easily zap assets.
      * @param _user The user to mint tokens to.
-     * @param _referral The address that referred this user.
+     * @param _referrer The address that referred this user.
      * @param _uAmount Amount of underlying tokens desired to use for mint.
      * @param _expiry Time (Unix timestamp) that this request expires.
      * @param _v The recovery byte of the signature.
