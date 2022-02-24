@@ -5,3 +5,12 @@ cache/
 artifacts/
 coverage/
 coverage.json
+
+# files
+.env
+
+# types
+src/types/*
+
+# factories
+src/types/factories/*

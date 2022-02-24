@@ -27,6 +27,7 @@ let hardhatSettings: any = {
 };
 
 if (process.env.MAINNET_FORK) {
+  // eslint-disable-next-line no-unused-vars
   hardhatSettings = {
     gas: 10000000,
     chainId: 1,
@@ -34,8 +35,7 @@ if (process.env.MAINNET_FORK) {
       accountsBalance: "1000000000000000000000000",
     },
     forking: {
-      url:
-        "https://eth-mainnet.alchemyapi.io/v2/90dtUWHmLmwbYpvIeC53UpAICALKyoIu",
+      url: "https://eth-mainnet.alchemyapi.io/v2/90dtUWHmLmwbYpvIeC53UpAICALKyoIu",
       blockNumber: 14186060,
     },
     allowUnlimitedContractSize: true,

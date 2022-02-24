@@ -1,5 +1,5 @@
 import { ethers } from "hardhat";
-import { providers, Contract, Signer, BigNumber } from "ethers";
+import { providers, BigNumber } from "ethers";
 
 export function hexSized(str: string, length: number): string {
   const raw = Buffer.from(str).toString("hex");
@@ -12,7 +12,7 @@ export function hex(str: string): string {
 }
 
 export function sleep(ms: number) {
-  new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 export async function increase(seconds: number) {
