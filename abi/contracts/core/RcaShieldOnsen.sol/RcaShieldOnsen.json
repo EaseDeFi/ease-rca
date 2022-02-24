@@ -86,6 +86,12 @@
         "type": "address"
       },
       {
+        "indexed": true,
+        "internalType": "address",
+        "name": "referrer",
+        "type": "address"
+      },
+      {
         "indexed": false,
         "internalType": "uint256",
         "name": "uAmount",
@@ -614,6 +620,11 @@
       {
         "internalType": "address",
         "name": "_user",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_referrer",
         "type": "address"
       },
       {

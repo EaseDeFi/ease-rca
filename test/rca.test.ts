@@ -94,19 +94,25 @@ describe('RCAs and Controller', function(){
     resProof2  = resTree2.getProof(shield.address, BigNumber.from(1000));
   });
 
-  async function getSig(userAddy: string, amount: number): Promise<String[]> {
+  async function getSig(userAddy: string, amount: BigNumber): Promise<[BigNumber, BigNumber, string, string]> {
+    console.log("Entered getSig.");
     let nonce = await controller.nonces(userAddy);
+    console.log("nonce gotten");
     let timestamp = await getTimestamp();
+    console.log("timestamp gotten");
     let expiry = timestamp.add(300);
+    console.log("expiry gotten");
     let hash = await controller.getMessageHash(userAddy, shield.address, amount, nonce.add(1), expiry);
+    console.log("hash gotten");
     let signature = await capOracle.signMessage(ethers.utils.arrayify(hash));
 
     console.log(signature);
     let v = signature.substring(130, signature.length);
     let r = signature.substring(2, 66);
     let s = signature.substring(66, 130); 
+    let vInt = parseInt(v, 16);
 
-    return [expiry.toString(), v, "0x"+r, "0x"+s];
+    return [expiry, BigNumber.from(vInt), "0x"+r, "0x"+s];
   }
 
   describe('Initialize', function(){
@@ -172,9 +178,10 @@ describe('RCAs and Controller', function(){
       // inside = expiry fetch, nonce, get hash, sign, decode sig
       // output = r, s, v, expiry
 
-      let amount = ether("100")
-      let sigValues = getSig(await user.getAddress(), amount.toNumber());
-      await shield.connect(user).mintTo(user.getAddress(), amount, sigValues[0], parseInt(sigValues[1], 16), sigValues[2], sigValues[3], 0, liqProof);
+      // returns: expiry, v, r, s
+      let userAddy = await user.getAddress()
+      let sigValues = getSig(userAddy, ether("100"));
+      await shield.connect(user).mintTo(user.getAddress(), user.getAddress(), ether("100"), sigValues[0], sigValues[1], sigValues[2], sigValues[3], 0, liqProof);
 
       let rcaBal = await shield.balanceOf(user.getAddress());
       expect(rcaBal).to.be.equal(ether("100"));
