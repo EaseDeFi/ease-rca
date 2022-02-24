@@ -73,7 +73,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
     }
 
     /// @notice Notification of the mint of new tokens.
-    event Mint(address indexed sender, address indexed to, uint256 uAmount, uint256 rcaAmount, uint256 timestamp);
+    event Mint(address indexed sender, address indexed to, address indexed referrer, uint256 uAmount, uint256 rcaAmount, uint256 timestamp);
     /// @notice Notification of an initial redeem request.
     event RedeemRequest(address indexed user, uint256 uAmount, uint256 rcaAmount, uint256 endTime, uint256 timestamp);
     /// @notice Notification of a redeem finalization after withdrawal delay.
@@ -81,7 +81,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
     /// @notice Notification of a purchase of the underlying token.
     event PurchaseU(address indexed to, uint256 uAmount,uint256 ethAmount, uint256 price, uint256 timestamp);
     /// @notice Notification of a purchase of an RCA token.
-    event PurchaseRca(address indexed to,uint256 uAmount,uint256 rcaAmount, uint256 ethAmount, uint256 price, uint256 timestamp);
+    event PurchaseRca(address indexed to, uint256 uAmount,uint256 rcaAmount, uint256 ethAmount, uint256 price, uint256 timestamp);
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////// modifiers //////////////////////////////////////////////////
@@ -160,6 +160,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
     /**
      * @notice Mint tokens to an address. Not automatically to msg.sender so we can more easily zap assets.
      * @param _user The user to mint tokens to.
+     * @param _referral The address that referred this user.
      * @param _uAmount Amount of underlying tokens desired to use for mint.
      * @param _expiry Time (Unix timestamp) that this request expires.
      * @param _v The recovery byte of the signature.
@@ -170,6 +171,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
      */
     function mintTo(
         address   _user,
+        address   _referrer,
         uint256   _uAmount,
         uint256   _expiry,
         uint8     _v,
@@ -204,6 +206,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
         emit Mint(
             msg.sender,
             _user,
+            _referrer,
             _uAmount,
             rcaAmount,
             block.timestamp
