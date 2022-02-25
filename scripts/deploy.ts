@@ -1,3 +1,4 @@
+/* eslint-disable prefer-const */
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import { keccak256, bufferToHex } from "ethereumjs-util";
@@ -19,11 +20,11 @@ async function main() {
   let capTree: BalanceTree;
   let liqTree: BalanceTree;
   let priceTree: BalanceTree;
-  let capProof: String[];
-  let priceProof: String[];
-  let liqProof: String[];
+  let capProof: string[];
+  let priceProof: string[];
+  let liqProof: string[];
   let liqTree2: BalanceTree;
-  let liqProof2: String[];
+  let liqProof2: string[];
 
   accounts    = await ethers.getSigners();
   owner       = accounts[0];
