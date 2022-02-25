@@ -92,21 +92,17 @@ describe('RCAs and Controller', function(){
     liqProof2  = liqTree2.getProof(shield.address, ether("0"));
     resProof   = resTree.getProof(shield.address, ether("0"));
     resProof2  = resTree2.getProof(shield.address, BigNumber.from(1000));
+
+    await expect(controller.connect(priceOracle).setPrices(priceTree.getHexRoot()));
   });
 
   async function getSig(userAddy: string, amount: BigNumber): Promise<[BigNumber, BigNumber, string, string]> {
-    console.log("Entered getSig.");
     let nonce = await controller.nonces(userAddy);
-    console.log("nonce gotten");
     let timestamp = await getTimestamp();
-    console.log("timestamp gotten");
     let expiry = timestamp.add(300);
-    console.log("expiry gotten");
-    let hash = await controller.getMessageHash(userAddy, shield.address, amount, nonce.add(1), expiry);
-    console.log("hash gotten");
+    let hash = await controller.getMessageHash(userAddy, shield.address, amount, nonce, expiry);
     let signature = await capOracle.signMessage(ethers.utils.arrayify(hash));
 
-    console.log(signature);
     let v = signature.substring(130, signature.length);
     let r = signature.substring(2, 66);
     let s = signature.substring(66, 130); 
@@ -159,25 +155,7 @@ describe('RCAs and Controller', function(){
     });
 
     // Approve shield to take 1,000 underlying tokens, mint, should receive back 1,000 RCA tokens.
-    it.only("should be able to mint an RCA token", async function(){
-      /*let amount = ether("100");
-      let nonce = await controller.nonces(user.getAddress());
-      let timestamp = await getTimestamp();
-      let expiry = timestamp.add(300);
-      let hash = await controller.getMessageHash(user.getAddress(), shield.address, amount, nonce, expiry);
-      let signature = await capOracle.signMessage(ethers.utils.arrayify(hash));
-      console.log(signature);
-      let v = signature.substring(130, signature.length);
-      let r = signature.substring(2, 66);
-      let s = signature.substring(66, 130); 
-      console.log("v", v);
-      console.log("r", r);
-      console.log("s", s);*/
-
-      // input  = amount, user
-      // inside = expiry fetch, nonce, get hash, sign, decode sig
-      // output = r, s, v, expiry
-
+    it("should be able to mint an RCA token", async function(){
       // returns: expiry, v, r, s
       let userAddy = await user.getAddress()
       let sigValues = await getSig(userAddy, ether("100"));
@@ -187,20 +165,17 @@ describe('RCAs and Controller', function(){
       expect(rcaBal).to.be.equal(ether("100"));
 
       // Testing minting to a different address here as well
-      //await shield.connect(user).mintTo(owner.getAddress(), ether("50"), ether("1000000"), capProof, 0, liqProof);
+      let sigValues2 = await getSig(await owner.getAddress(), ether("50"));
+      await shield.connect(user).mintTo(owner.getAddress(), user.getAddress(), ether("50"), sigValues2[0], sigValues2[1], sigValues2[2], sigValues2[3], 0, liqProof);
 
-      //let ownerBal = await shield.balanceOf(owner.getAddress());
-      //expect(ownerBal).to.be.equal(ether("50"));
-    });
-
-    it("should block mints over capacity", async function(){
-      await uToken.mint(user.getAddress(), ether("1000000"));
-      await expect(shield.connect(user).mintTo(user.getAddress(), ether("1500000"), ether("1000000"), capProof, 0, liqProof)).to.be.revertedWith("Not enough capacity available.");
+      let ownerBal = await shield.balanceOf(owner.getAddress());
+      expect(ownerBal).to.be.equal(ether("50"));
     });
 
     // If one request is made after another, the amounts should add to last amounts and the endTime should restart.
     it("should mint correctly with wonky (technical term) updates", async function(){
-      await shield.connect(user).mintTo(user.getAddress(), ether("1000"), ether("1000000"), capProof, ether("100"), liqProof);
+      let sigValues = await getSig(await user.getAddress(), ether("1000"));
+      await shield.connect(user).mintTo(user.getAddress(), user.getAddress(), ether("1000"), sigValues[0], sigValues[1], sigValues[2], sigValues[3], ether("100"), liqProof);
 
       await controller.connect(owner).setLiqTotal(liqTree.getHexRoot(), resTree.getHexRoot());
       await controller.connect(owner).setApr(2000);
@@ -210,7 +185,8 @@ describe('RCAs and Controller', function(){
       increase(31536000 / 2);
       mine();
 
-      await shield.connect(user).mintTo(user.getAddress(), ether("1000"), ether("1000000"), capProof, ether("100"), liqProof);
+      let sigValues2 = await getSig(await user.getAddress(), ether("1000"));
+      await shield.connect(user).mintTo(user.getAddress(), user.getAddress(), ether("1000"), sigValues2[0], sigValues2[1], sigValues2[2], sigValues2[3], ether("100"), liqProof);
 
       let uValue = await shield.uValue(ether("1"), ether("100"), 1000);
       let rcaValue = await shield.rcaValue(ether("1"), ether("100"));
@@ -225,7 +201,8 @@ describe('RCAs and Controller', function(){
 
     beforeEach(async function(){
       await uToken.connect(user).approve(shield.address, ether("1000"));
-      await shield.connect(user).mintTo(user.getAddress(), ether("100"), ether("1000000"), capProof, 0, liqProof)
+      let sigValues = await getSig(await user.getAddress(), ether("100"));
+      await shield.connect(user).mintTo(user.getAddress(), user.getAddress(), ether("100"), sigValues[0], sigValues[1], sigValues[2], sigValues[3], 0, liqProof)
     });
 
     it("should be able to initiate and finalize redeem of RCA token", async function(){
@@ -282,7 +259,8 @@ describe('RCAs and Controller', function(){
       // Set capacity proof. Sorta faking, it's a 1 leaf proof. Won't provide super accurate gas pricing but shouldn't cost too much more.
       await uToken.connect(user).approve(shield.address, ether("1000"));
       //                  to address, uAmount, capacity, cap proof, for sale, old cumulative, for sale proof
-      await shield.connect(user).mintTo(user.getAddress(), ether("1000"), ether("1000000"), capProof, 0, [])
+      let sigValues = await getSig(await user.getAddress(), ether("1000"));
+      await shield.connect(user).mintTo(user.getAddress(), user.getAddress(), ether("1000"), sigValues[0], sigValues[1], sigValues[2], sigValues[3], 0, [])
       await controller.connect(owner).setLiqTotal(liqTree.getHexRoot(), resTree.getHexRoot());
     });
 
@@ -324,7 +302,8 @@ describe('RCAs and Controller', function(){
       // Mint call should update all variables on shield
       await uToken.connect(user).approve(shield.address, ether("1000"));
       //                  to address, uAmount, capacity, cap proof, for sale, old cumulative, for sale proof
-      await shield.connect(user).mintTo(user.getAddress(), ether("1000"), ether("1000000"), capProof, ether("100"), liqProof)
+      let sigValues = await getSig(await user.getAddress(), ether("1000"));
+      await shield.connect(user).mintTo(user.getAddress(), user.getAddress(), ether("1000"), sigValues[0], sigValues[1], sigValues[2], sigValues[3], ether("100"), liqProof)
 
       expect(await shield.apr()).to.be.equal(1000);
       expect(await shield.discount()).to.be.equal(1000);
@@ -333,7 +312,8 @@ describe('RCAs and Controller', function(){
 
       it("should update for sale", async function(){
         await uToken.connect(user).approve(shield.address, ether("1000"));
-        await shield.connect(user).mintTo(user.getAddress(), ether("1000"), ether("1000000"), capProof, ether("100"), liqProof);
+        let sigValues = await getSig(await user.getAddress(), ether("1000"));
+        await shield.connect(user).mintTo(user.getAddress(), user.getAddress(), ether("1000"), sigValues[0], sigValues[1], sigValues[2], sigValues[3], ether("100"), liqProof);
 
         expect(await shield.amtForSale()).to.be.equal(ether("100"));
         expect(await shield.cumLiq()).to.be.equal(ether("100"));
@@ -348,7 +328,8 @@ describe('RCAs and Controller', function(){
       await controller.connect(owner).setApr(1000);
       await uToken.connect(user).approve(shield.address, ether("1000"));
       await controller.connect(owner).setLiqTotal(liqTree2.getHexRoot(), resTree.getHexRoot());
-      await shield.connect(user).mintTo(user.getAddress(), ether("1000"), ether("1000000"), capProof, 0, liqProof2);
+      let sigValues = await getSig(await user.getAddress(), ether("1000"));
+      await shield.connect(user).mintTo(user.getAddress(), user.getAddress(), ether("1000"), sigValues[0], sigValues[1], sigValues[2], sigValues[3], 0, liqProof2);
     });
 
     it("should update APR when needed", async function(){

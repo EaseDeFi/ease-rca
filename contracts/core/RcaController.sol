@@ -335,7 +335,7 @@ contract RcaController is RcaGovernable {
     )
       internal
     {
-        bytes32 digest    = keccak256(abi.encodePacked("EASE_RCA_CONTROLLER_V0.1", block.chainid, address(this),
+        bytes32 digest    = keccak256(abi.encodePacked("EASE_RCA_CONTROLLER_0.1", block.chainid, address(this),
                                                         _user, msg.sender, _amount, nonces[_user]++, _expiry));
         bytes32 message   = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", digest));
         address signatory = ecrecover(message, _v, _r, _s);
@@ -448,7 +448,7 @@ contract RcaController is RcaGovernable {
         bytes32
     )
     {
-        return keccak256(abi.encodePacked("EASE_RCA_CONTROLLER_V0.1", block.chainid, address(this),
+        return keccak256(abi.encodePacked("EASE_RCA_CONTROLLER_0.1", block.chainid, address(this),
                                           _user, _shield, _amount, _nonce, _expiry));
     }
 
