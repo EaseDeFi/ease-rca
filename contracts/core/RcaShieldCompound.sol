@@ -3,16 +3,12 @@
 pragma solidity ^0.8.11;
 
 import "./RcaShieldBase.sol";
-import { IMasterChefV2 } from "../external/Sushiswap.sol";
+import "../external/Compound.sol";
 
-contract RcaShieldOnsen is RcaShieldBase {
+contract RcaShieldCompound is RcaShieldBase {
     using SafeERC20 for IERC20;
 
-    IMasterChefV2 public immutable masterChef;
-
-    IERC20 public immutable sushi;
-
-    uint256 public immutable pid;
+    IComptroller public immutable comptroller;
 
     constructor(
         string memory _name,
@@ -20,9 +16,7 @@ contract RcaShieldOnsen is RcaShieldBase {
         address _uToken,
         address _governance,
         address _controller,
-        IMasterChefV2 _masterChef,
-        IERC20 _sushi,
-        uint256 _pid
+        IComptroller _comptroller
     ) RcaShieldBase(
         _name,
         _symbol,
@@ -30,13 +24,14 @@ contract RcaShieldOnsen is RcaShieldBase {
         _governance,
         _controller
     )  {
-        masterChef = _masterChef;
-        sushi = _sushi;
-        pid = _pid;
+        comptroller = _comptroller;
+        address[] memory markets = new address[](1);
+        markets[0] = _uToken;
+        _comptroller.enterMarkets(markets);
     }
 
     function getReward() external {
-        masterChef.harvest(pid, address(this));
+        comptroller.claimComp(address(this));
     }
 
     function purchase(
@@ -47,26 +42,23 @@ contract RcaShieldOnsen is RcaShieldBase {
         uint256 _underlyingPrice,
         bytes32[] calldata _underlyinPriceProof
     ) external {
-        require(_token == address(sushi), "only sushi on sale");
+        require(_token != address(uToken), "cannot buy underlyingToken");
         controller.verifyPrice(_token,  _tokenPrice, _tokenPriceProof);
         controller.verifyPrice(address(this), _underlyingPrice, _underlyinPriceProof);
         uint256 underlyingAmount = _amount * _tokenPrice / _underlyingPrice;
         IERC20(_token).safeTransfer(msg.sender, _amount);
         uToken.safeTransferFrom(msg.sender,address(this), underlyingAmount);
-        uToken.safeApprove(address(masterChef), underlyingAmount);
-        masterChef.deposit(pid, underlyingAmount, address(this));
     }
 
     function _uBalance() internal view override returns(uint256) {
-        return uToken.balanceOf(address(this)) + masterChef.userInfo(pid, address(this)).amount;
+        return uToken.balanceOf(address(this));
     }
 
     function _afterMint(uint256 _uAmount) internal override {
-        uToken.safeApprove(address(masterChef), _uAmount);
-        masterChef.deposit(pid, _uAmount, address(this));
+        // no-op since we get aToken
     }
 
     function _afterRedeem(uint256 _uAmount) internal override {
-        masterChef.withdraw(pid, _uAmount, address(this));
+        // no-op since we get aToken
     }
 }

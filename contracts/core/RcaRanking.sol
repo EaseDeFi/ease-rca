@@ -2,6 +2,7 @@
 
 pragma solidity 0.8.11;
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
+import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 
 /**
  * @title RCA Ranking
@@ -12,13 +13,14 @@ import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
  * @author Robert M.C. Forster
  */
 contract RcaRanking {
+    using SafeERC20 for IERC20;
 
     /// @notice Ease/Armor token address
     IERC20 public token;
     /// @notice Amount of ARMOR tokens "staked" on each protocol.
     mapping (uint256 => uint256) public ranks;
-    /// @notice Balances of each address that has staked.
-    mapping (address => uint256) public balances;
+    /// @notice Balances of each address that has staked in a protocol (protocol => user => amount).
+    mapping (uint256 => mapping (address => uint256) ) public balances;
 
     /// @notice Notification of a stake.
     event Stake(
@@ -57,9 +59,9 @@ contract RcaRanking {
     )
       external
     {
-        token.transferFrom(msg.sender, address(this), _amount);
+        token.safeTransferFrom(msg.sender, address(this), _amount);
         ranks[_protocol] += _amount;
-        balances[msg.sender] += _amount;
+        balances[_protocol][msg.sender] += _amount;
 
         emit Stake(
             _protocol,
@@ -81,8 +83,8 @@ contract RcaRanking {
       external
     {
         ranks[_protocol] -= _amount;
-        balances[msg.sender] -= _amount;
-        token.transfer(msg.sender, _amount);
+        balances[_protocol][msg.sender] -= _amount;
+        token.safeTransfer(msg.sender, _amount);
 
         emit Unstake(
             _protocol,
