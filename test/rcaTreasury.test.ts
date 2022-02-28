@@ -173,6 +173,13 @@ describe("RcaTreasury", function () {
       // Balance of user should increase by cover claim value
       expect(balanceAfter.sub(balanceBefore)).to.equal(claimAmount);
     });
+    it("should emit Claim event with valid args if claim is successful", async function () {
+      const user = signers.claimer.address;
+      const claimAmount = ether("1");
+      expect(await rcaTreasury.claimFor(user, claimAmount, hackId1, claimTree1.getProof(user, hackId1, claimAmount)))
+        .to.emit(rcaTreasury, "Claim")
+        .withArgs(user, hackId1, claimAmount);
+    });
   });
 
   describe("STATE:claimsRoots", function () {
