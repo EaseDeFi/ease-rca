@@ -1,3 +1,4 @@
+# folders
 node_modules/
 build/
 package-lock.json
@@ -6,3 +7,6 @@ artifacts/
 coverage/
 coverage.json
 src/types
+
+# files
+.env

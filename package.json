@@ -19,9 +19,11 @@
   },
   "license": "MIT",
   "dependencies": {
+    "@nomiclabs/hardhat-etherscan": "^3.0.1",
     "@openzeppelin/contract-loader": "^0.6.3",
     "@umb-network/toolbox": "^5.4.0",
     "bignumber.js": "9.0.1",
+    "dotenv": "^16.0.0",
     "hardhat": "^2.8.2"
   },
   "devDependencies": {
