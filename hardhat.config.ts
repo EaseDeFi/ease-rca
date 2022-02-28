@@ -1,4 +1,6 @@
+import "@nomiclabs/hardhat-ethers";
 import "@nomiclabs/hardhat-waffle";
+import "@typechain/hardhat";
 import "solidity-coverage";
 import "@nomiclabs/hardhat-ethers";
 import "hardhat-abi-exporter";
@@ -71,5 +73,9 @@ export default {
       accounts: [`0x${MAINNET_PRIVATE_KEY}`],
       gasPrice: 100000000000,
     },
+  },
+  typechain: {
+    outDir: "src/types",
+    target: "ethers-v5",
   },
 };
