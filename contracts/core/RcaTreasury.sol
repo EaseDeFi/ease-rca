@@ -20,6 +20,7 @@ contract RcaTreasury is Governable {
     mapping( address => mapping(uint256 => bool) ) public claimed;
 
     event Claim(address indexed user, uint256 indexed hackId, uint256 indexed etherAmount);
+    event Root(uint256 indexed coverId, bytes32 root);
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////// constructor ////////////////////////////////////////////////
@@ -102,6 +103,7 @@ contract RcaTreasury is Governable {
       onlyGov
     {
         claimsRoots[_hackId] = _newClaimsRoot;
+        emit Root(_hackId, _newClaimsRoot);
     }
 
     /**
