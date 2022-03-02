@@ -10,3 +10,13 @@ jobs:
           node-version: "14"
       - run: npm install --save-dev
       - run: npm run compile
+      - env:
+          MNEMONIC: ${{ secrets.MNEMONIC }}
+          RINKEBY_PRIVATE_KEY1: ${{ secrets.RINKEBY_PRIVATE_KEY1 }}
+          RINKEBY_PRIVATE_KEY2: ${{ secrets.RINKEBY_PRIVATE_KEY2 }}
+          RINKEBY_PRIVATE_KEY3: ${{ secrets.RINKEBY_PRIVATE_KEY3 }}
+          RINKEBY_PRIVATE_KEY4: ${{ secrets.RINKEBY_PRIVATE_KEY4 }}
+          MAINNET_PRIVATE_KEY: ${{ secrets.MAINNET_PRIVATE_KEY }}
+          MAINNET_URL_ALCHEMY: ${{ secrets.MAINNET_URL_ALCHEMY }}
+          INFURA_API_KEY: ${{ secrets.INFURA_API_KEY }}
+          FORKING: ${{ secrets.FORKING }}
