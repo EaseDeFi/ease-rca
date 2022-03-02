@@ -20,3 +20,4 @@ jobs:
           node-version: "14"
       - run: npm install --save-dev
       - run: npm run compile
+      - run: npm run test
