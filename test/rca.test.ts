@@ -1,23 +1,23 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { keccak256, bufferToHex } from "ethereumjs-util";
 import { increase, getTimestamp, mine, ether } from "./utils";
-import { providers, Contract, Signer, BigNumber } from "ethers";
+import { BigNumber } from "ethers";
 import BalanceTree from "./balance-tree";
-import { userInfo } from "os";
-// import { hashPersonalMessage } from "hardhat/node_modules/ethereumjs-util";
-import { getPackedSettings } from "http2";
+import { MockERC20 } from "../src/types/MockERC20";
+import { RcaShield } from "../src/types/RcaShield";
+import { RcaController } from "../src/types/RcaController";
+import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 
 // Testing base RCA functionalities
 describe("RCAs and Controller", function () {
-  let accounts: Signer[];
-  let uToken: Contract;
-  let shield: Contract;
-  let controller: Contract;
-  let owner: Signer;
-  let user: Signer;
-  let priceOracle: Signer;
-  let capOracle: Signer;
+  let accounts: SignerWithAddress[];
+  let uToken: MockERC20;
+  let shield: RcaShield;
+  let controller: RcaController;
+  let owner: SignerWithAddress;
+  let user: SignerWithAddress;
+  let priceOracle: SignerWithAddress;
+  let capOracle: SignerWithAddress;
   let capTree: BalanceTree;
   let liqTree: BalanceTree;
   let priceTree: BalanceTree;
@@ -39,31 +39,31 @@ describe("RCAs and Controller", function () {
     capOracle = accounts[3];
 
     const TOKEN = await ethers.getContractFactory("MockERC20");
-    uToken = await TOKEN.deploy("Test Token", "TEST");
+    uToken = <MockERC20>await TOKEN.deploy("Test Token", "TEST");
 
     const CONTROLLER = await ethers.getContractFactory("RcaController");
-    //                                         governor, guardian, price oracle, capacity oracle
-    controller = await CONTROLLER.deploy(
-      owner.getAddress(),
-      user.getAddress(),
-      priceOracle.getAddress(),
-      capOracle.getAddress(),
-      //                                         apr, discount (2%), 1 day withdrawal delay, treasury address.
-      0,
-      200,
-      86400,
-      owner.getAddress(),
+    controller = <RcaController>await CONTROLLER.deploy(
+      owner.address, // governor
+      user.address, // guardain
+      priceOracle.address, // price oracle
+      capOracle.address, // capacity oracle
+      0, // apr
+      200, // discount (2 %)
+      86400, // 1 day withdrawal delay
+      owner.address, // treasury address
     );
 
     const SHIELD = await ethers.getContractFactory("RcaShield");
     //                                  token name, symbol, underlying token, governor, controller
-    shield = await SHIELD.deploy("Test Token RCA", "TEST-RCA", uToken.address, owner.getAddress(), controller.address);
+    shield = <RcaShield>(
+      await SHIELD.deploy("Test Token RCA", "TEST-RCA", uToken.address, owner.address, controller.address)
+    );
 
     //                                               shield, protocol Id, %
     await controller.connect(owner).initializeShield(shield.address, [1, 2], [10000, 10000]);
 
-    await uToken.mint(user.getAddress(), ether("1000000"));
-    await uToken.mint(owner.getAddress(), ether("1000000"));
+    await uToken.mint(user.address, ether("1000000"));
+    await uToken.mint(owner.address, ether("1000000"));
 
     // Set liquidation tree.
     liqTree = new BalanceTree([
@@ -125,11 +125,11 @@ describe("RCAs and Controller", function () {
       expect(await controller.apr()).to.be.equal(0);
       expect(await controller.discount()).to.be.equal(200);
       expect(await controller.withdrawalDelay()).to.be.equal(86400);
-      expect(await controller.treasury()).to.be.equal(await owner.getAddress());
-      expect(await controller.priceOracle()).to.be.equal(await priceOracle.getAddress());
-      expect(await controller.capOracle()).to.be.equal(await capOracle.getAddress());
-      expect(await controller.governor()).to.be.equal(await owner.getAddress());
-      expect(await controller.guardian()).to.be.equal(await user.getAddress());
+      expect(await controller.treasury()).to.be.equal(await owner.address);
+      expect(await controller.priceOracle()).to.be.equal(await priceOracle.address);
+      expect(await controller.capOracle()).to.be.equal(await capOracle.address);
+      expect(await controller.governor()).to.be.equal(await owner.address);
+      expect(await controller.guardian()).to.be.equal(user.address);
 
       expect(await controller.shieldMapping(shield.address)).to.be.equal(true);
       const protocolPercents0 = await controller.shieldProtocolPercents(shield.address, 0);
@@ -145,7 +145,7 @@ describe("RCAs and Controller", function () {
       expect(await shield.apr()).to.be.equal(0);
       expect(await shield.discount()).to.be.equal(200);
       expect(await shield.withdrawalDelay()).to.be.equal(86400);
-      expect(await shield.treasury()).to.be.equal(await owner.getAddress());
+      expect(await shield.treasury()).to.be.equal(await owner.address);
       expect(await shield.percentReserved()).to.be.equal(0);
       expect(await shield.name()).to.be.equal("Test Token RCA");
       expect(await shield.symbol()).to.be.equal("TEST-RCA");
@@ -162,13 +162,13 @@ describe("RCAs and Controller", function () {
     // Approve shield to take 1,000 underlying tokens, mint, should receive back 1,000 RCA tokens.
     it("should be able to mint an RCA token", async function () {
       // returns: expiry, v, r, s
-      const userAddy = await user.getAddress();
+      const userAddy = user.address;
       const sigValues = await getSig(userAddy, ether("100"));
       await shield
         .connect(user)
         .mintTo(
-          user.getAddress(),
-          user.getAddress(),
+          user.address,
+          user.address,
           ether("100"),
           sigValues[0],
           sigValues[1],
@@ -178,16 +178,16 @@ describe("RCAs and Controller", function () {
           liqProof,
         );
 
-      const rcaBal = await shield.balanceOf(user.getAddress());
+      const rcaBal = await shield.balanceOf(user.address);
       expect(rcaBal).to.be.equal(ether("100"));
 
       // Testing minting to a different address here as well
-      const sigValues2 = await getSig(await owner.getAddress(), ether("50"));
+      const sigValues2 = await getSig(await owner.address, ether("50"));
       await shield
         .connect(user)
         .mintTo(
-          owner.getAddress(),
-          user.getAddress(),
+          owner.address,
+          user.address,
           ether("50"),
           sigValues2[0],
           sigValues2[1],
@@ -197,18 +197,18 @@ describe("RCAs and Controller", function () {
           liqProof,
         );
 
-      const ownerBal = await shield.balanceOf(owner.getAddress());
+      const ownerBal = await shield.balanceOf(owner.address);
       expect(ownerBal).to.be.equal(ether("50"));
     });
 
     // If one request is made after another, the amounts should add to last amounts and the endTime should restart.
     it("should mint correctly with wonky (technical term) updates", async function () {
-      const sigValues = await getSig(await user.getAddress(), ether("1000"));
+      const sigValues = await getSig(user.address, ether("1000"));
       await shield
         .connect(user)
         .mintTo(
-          user.getAddress(),
-          user.getAddress(),
+          user.address,
+          user.address,
           ether("1000"),
           sigValues[0],
           sigValues[1],
@@ -226,12 +226,12 @@ describe("RCAs and Controller", function () {
       increase(31536000 / 2);
       mine();
 
-      const sigValues2 = await getSig(await user.getAddress(), ether("1000"));
+      const sigValues2 = await getSig(user.address, ether("1000"));
       await shield
         .connect(user)
         .mintTo(
-          user.getAddress(),
-          user.getAddress(),
+          user.address,
+          user.address,
           ether("1000"),
           sigValues2[0],
           sigValues2[1],
@@ -241,8 +241,8 @@ describe("RCAs and Controller", function () {
           liqProof,
         );
 
-      const uValue = await shield.uValue(ether("1"), ether("100"), 1000);
-      const rcaValue = await shield.rcaValue(ether("1"), ether("100"));
+      const uValue = <any>await shield.uValue(ether("1"), ether("100"), 1000);
+      const rcaValue = <any>await shield.rcaValue(ether("1"), ether("100"));
 
       expect(uValue / 1e18).to.be.approximately(0.72, 1e-6);
       expect(rcaValue / 1e18).to.be.approximately(1.25, 1e-6);
@@ -252,12 +252,12 @@ describe("RCAs and Controller", function () {
   describe("Redeem", function () {
     beforeEach(async function () {
       await uToken.connect(user).approve(shield.address, ether("1000"));
-      const sigValues = await getSig(await user.getAddress(), ether("100"));
+      const sigValues = await getSig(user.address, ether("100"));
       await shield
         .connect(user)
         .mintTo(
-          user.getAddress(),
-          user.getAddress(),
+          user.address,
+          user.address,
           ether("100"),
           sigValues[0],
           sigValues[1],
@@ -273,7 +273,7 @@ describe("RCAs and Controller", function () {
 
       // Check request data
       const timestamp = await getTimestamp();
-      const requests = await shield.withdrawRequests(user.getAddress());
+      const requests = await shield.withdrawRequests(user.address);
       expect(requests[0]).to.be.equal(ether("100"));
       expect(requests[0]).to.be.equal(ether("100"));
       const endTime = timestamp.add("86400");
@@ -282,42 +282,36 @@ describe("RCAs and Controller", function () {
       // A bit more than 1 day withdrawal
       increase(86500);
 
-      await shield
-        .connect(user)
-        .redeemFinalize(
-          user.getAddress(),
-          false,
-          0x0000000000000000000000000000000000000000000000000000000000000000,
-          0,
-          liqProof,
-        );
-      const rcaBal = await shield.balanceOf(user.getAddress());
-      const uBal = await uToken.balanceOf(user.getAddress());
+      await shield.connect(user).redeemFinalize(user.address, false, ethers.constants.AddressZero, 0, liqProof);
+      const rcaBal = await shield.balanceOf(user.address);
+      const uBal = await uToken.balanceOf(user.address);
       expect(rcaBal).to.be.equal(0);
       expect(uBal).to.be.equal(ether("1000000"));
     });
 
-    // If one request is made after another, the amounts should add to last amounts and the endTime should restart.
+    // If one request is made after another, the amounts should add to last amounts
+    // and the endTime should restart.
     it("should be able to stack redeem requests and reset time", async function () {
       await shield.connect(user).redeemRequest(ether("50"), 0, [], 0, resProof);
       // By increasing half a day we can check timestamp changing
       const startTime = await getTimestamp();
-      let requests = await shield.withdrawRequests(user.getAddress());
+      let requests = await shield.withdrawRequests(user.address);
       expect(requests[0]).to.be.equal(ether("50"));
       expect(requests[1]).to.be.equal(ether("50"));
       expect(requests[2]).to.be.equal(startTime.add("86400"));
 
-      // Wait half a day to make sure request time resets (don't want both requests starting at the same time or we can't check).
+      // Wait half a day to make sure request time resets
+      // (don't want both requests starting at the same time or we can't check).
       increase(43200);
 
       await shield.connect(user).redeemRequest(ether("50"), 0, [], 0, resProof);
       const secondTime = await getTimestamp();
-      requests = await shield.withdrawRequests(user.getAddress());
+      requests = await shield.withdrawRequests(user.address);
       expect(requests[0]).to.be.equal(ether("100"));
       expect(requests[1]).to.be.equal(ether("100"));
       expect(requests[2]).to.be.equal(secondTime.add("86400"));
 
-      requests = await shield.withdrawRequests(user.getAddress());
+      requests = await shield.withdrawRequests(user.address);
     });
 
     // check with zapper
@@ -325,15 +319,16 @@ describe("RCAs and Controller", function () {
 
   describe("Purchase", function () {
     beforeEach(async function () {
-      // Set capacity proof. Sorta faking, it's a 1 leaf proof. Won't provide super accurate gas pricing but shouldn't cost too much more.
+      // Set capacity proof. Sorta faking, it's a 1 leaf proof.
+      // Won't provide super accurate gas pricing but shouldn't cost too much more.
       await uToken.connect(user).approve(shield.address, ether("1000"));
       //                  to address, uAmount, capacity, cap proof, for sale, old cumulative, for sale proof
-      const sigValues = await getSig(await user.getAddress(), ether("1000"));
+      const sigValues = await getSig(user.address, ether("1000"));
       await shield
         .connect(user)
         .mintTo(
-          user.getAddress(),
-          user.getAddress(),
+          user.address,
+          user.address,
           ether("1000"),
           sigValues[0],
           sigValues[1],
@@ -347,27 +342,27 @@ describe("RCAs and Controller", function () {
 
     // Attempt to purchase 100 RCA tokens twice.
     it("should purchase an RCA token from liquidation", async function () {
-      await shield.purchaseRca(user.getAddress(), ether("50"), ether("0.001"), priceProof, ether("100"), liqProof, {
+      await shield.purchaseRca(user.address, ether("50"), ether("0.001"), priceProof, ether("100"), liqProof, {
         value: ether("0.049"),
       });
-      expect(await shield.balanceOf(user.getAddress())).to.be.equal("1055555555555555555555");
+      expect(await shield.balanceOf(user.address)).to.be.equal("1055555555555555555555");
 
-      await shield.purchaseRca(user.getAddress(), ether("50"), ether("0.001"), priceProof, ether("100"), liqProof, {
+      await shield.purchaseRca(user.address, ether("50"), ether("0.001"), priceProof, ether("100"), liqProof, {
         value: ether("0.049"),
       });
-      expect(await shield.balanceOf(user.getAddress())).to.be.equal("1111111111111111111110");
+      expect(await shield.balanceOf(user.address)).to.be.equal("1111111111111111111110");
     });
 
     it("should purchase underlying tokens from liquidation", async function () {
-      await shield.purchaseU(user.getAddress(), ether("50"), ether("0.001"), priceProof, ether("100"), liqProof, {
+      await shield.purchaseU(user.address, ether("50"), ether("0.001"), priceProof, ether("100"), liqProof, {
         value: ether("0.049"),
       });
-      expect(await uToken.balanceOf(user.getAddress())).to.be.equal(ether("999050"));
+      expect(await uToken.balanceOf(user.address)).to.be.equal(ether("999050"));
 
-      await shield.purchaseU(user.getAddress(), ether("50"), ether("0.001"), priceProof, ether("100"), liqProof, {
+      await shield.purchaseU(user.address, ether("50"), ether("0.001"), priceProof, ether("100"), liqProof, {
         value: ether("0.049"),
       });
-      expect(await uToken.balanceOf(user.getAddress())).to.be.equal(ether("999100"));
+      expect(await uToken.balanceOf(user.address)).to.be.equal(ether("999100"));
     });
   });
 
@@ -376,7 +371,7 @@ describe("RCAs and Controller", function () {
       await controller.connect(owner).setWithdrawalDelay(100000);
       await controller.connect(owner).setDiscount(1000);
       await controller.connect(owner).setApr(1000);
-      await controller.connect(owner).setTreasury(user.getAddress());
+      await controller.connect(owner).setTreasury(user.address);
       await controller.connect(user).setPercentReserved(resTree2.getHexRoot());
     });
 
@@ -384,17 +379,17 @@ describe("RCAs and Controller", function () {
       expect(await controller.apr()).to.be.equal(1000);
       expect(await controller.discount()).to.be.equal(1000);
       expect(await controller.withdrawalDelay()).to.be.equal(100000);
-      expect(await controller.treasury()).to.be.equal(await user.getAddress());
+      expect(await controller.treasury()).to.be.equal(user.address);
 
       // Mint call should update all variables on shield
       await uToken.connect(user).approve(shield.address, ether("1000"));
       //                  to address, uAmount, capacity, cap proof, for sale, old cumulative, for sale proof
-      const sigValues = await getSig(await user.getAddress(), ether("1000"));
+      const sigValues = await getSig(user.address, ether("1000"));
       await shield
         .connect(user)
         .mintTo(
-          user.getAddress(),
-          user.getAddress(),
+          user.address,
+          user.address,
           ether("1000"),
           sigValues[0],
           sigValues[1],
@@ -407,16 +402,16 @@ describe("RCAs and Controller", function () {
       expect(await shield.apr()).to.be.equal(1000);
       expect(await shield.discount()).to.be.equal(1000);
       expect(await shield.withdrawalDelay()).to.be.equal(100000);
-      expect(await shield.treasury()).to.be.equal(await user.getAddress());
+      expect(await shield.treasury()).to.be.equal(user.address);
 
       it("should update for sale", async function () {
         await uToken.connect(user).approve(shield.address, ether("1000"));
-        const sigValues = await getSig(await user.getAddress(), ether("1000"));
+        const sigValues = await getSig(user.address, ether("1000"));
         await shield
           .connect(user)
           .mintTo(
-            user.getAddress(),
-            user.getAddress(),
+            user.address,
+            user.address,
             ether("1000"),
             sigValues[0],
             sigValues[1],
@@ -427,7 +422,7 @@ describe("RCAs and Controller", function () {
           );
 
         expect(await shield.amtForSale()).to.be.equal(ether("100"));
-        expect(await shield.cumLiq()).to.be.equal(ether("100"));
+        expect(await shield.cumLiqForClaims()).to.be.equal(ether("100"));
         expect(await shield.percentReserved()).to.be.equal(0);
       });
     });
@@ -438,12 +433,12 @@ describe("RCAs and Controller", function () {
       await controller.connect(owner).setApr(1000);
       await uToken.connect(user).approve(shield.address, ether("1000"));
       await controller.connect(owner).setLiqTotal(liqTree2.getHexRoot(), resTree.getHexRoot());
-      const sigValues = await getSig(await user.getAddress(), ether("1000"));
+      const sigValues = await getSig(user.address, ether("1000"));
       await shield
         .connect(user)
         .mintTo(
-          user.getAddress(),
-          user.getAddress(),
+          user.address,
+          user.address,
           ether("1000"),
           sigValues[0],
           sigValues[1],
@@ -477,8 +472,8 @@ describe("RCAs and Controller", function () {
       increase(31536000 / 2);
       mine();
 
-      const uValue = await shield.uValue(ether("1"), ether("100"), 0);
-      const rcaValue = await shield.rcaValue(ether("1"), ether("100"));
+      const uValue = <any>await shield.uValue(ether("1"), ether("100"), 0);
+      const rcaValue = <any>await shield.rcaValue(ether("1"), ether("100"));
       expect(uValue / 1e18).to.be.approximately(0.8, 1e-6);
       expect(rcaValue / 1e18).to.be.approximately(1.25, 1e-6);
     });
@@ -496,8 +491,8 @@ describe("RCAs and Controller", function () {
       increase(31536000 / 2);
       mine();
 
-      const rcaValue = await shield.rcaValue(ether("1"), ether("100"));
-      const uValue = await shield.uValue(ether("1"), ether("100"), 1000);
+      const rcaValue = <any>await shield.rcaValue(ether("1"), ether("100"));
+      const uValue = <any>await shield.uValue(ether("1"), ether("100"), 1000);
       const extraForSale = await shield.getExtraForSale(ether("100"));
 
       /*
@@ -520,9 +515,7 @@ describe("RCAs and Controller", function () {
       await expect(controller.connect(user).setWithdrawalDelay(100000)).to.be.revertedWith("msg.sender is not owner");
       await expect(controller.connect(user).setDiscount(1000)).to.be.revertedWith("msg.sender is not owner");
       await expect(controller.connect(user).setApr(1000)).to.be.revertedWith("msg.sender is not owner");
-      await expect(controller.connect(user).setTreasury(user.getAddress())).to.be.revertedWith(
-        "msg.sender is not owner",
-      );
+      await expect(controller.connect(user).setTreasury(user.address)).to.be.revertedWith("msg.sender is not owner");
       await expect(controller.connect(owner).setPercentReserved(resTree.getHexRoot())).to.be.revertedWith(
         "msg.sender is not Guardian",
       );
@@ -534,7 +527,7 @@ describe("RCAs and Controller", function () {
         "Function must only be called by controller.",
       );
       await expect(shield.connect(user).setApr(1000)).to.be.revertedWith("Function must only be called by controller.");
-      await expect(shield.connect(user).setTreasury(user.getAddress())).to.be.revertedWith(
+      await expect(shield.connect(user).setTreasury(user.address)).to.be.revertedWith(
         "Function must only be called by controller.",
       );
       await expect(shield.connect(owner).setPercentReserved(1000)).to.be.revertedWith(
@@ -545,10 +538,8 @@ describe("RCAs and Controller", function () {
         "msg.sender is not price oracle",
       );
 
-      await expect(shield.connect(user).setController(owner.getAddress())).to.be.revertedWith(
-        "msg.sender is not owner",
-      );
-      await expect(shield.connect(user).proofOfLoss(owner.getAddress())).to.be.revertedWith("msg.sender is not owner");
+      await expect(shield.connect(user).setController(owner.address)).to.be.revertedWith("msg.sender is not owner");
+      await expect(shield.connect(user).proofOfLoss(owner.address)).to.be.revertedWith("msg.sender is not owner");
     });
   });
 });
