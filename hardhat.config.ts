@@ -97,7 +97,7 @@ const config: HardhatUserConfig = {
       accounts: {
         mnemonic,
       },
-      chainId: chainIds.hardhat,
+      chainId: process.env.FORKING ? 1 : chainIds.hardhat,
     },
     arbitrumOne: getChainConfig("arbitrumOne"),
     mainnet: getChainConfig("mainnet"),
