@@ -51,6 +51,9 @@ contract RcaShieldOnsen is RcaShieldBase {
         controller.verifyPrice(_token,  _tokenPrice, _tokenPriceProof);
         controller.verifyPrice(address(this), _underlyingPrice, _underlyinPriceProof);
         uint256 underlyingAmount = _amount * _tokenPrice / _underlyingPrice;
+        if (discount > 0) {
+            underlyingAmount -= underlyingAmount * discount / DENOMINATOR;
+        }
         IERC20(_token).safeTransfer(msg.sender, _amount);
         uToken.safeTransferFrom(msg.sender,address(this), underlyingAmount);
         uToken.safeApprove(address(masterChef), underlyingAmount);
