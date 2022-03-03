@@ -43,7 +43,6 @@ contract RcaShieldConvex is RcaShieldBase {
         controller.verifyPrice(_token,  _tokenPrice, _tokenPriceProof);
         controller.verifyPrice(address(this), _underlyingPrice, _underlyinPriceProof);
         uint256 underlyingAmount = _amount * _tokenPrice / _underlyingPrice;
-        // saving some gas from single storage read
         if (discount > 0) {
             underlyingAmount -= underlyingAmount * discount / DENOMINATOR;
         }
