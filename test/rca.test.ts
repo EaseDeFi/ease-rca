@@ -2,11 +2,17 @@ import { expect } from "chai";
 import { ethers } from "hardhat";
 import { increase, getTimestamp, mine, ether } from "./utils";
 import { BigNumber } from "ethers";
+
 import BalanceTree from "./balance-tree";
 import { MockERC20 } from "../src/types/MockERC20";
 import { RcaShield } from "../src/types/RcaShield";
 import { RcaController } from "../src/types/RcaController";
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { RcaTreasury } from "../src/types/RcaTreasury";
+import { RcaTreasury__factory } from "../src/types/factories/RcaTreasury__factory";
+import { RcaController__factory } from "../src/types/factories/RcaController__factory";
+import { RcaShield__factory } from "../src/types/factories/RcaShield__factory";
+import { MockERC20__factory } from "../src/types/factories/MockERC20__factory";
+
 import type { Contracts, MerkleProofs, MerkleTrees, Signers } from "./types";
 
 // Testing base RCA functionalities
@@ -16,48 +22,50 @@ describe("RCAs and Controller", function () {
   const merkleTrees = {} as MerkleTrees;
   const merkleProofs = {} as MerkleProofs;
 
-  let owner: SignerWithAddress;
   beforeEach(async function () {
     const accounts = await ethers.getSigners();
-
-    owner = accounts[0];
     signers.gov = accounts[0];
     signers.user = accounts[1];
     signers.priceOracle = accounts[2];
     signers.capOracle = accounts[3];
+    signers.guardian = accounts[4];
+    signers.referrer = accounts[5];
 
-    const TOKEN = await ethers.getContractFactory("MockERC20");
+    const TOKEN = <MockERC20__factory>await ethers.getContractFactory("MockERC20");
     contracts.uToken = <MockERC20>await TOKEN.deploy("Test Token", "TEST");
 
-    const CONTROLLER = await ethers.getContractFactory("RcaController");
-    contracts.rcaController = <RcaController>await CONTROLLER.deploy(
-      owner.address, // governor
-      signers.user.address, // guardain
+    const RCA_TREASURY = <RcaTreasury__factory>await ethers.getContractFactory("RcaTreasury");
+    contracts.rcaTreasury = <RcaTreasury>await RCA_TREASURY.connect(signers.gov).deploy(signers.gov.address);
+
+    const RCA_CONTROLLER = <RcaController__factory>await ethers.getContractFactory("RcaController");
+    contracts.rcaController = <RcaController>await RCA_CONTROLLER.connect(signers.guardian).deploy(
+      signers.gov.address, // governor
+      signers.guardian.address, // guardian
       signers.priceOracle.address, // price oracle
       signers.capOracle.address, // capacity oracle
       0, // apr
       200, // discount (2 %)
       86400, // 1 day withdrawal delay
-      owner.address, // treasury address
+      contracts.rcaTreasury.address, // treasury address
     );
 
-    const SHIELD = await ethers.getContractFactory("RcaShield");
-    //                                  token name, symbol, underlying token, governor, rcaController
-    contracts.rcaShield = <RcaShield>(
-      await SHIELD.deploy(
-        "Test Token RCA",
-        "TEST-RCA",
-        contracts.uToken.address,
-        owner.address,
-        contracts.rcaController.address,
-      )
+    const RCA_SHIELD = <RcaShield__factory>await ethers.getContractFactory("RcaShield");
+
+    contracts.rcaShield = <RcaShield>await RCA_SHIELD.deploy(
+      "Test Token RCA", // token name
+      "TEST-RCA", // symbol
+      contracts.uToken.address, // underlying token
+      signers.gov.address, // governor
+      contracts.rcaController.address, // rcaController
     );
 
-    //                                               shield, protocol Id, %
-    await contracts.rcaController.connect(owner).initializeShield(contracts.rcaShield.address, [1, 2], [10000, 10000]);
+    //                                                                shield, protocol Id, %
+    await contracts.rcaController
+      .connect(signers.gov)
+      .initializeShield(contracts.rcaShield.address, [1, 2], [10000, 10000]);
 
     await contracts.uToken.mint(signers.user.address, ether("1000000"));
-    await contracts.uToken.mint(owner.address, ether("1000000"));
+    await contracts.uToken.mint(signers.referrer.address, ether("1000000"));
 
     // Set liquidation tree.
     merkleTrees.liqTree1 = new BalanceTree([
@@ -125,11 +133,11 @@ describe("RCAs and Controller", function () {
       expect(await contracts.rcaController.apr()).to.be.equal(0);
       expect(await contracts.rcaController.discount()).to.be.equal(200);
       expect(await contracts.rcaController.withdrawalDelay()).to.be.equal(86400);
-      expect(await contracts.rcaController.treasury()).to.be.equal(owner.address);
+      expect(await contracts.rcaController.treasury()).to.be.equal(contracts.rcaTreasury.address);
       expect(await contracts.rcaController.priceOracle()).to.be.equal(signers.priceOracle.address);
       expect(await contracts.rcaController.capOracle()).to.be.equal(signers.capOracle.address);
-      expect(await contracts.rcaController.governor()).to.be.equal(owner.address);
-      expect(await contracts.rcaController.guardian()).to.be.equal(signers.user.address);
+      expect(await contracts.rcaController.governor()).to.be.equal(signers.gov.address);
+      expect(await contracts.rcaController.guardian()).to.be.equal(signers.guardian.address);
 
       expect(await contracts.rcaController.shieldMapping(contracts.rcaShield.address)).to.be.equal(true);
       const protocolPercents0 = await contracts.rcaController.shieldProtocolPercents(contracts.rcaShield.address, 0);
@@ -145,7 +153,7 @@ describe("RCAs and Controller", function () {
       expect(await contracts.rcaShield.apr()).to.be.equal(0);
       expect(await contracts.rcaShield.discount()).to.be.equal(200);
       expect(await contracts.rcaShield.withdrawalDelay()).to.be.equal(86400);
-      expect(await contracts.rcaShield.treasury()).to.be.equal(owner.address);
+      expect(await contracts.rcaShield.treasury()).to.be.equal(contracts.rcaTreasury.address);
       expect(await contracts.rcaShield.percentReserved()).to.be.equal(0);
       expect(await contracts.rcaShield.name()).to.be.equal("Test Token RCA");
       expect(await contracts.rcaShield.symbol()).to.be.equal("TEST-RCA");
@@ -156,7 +164,7 @@ describe("RCAs and Controller", function () {
   describe("Mint", function () {
     beforeEach(async function () {
       await contracts.uToken.connect(signers.user).approve(contracts.rcaShield.address, ether("10000000"));
-      await contracts.uToken.connect(owner).approve(contracts.rcaShield.address, ether("10000000"));
+      await contracts.uToken.connect(signers.referrer).approve(contracts.rcaShield.address, ether("10000000"));
     });
 
     // Approve rcaShield to take 1,000 underlying tokens, mint, should receive back 1,000 RCA tokens.
@@ -168,7 +176,7 @@ describe("RCAs and Controller", function () {
         .connect(signers.user)
         .mintTo(
           signers.user.address,
-          signers.user.address,
+          signers.referrer.address,
           ether("100"),
           sigValues[0],
           sigValues[1],
@@ -182,11 +190,11 @@ describe("RCAs and Controller", function () {
       expect(rcaBal).to.be.equal(ether("100"));
 
       // Testing minting to a different address here as well
-      const sigValues2 = await getSig(await owner.address, ether("50"));
+      const sigValues2 = await getSig(signers.referrer.address, ether("50"));
       await contracts.rcaShield
-        .connect(signers.user)
+        .connect(signers.referrer)
         .mintTo(
-          owner.address,
+          signers.referrer.address,
           signers.user.address,
           ether("50"),
           sigValues2[0],
@@ -197,7 +205,7 @@ describe("RCAs and Controller", function () {
           merkleProofs.liqProof1,
         );
 
-      const ownerBal = await contracts.rcaShield.balanceOf(owner.address);
+      const ownerBal = await contracts.rcaShield.balanceOf(signers.referrer.address);
       expect(ownerBal).to.be.equal(ether("50"));
     });
 
@@ -208,7 +216,7 @@ describe("RCAs and Controller", function () {
         .connect(signers.user)
         .mintTo(
           signers.user.address,
-          signers.user.address,
+          signers.referrer.address,
           ether("1000"),
           sigValues[0],
           sigValues[1],
@@ -219,10 +227,10 @@ describe("RCAs and Controller", function () {
         );
 
       await contracts.rcaController
-        .connect(owner)
+        .connect(signers.gov)
         .setLiqTotal(merkleTrees.liqTree1.getHexRoot(), merkleTrees.resTree1.getHexRoot());
-      await contracts.rcaController.connect(owner).setApr(2000);
-      await contracts.rcaController.connect(signers.user).setPercentReserved(merkleTrees.resTree2.getHexRoot());
+      await contracts.rcaController.connect(signers.gov).setApr(2000);
+      await contracts.rcaController.connect(signers.guardian).setPercentReserved(merkleTrees.resTree2.getHexRoot());
 
       // Wait about half a year, so about 10% should be taken.
       increase(31536000 / 2);
@@ -259,7 +267,7 @@ describe("RCAs and Controller", function () {
         .connect(signers.user)
         .mintTo(
           signers.user.address,
-          signers.user.address,
+          signers.referrer.address,
           ether("100"),
           sigValues[0],
           sigValues[1],
@@ -334,7 +342,7 @@ describe("RCAs and Controller", function () {
         .connect(signers.user)
         .mintTo(
           signers.user.address,
-          signers.user.address,
+          signers.referrer.address,
           ether("1000"),
           sigValues[0],
           sigValues[1],
@@ -344,7 +352,7 @@ describe("RCAs and Controller", function () {
           [],
         );
       await contracts.rcaController
-        .connect(owner)
+        .connect(signers.gov)
         .setLiqTotal(merkleTrees.liqTree1.getHexRoot(), merkleTrees.resTree1.getHexRoot());
     });
 
@@ -408,11 +416,11 @@ describe("RCAs and Controller", function () {
 
   describe("RcaController Updates", function () {
     beforeEach(async function () {
-      await contracts.rcaController.connect(owner).setWithdrawalDelay(100000);
-      await contracts.rcaController.connect(owner).setDiscount(1000);
-      await contracts.rcaController.connect(owner).setApr(1000);
-      await contracts.rcaController.connect(owner).setTreasury(signers.user.address);
-      await contracts.rcaController.connect(signers.user).setPercentReserved(merkleTrees.resTree2.getHexRoot());
+      await contracts.rcaController.connect(signers.gov).setWithdrawalDelay(100000);
+      await contracts.rcaController.connect(signers.gov).setDiscount(1000);
+      await contracts.rcaController.connect(signers.gov).setApr(1000);
+      await contracts.rcaController.connect(signers.gov).setTreasury(signers.user.address);
+      await contracts.rcaController.connect(signers.guardian).setPercentReserved(merkleTrees.resTree2.getHexRoot());
     });
 
     it("should update all variables", async function () {
@@ -429,7 +437,7 @@ describe("RCAs and Controller", function () {
         .connect(signers.user)
         .mintTo(
           signers.user.address,
-          signers.user.address,
+          signers.referrer.address,
           ether("1000"),
           sigValues[0],
           sigValues[1],
@@ -451,7 +459,7 @@ describe("RCAs and Controller", function () {
           .connect(signers.user)
           .mintTo(
             signers.user.address,
-            signers.user.address,
+            signers.referrer.address,
             ether("1000"),
             sigValues[0],
             sigValues[1],
@@ -470,17 +478,17 @@ describe("RCAs and Controller", function () {
 
   describe("Views", function () {
     beforeEach(async function () {
-      await contracts.rcaController.connect(owner).setApr(1000);
+      await contracts.rcaController.connect(signers.gov).setApr(1000);
       await contracts.uToken.connect(signers.user).approve(contracts.rcaShield.address, ether("1000"));
       await contracts.rcaController
-        .connect(owner)
+        .connect(signers.gov)
         .setLiqTotal(merkleTrees.liqTree2.getHexRoot(), merkleTrees.resTree1.getHexRoot());
       const sigValues = await getSig(signers.user.address, ether("1000"));
       await contracts.rcaShield
         .connect(signers.user)
         .mintTo(
           signers.user.address,
-          signers.user.address,
+          signers.referrer.address,
           ether("1000"),
           sigValues[0],
           sigValues[1],
@@ -510,7 +518,7 @@ describe("RCAs and Controller", function () {
       mine();
 
       await contracts.rcaController
-        .connect(owner)
+        .connect(signers.gov)
         .setLiqTotal(merkleTrees.liqTree1.getHexRoot(), merkleTrees.resTree1.getHexRoot());
 
       increase(31536000 / 2);
@@ -528,10 +536,10 @@ describe("RCAs and Controller", function () {
       mine();
 
       await contracts.rcaController
-        .connect(owner)
+        .connect(signers.gov)
         .setLiqTotal(merkleTrees.liqTree1.getHexRoot(), merkleTrees.resTree1.getHexRoot());
-      await contracts.rcaController.connect(owner).setApr(2000);
-      await contracts.rcaController.connect(signers.user).setPercentReserved(merkleTrees.resTree2.getHexRoot());
+      await contracts.rcaController.connect(signers.gov).setApr(2000);
+      await contracts.rcaController.connect(signers.guardian).setPercentReserved(merkleTrees.resTree2.getHexRoot());
 
       // Wait about half a year, so about 5% should be taken.
       increase(31536000 / 2);
@@ -571,7 +579,7 @@ describe("RCAs and Controller", function () {
         "msg.sender is not owner",
       );
       await expect(
-        contracts.rcaController.connect(owner).setPercentReserved(merkleTrees.resTree1.getHexRoot()),
+        contracts.rcaController.connect(signers.gov).setPercentReserved(merkleTrees.resTree1.getHexRoot()),
       ).to.be.revertedWith("msg.sender is not Guardian");
 
       await expect(contracts.rcaShield.connect(signers.user).setWithdrawalDelay(100000)).to.be.revertedWith(
@@ -586,18 +594,18 @@ describe("RCAs and Controller", function () {
       await expect(contracts.rcaShield.connect(signers.user).setTreasury(signers.user.address)).to.be.revertedWith(
         "Function must only be called by controller.",
       );
-      await expect(contracts.rcaShield.connect(owner).setPercentReserved(1000)).to.be.revertedWith(
+      await expect(contracts.rcaShield.connect(signers.gov).setPercentReserved(1000)).to.be.revertedWith(
         "Function must only be called by controller.",
       );
 
       await expect(
-        contracts.rcaController.connect(owner).setPrices(merkleTrees.priceTree1.getHexRoot()),
+        contracts.rcaController.connect(signers.gov).setPrices(merkleTrees.priceTree1.getHexRoot()),
       ).to.be.revertedWith("msg.sender is not price oracle");
 
-      await expect(contracts.rcaShield.connect(signers.user).setController(owner.address)).to.be.revertedWith(
-        "msg.sender is not owner",
-      );
-      await expect(contracts.rcaShield.connect(signers.user).proofOfLoss(owner.address)).to.be.revertedWith(
+      await expect(
+        contracts.rcaShield.connect(signers.user).setController(signers.referrer.address),
+      ).to.be.revertedWith("msg.sender is not owner");
+      await expect(contracts.rcaShield.connect(signers.user).proofOfLoss(signers.referrer.address)).to.be.revertedWith(
         "msg.sender is not owner",
       );
     });

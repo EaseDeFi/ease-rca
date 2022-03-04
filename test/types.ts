@@ -10,6 +10,7 @@ import ClaimTree from "./claim-tree";
 export type Signers = {
   user: SignerWithAddress;
   gov: SignerWithAddress;
+  referrer: SignerWithAddress;
   notGov: SignerWithAddress;
   guardian: SignerWithAddress;
   pendingGov: SignerWithAddress;
