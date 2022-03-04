@@ -1,6 +1,4 @@
-import { artifacts, ethers, waffle } from "hardhat";
-import type { Artifact } from "hardhat/types";
-import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
+import { ethers } from "hardhat";
 
 import type { RcaTreasury } from "../src/types/RcaTreasury";
 import { expect } from "chai";
@@ -8,6 +6,7 @@ import { BigNumber } from "ethers";
 import ClaimTree from "./claim-tree";
 import { ether } from "./utils";
 import { Contracts, MerkleTrees, Signers } from "./types";
+import { RcaTreasury__factory } from "../src/types/factories/RcaTreasury__factory";
 // null claim root
 const NULL_ROOT = "0x0000000000000000000000000000000000000000000000000000000000000000";
 
@@ -18,20 +17,19 @@ describe("RcaTreasury", function () {
   const hackId1 = BigNumber.from(1);
   const hackId2 = BigNumber.from(2);
   before(async function () {
-    const _signers: SignerWithAddress[] = await ethers.getSigners();
-    signers.gov = _signers[0];
-    signers.notGov = _signers[1];
-    signers.pendingGov = _signers[2];
-    signers.claimer = _signers[3];
-    signers.claimer1 = _signers[4];
-    signers.otherAccounts = _signers.slice(5);
+    const accounts = await ethers.getSigners();
+    signers.gov = accounts[0];
+    signers.notGov = accounts[1];
+    signers.pendingGov = accounts[2];
+    signers.claimer = accounts[3];
+    signers.claimer1 = accounts[4];
+    signers.otherAccounts = accounts.slice(5);
   });
 
   beforeEach(async function () {
-    const rcaTreasuryArtifact: Artifact = await artifacts.readArtifact("RcaTreasury");
-    contracts.rcaTreasury = <RcaTreasury>(
-      await waffle.deployContract(signers.gov, rcaTreasuryArtifact, [signers.gov.address])
-    );
+    const RCA_TREASURY = <RcaTreasury__factory>await ethers.getContractFactory("RcaTreasury");
+    contracts.rcaTreasury = <RcaTreasury>await RCA_TREASURY.connect(signers.gov).deploy(signers.gov.address);
+
     // send funds to Treasury
     await signers.gov.sendTransaction({ to: contracts.rcaTreasury.address, value: ether("100") });
     merkleTrees.claimTree1 = new ClaimTree([
