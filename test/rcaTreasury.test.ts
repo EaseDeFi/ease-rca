@@ -1,93 +1,87 @@
-import { artifacts, ethers, waffle } from "hardhat";
-import type { Artifact } from "hardhat/types";
-import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
+import { ethers } from "hardhat";
 
 import type { RcaTreasury } from "../src/types/RcaTreasury";
 import { expect } from "chai";
 import { BigNumber } from "ethers";
 import ClaimTree from "./claim-tree";
 import { ether } from "./utils";
+import { Contracts, MerkleTrees, Signers } from "./types";
+import { RcaTreasury__factory } from "../src/types/factories/RcaTreasury__factory";
 // null claim root
 const NULL_ROOT = "0x0000000000000000000000000000000000000000000000000000000000000000";
 
-type Signers = {
-  gov: SignerWithAddress;
-  notGov: SignerWithAddress;
-  pendingGov: SignerWithAddress;
-  claimer: SignerWithAddress;
-  claimer1: SignerWithAddress;
-  otherAccounts: SignerWithAddress[];
-};
 describe("RcaTreasury", function () {
   const signers = {} as Signers;
-  let rcaTreasury: RcaTreasury;
-  let claimTree1: ClaimTree;
-  let claimTree2: ClaimTree;
+  const contracts = {} as Contracts;
+  const merkleTrees = {} as MerkleTrees;
   const hackId1 = BigNumber.from(1);
   const hackId2 = BigNumber.from(2);
   before(async function () {
-    const _signers: SignerWithAddress[] = await ethers.getSigners();
-    signers.gov = _signers[0];
-    signers.notGov = _signers[1];
-    signers.pendingGov = _signers[2];
-    signers.claimer = _signers[3];
-    signers.claimer1 = _signers[4];
-    signers.otherAccounts = _signers.slice(5);
+    const accounts = await ethers.getSigners();
+    signers.gov = accounts[0];
+    signers.notGov = accounts[1];
+    signers.pendingGov = accounts[2];
+    signers.claimer = accounts[3];
+    signers.claimer1 = accounts[4];
+    signers.otherAccounts = accounts.slice(5);
   });
 
   beforeEach(async function () {
-    const rcaTreasuryArtifact: Artifact = await artifacts.readArtifact("RcaTreasury");
-    rcaTreasury = <RcaTreasury>await waffle.deployContract(signers.gov, rcaTreasuryArtifact, [signers.gov.address]);
+    const RCA_TREASURY = <RcaTreasury__factory>await ethers.getContractFactory("RcaTreasury");
+    contracts.rcaTreasury = <RcaTreasury>await RCA_TREASURY.connect(signers.gov).deploy(signers.gov.address);
+
     // send funds to Treasury
-    await signers.gov.sendTransaction({ to: rcaTreasury.address, value: ether("100") });
-    claimTree1 = new ClaimTree([
+    await signers.gov.sendTransaction({ to: contracts.rcaTreasury.address, value: ether("100") });
+    merkleTrees.claimTree1 = new ClaimTree([
       { user: signers.claimer.address, hackId: hackId1, claimAmount: ether("1") },
       { user: signers.claimer1.address, hackId: hackId1, claimAmount: ether(".5") },
     ]);
-    claimTree2 = new ClaimTree([
+    merkleTrees.claimTree2 = new ClaimTree([
       { user: signers.claimer.address, hackId: hackId2, claimAmount: ether(".1") },
       { user: signers.claimer1.address, hackId: hackId2, claimAmount: ether(".2") },
     ]);
     // Set claim root
-    await rcaTreasury.setClaimsRoot(hackId1, claimTree1.getHexRoot());
+    await contracts.rcaTreasury.setClaimsRoot(hackId1, merkleTrees.claimTree1.getHexRoot());
   });
 
   it("should be able to recieve ethers", async function () {
-    const balanceBefore = await ethers.provider.getBalance(rcaTreasury.address);
-    await signers.otherAccounts[0].sendTransaction({ to: rcaTreasury.address, value: ether("1") });
-    const balanceAfter = await ethers.provider.getBalance(rcaTreasury.address);
+    const balanceBefore = await ethers.provider.getBalance(contracts.rcaTreasury.address);
+    await signers.otherAccounts[0].sendTransaction({ to: contracts.rcaTreasury.address, value: ether("1") });
+    const balanceAfter = await ethers.provider.getBalance(contracts.rcaTreasury.address);
     // balance should be updated
     expect(balanceAfter.sub(balanceBefore)).to.equal(ether("1"));
   });
 
   describe("Governable", function () {
     it("should return valid governor", async function () {
-      expect(await rcaTreasury.governor()).to.equal(signers.gov.address);
+      expect(await contracts.rcaTreasury.governor()).to.equal(signers.gov.address);
     });
     it("should return valid value when isGov() is called", async function () {
-      expect(await rcaTreasury.isGov()).to.be.equal(true);
-      expect(await rcaTreasury.connect(signers.notGov).isGov()).to.be.equal(false);
+      expect(await contracts.rcaTreasury.isGov()).to.be.equal(true);
+      expect(await contracts.rcaTreasury.connect(signers.notGov).isGov()).to.be.equal(false);
     });
 
     it("should allow governor to transfer ownership", async function () {
-      await rcaTreasury.transferOwnership(signers.pendingGov.address);
+      await contracts.rcaTreasury.transferOwnership(signers.pendingGov.address);
       // recieveOwnership valid call
-      expect(await rcaTreasury.connect(signers.pendingGov).receiveOwnership())
-        .to.emit(rcaTreasury, "OwnershipTransferred")
+      expect(await contracts.rcaTreasury.connect(signers.pendingGov).receiveOwnership())
+        .to.emit(contracts.rcaTreasury, "OwnershipTransferred")
         .withArgs(signers.gov.address, signers.pendingGov.address);
       // governor address shoud be updated to pending gov address
-      expect(await rcaTreasury.governor()).to.equal(signers.pendingGov.address);
+      expect(await contracts.rcaTreasury.governor()).to.equal(signers.pendingGov.address);
     });
 
     describe("Previledged", function () {
       it("should block from previledged functions", async function () {
         await expect(
-          rcaTreasury.connect(signers.notGov).transferOwnership(signers.otherAccounts[0].address),
+          contracts.rcaTreasury.connect(signers.notGov).transferOwnership(signers.otherAccounts[0].address),
         ).to.be.revertedWith("msg.sender is not owner");
         // transfer ownership
-        await rcaTreasury.transferOwnership(signers.pendingGov.address);
+        await contracts.rcaTreasury.transferOwnership(signers.pendingGov.address);
         // recieveOwnership invalid call
-        await expect(rcaTreasury.receiveOwnership()).to.be.revertedWith("Only pending governor can call this function");
+        await expect(contracts.rcaTreasury.receiveOwnership()).to.be.revertedWith(
+          "Only pending governor can call this function",
+        );
       });
     });
   });
@@ -96,30 +90,32 @@ describe("RcaTreasury", function () {
     it("should block from previledged functions", async function () {
       // should not allow notGov to set claims root
       await expect(
-        rcaTreasury.connect(signers.notGov).setClaimsRoot(hackId1, claimTree2.getHexRoot()),
+        contracts.rcaTreasury.connect(signers.notGov).setClaimsRoot(hackId1, merkleTrees.claimTree2.getHexRoot()),
       ).to.be.revertedWith("msg.sender is not owner");
 
       // should not allow notGov to withdraw funds from treasury
-      await expect(rcaTreasury.connect(signers.notGov).withdraw(signers.notGov.address, ether("1"))).to.be.revertedWith(
-        "msg.sender is not owner",
-      );
+      await expect(
+        contracts.rcaTreasury.connect(signers.notGov).withdraw(signers.notGov.address, ether("1")),
+      ).to.be.revertedWith("msg.sender is not owner");
     });
   });
 
   describe("setClaimsRoot()", function () {
     it("should not allow non gov to set new root", async function () {
       await expect(
-        rcaTreasury.connect(signers.notGov).setClaimsRoot(hackId2, claimTree2.getHexRoot()),
+        contracts.rcaTreasury.connect(signers.notGov).setClaimsRoot(hackId2, merkleTrees.claimTree2.getHexRoot()),
       ).to.be.revertedWith("msg.sender is not owner");
     });
     it("should allow governor to set new root", async function () {
-      await expect(rcaTreasury.connect(signers.gov).setClaimsRoot(hackId2, claimTree2.getHexRoot()))
-        .to.emit(rcaTreasury, "Root")
-        .withArgs(hackId2, claimTree2.getHexRoot());
+      await expect(
+        contracts.rcaTreasury.connect(signers.gov).setClaimsRoot(hackId2, merkleTrees.claimTree2.getHexRoot()),
+      )
+        .to.emit(contracts.rcaTreasury, "Root")
+        .withArgs(hackId2, merkleTrees.claimTree2.getHexRoot());
 
       // hackId should have correct corrosponding roots
-      expect(await rcaTreasury.claimsRoots(hackId1)).to.equal(claimTree1.getHexRoot());
-      expect(await rcaTreasury.claimsRoots(hackId2)).to.equal(claimTree2.getHexRoot());
+      expect(await contracts.rcaTreasury.claimsRoots(hackId1)).to.equal(merkleTrees.claimTree1.getHexRoot());
+      expect(await contracts.rcaTreasury.claimsRoots(hackId2)).to.equal(merkleTrees.claimTree2.getHexRoot());
     });
   });
 
@@ -127,7 +123,7 @@ describe("RcaTreasury", function () {
     it("should allow governor to withdraw funds from treasury", async function () {
       const transferValue = ether("2");
       const balanceBefore = await ethers.provider.getBalance(signers.notGov.address);
-      await rcaTreasury.withdraw(signers.notGov.address, transferValue);
+      await contracts.rcaTreasury.withdraw(signers.notGov.address, transferValue);
       const balanceAfter = await ethers.provider.getBalance(signers.notGov.address);
       // balance should increase by transfer value
       expect(balanceAfter.sub(balanceBefore)).to.equal(transferValue);
@@ -138,7 +134,12 @@ describe("RcaTreasury", function () {
     it("should succeed if called with correct arguments", async function () {
       const user = signers.claimer.address;
       const claimAmount = ether("1");
-      await rcaTreasury.verifyClaim(user, hackId1, claimAmount, claimTree1.getProof(user, hackId1, claimAmount));
+      await contracts.rcaTreasury.verifyClaim(
+        user,
+        hackId1,
+        claimAmount,
+        merkleTrees.claimTree1.getProof(user, hackId1, claimAmount),
+      );
     });
     it("should revert if called with incorrect arguments", async function () {
       const user = signers.claimer.address;
@@ -147,18 +148,28 @@ describe("RcaTreasury", function () {
       const wrongHackId = BigNumber.from(3);
 
       await expect(
-        rcaTreasury.verifyClaim(
+        contracts.rcaTreasury.verifyClaim(
           signers.notGov.address,
           hackId1,
           claimAmount,
-          claimTree1.getProof(user, hackId1, claimAmount),
+          merkleTrees.claimTree1.getProof(user, hackId1, claimAmount),
         ),
       ).to.be.revertedWith("Incorrect capacity proof.");
       await expect(
-        rcaTreasury.verifyClaim(user, wrongHackId, claimAmount, claimTree1.getProof(user, hackId1, claimAmount)),
+        contracts.rcaTreasury.verifyClaim(
+          user,
+          wrongHackId,
+          claimAmount,
+          merkleTrees.claimTree1.getProof(user, hackId1, claimAmount),
+        ),
       ).to.be.revertedWith("Incorrect capacity proof.");
       await expect(
-        rcaTreasury.verifyClaim(user, hackId1, wrongClaimAmount, claimTree1.getProof(user, hackId1, claimAmount)),
+        contracts.rcaTreasury.verifyClaim(
+          user,
+          hackId1,
+          wrongClaimAmount,
+          merkleTrees.claimTree1.getProof(user, hackId1, claimAmount),
+        ),
       ).to.be.revertedWith("Incorrect capacity proof.");
     });
   });
@@ -168,7 +179,12 @@ describe("RcaTreasury", function () {
       const user = signers.claimer.address;
       const claimAmount = ether("1");
       const balanceBefore = await ethers.provider.getBalance(user);
-      await rcaTreasury.claimFor(user, claimAmount, hackId1, claimTree1.getProof(user, hackId1, claimAmount));
+      await contracts.rcaTreasury.claimFor(
+        user,
+        claimAmount,
+        hackId1,
+        merkleTrees.claimTree1.getProof(user, hackId1, claimAmount),
+      );
       const balanceAfter = await ethers.provider.getBalance(user);
       // Balance of user should increase by cover claim value
       expect(balanceAfter.sub(balanceBefore)).to.equal(claimAmount);
@@ -176,8 +192,15 @@ describe("RcaTreasury", function () {
     it("should emit Claim event with valid args if claim is successful", async function () {
       const user = signers.claimer.address;
       const claimAmount = ether("1");
-      expect(await rcaTreasury.claimFor(user, claimAmount, hackId1, claimTree1.getProof(user, hackId1, claimAmount)))
-        .to.emit(rcaTreasury, "Claim")
+      expect(
+        await contracts.rcaTreasury.claimFor(
+          user,
+          claimAmount,
+          hackId1,
+          merkleTrees.claimTree1.getProof(user, hackId1, claimAmount),
+        ),
+      )
+        .to.emit(contracts.rcaTreasury, "Claim")
         .withArgs(user, hackId1, claimAmount);
     });
   });
@@ -185,12 +208,12 @@ describe("RcaTreasury", function () {
   describe("STATE:claimsRoots", function () {
     it("should return correct corrosponding roots", async function () {
       // Hex root should be empty
-      expect(await rcaTreasury.claimsRoots(hackId2)).to.equal(NULL_ROOT);
+      expect(await contracts.rcaTreasury.claimsRoots(hackId2)).to.equal(NULL_ROOT);
 
-      await rcaTreasury.connect(signers.gov).setClaimsRoot(hackId2, claimTree2.getHexRoot());
+      await contracts.rcaTreasury.connect(signers.gov).setClaimsRoot(hackId2, merkleTrees.claimTree2.getHexRoot());
       // hackId should have correct corrosponding roots
-      expect(await rcaTreasury.claimsRoots(hackId1)).to.equal(claimTree1.getHexRoot());
-      expect(await rcaTreasury.claimsRoots(hackId2)).to.equal(claimTree2.getHexRoot());
+      expect(await contracts.rcaTreasury.claimsRoots(hackId1)).to.equal(merkleTrees.claimTree1.getHexRoot());
+      expect(await contracts.rcaTreasury.claimsRoots(hackId2)).to.equal(merkleTrees.claimTree2.getHexRoot());
     });
   });
 
@@ -200,16 +223,16 @@ describe("RcaTreasury", function () {
       const claimAmount = ether("1");
 
       // Check claimed should be false
-      expect(await rcaTreasury.claimed(user, hackId1)).to.equal(false);
+      expect(await contracts.rcaTreasury.claimed(user, hackId1)).to.equal(false);
       // Claim cover
-      await rcaTreasury.claimFor(
+      await contracts.rcaTreasury.claimFor(
         signers.claimer.address,
         ether("1"),
         hackId1,
-        claimTree1.getProof(user, hackId1, claimAmount),
+        merkleTrees.claimTree1.getProof(user, hackId1, claimAmount),
       );
       // check claimed should be true
-      expect(await rcaTreasury.claimed(signers.claimer.address, hackId1)).to.equal(true);
+      expect(await contracts.rcaTreasury.claimed(signers.claimer.address, hackId1)).to.equal(true);
     });
   });
 });
