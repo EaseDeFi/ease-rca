@@ -10,3 +10,6 @@ src/types
 
 # files
 .env
+test/ScratchPad.md
+test/constants.ts
+test/rcaShieldAAVE.ts
