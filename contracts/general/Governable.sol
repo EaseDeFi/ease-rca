@@ -41,7 +41,6 @@ contract Governable {
      */
     function isGov() public view returns (bool) {
         return msg.sender == _governor;
-
     }
 
     /**
@@ -70,4 +69,3 @@ contract Governable {
 
     uint256[50] private __gap;
 }
-
