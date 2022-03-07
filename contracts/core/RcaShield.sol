@@ -6,23 +6,14 @@ import "./RcaShieldBase.sol";
 
 contract RcaShield is RcaShieldBase {
     constructor(
-        string  memory _name,
-        string  memory _symbol,
+        string memory _name,
+        string memory _symbol,
         address _uToken,
         address _governor,
         address _controller
-    )
-    RcaShieldBase(
-        _name,
-        _symbol,
-        _uToken,
-        _governor,
-        _controller
-    )
-    {
-    }
+    ) RcaShieldBase(_name, _symbol, _uToken, _governor, _controller) {}
 
-    function _uBalance() internal view override returns(uint256) {
+    function _uBalance() internal view override returns (uint256) {
         return uToken.balanceOf(address(this));
     }
 
@@ -30,7 +21,7 @@ contract RcaShield is RcaShieldBase {
         // no-op
     }
 
-    function _afterRedeem(uint256) internal override{
+    function _afterRedeem(uint256) internal override {
         // no-op
     }
 }

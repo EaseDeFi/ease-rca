@@ -17,13 +17,7 @@ contract RcaShieldConvex is RcaShieldBase {
         address _governance,
         address _controller,
         IConvexRewardPool _rewardPool
-    ) RcaShieldBase(
-        _name,
-        _symbol,
-        _uToken,
-        _governance,
-        _controller
-    )  {
+    ) RcaShieldBase(_name, _symbol, _uToken, _governance, _controller) {
         rewardPool = _rewardPool;
     }
 
@@ -40,19 +34,19 @@ contract RcaShieldConvex is RcaShieldBase {
         bytes32[] calldata _underlyinPriceProof
     ) external {
         require(_token != address(uToken), "cannot buy underlying token");
-        controller.verifyPrice(_token,  _tokenPrice, _tokenPriceProof);
+        controller.verifyPrice(_token, _tokenPrice, _tokenPriceProof);
         controller.verifyPrice(address(this), _underlyingPrice, _underlyinPriceProof);
-        uint256 underlyingAmount = _amount * _tokenPrice / _underlyingPrice;
+        uint256 underlyingAmount = (_amount * _tokenPrice) / _underlyingPrice;
         if (discount > 0) {
-            underlyingAmount -= underlyingAmount * discount / DENOMINATOR;
+            underlyingAmount -= (underlyingAmount * discount) / DENOMINATOR;
         }
         IERC20(_token).safeTransfer(msg.sender, _amount);
-        uToken.safeTransferFrom(msg.sender,address(this), underlyingAmount);
+        uToken.safeTransferFrom(msg.sender, address(this), underlyingAmount);
         uToken.safeApprove(address(rewardPool), underlyingAmount);
         rewardPool.stake(underlyingAmount);
     }
 
-    function _uBalance() internal view override returns(uint256) {
+    function _uBalance() internal view override returns (uint256) {
         return uToken.balanceOf(address(this)) + rewardPool.balanceOf(address(this));
     }
 

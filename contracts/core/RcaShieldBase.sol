@@ -1,13 +1,13 @@
 /// SPDX-License-Identifier: UNLICENSED
 
 pragma solidity 0.8.11;
-import '../general/Governable.sol';
-import '../interfaces/IZapper.sol';
-import '../interfaces/IRcaController.sol';
-import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
-import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
-import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
-import 'hardhat/console.sol';
+import "../general/Governable.sol";
+import "../interfaces/IZapper.sol";
+import "../interfaces/IRcaController.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "hardhat/console.sol";
 
 /**
  * @title RCA Vault
@@ -16,13 +16,13 @@ import 'hardhat/console.sol';
  * doubles as the vault and the RCA token.
  * @dev This contract assumes uToken decimals of 18.
  * @author Robert M.C. Forster, Romke Jonker, Taek Lee
-**/
+ **/
 abstract contract RcaShieldBase is ERC20, Governable {
     using SafeERC20 for IERC20;
 
-    uint256 constant YEAR_SECS   = 31536000;
+    uint256 constant YEAR_SECS = 31536000;
     uint256 constant DENOMINATOR = 10000;
-    uint256 constant BUFFER      = 1e18;
+    uint256 constant BUFFER = 1e18;
 
     /// @notice Controller of RCA contract that takes care of actions.
     IRcaController public controller;
@@ -39,7 +39,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
     /// Withdrawals during this time will lose this percent. 1000 == 10%.
     uint256 public percentReserved;
 
-    /** 
+    /**
      * @notice Cumulative total amount that has been liquidated lol.
      * @dev Used to make sure we don't run into a situation where liq amount isn't updated,
      * a new hack occurs and current liq is added to, then current liq is updated while
@@ -49,18 +49,18 @@ abstract contract RcaShieldBase is ERC20, Governable {
     /// @notice Amount of tokens currently up for sale.
     uint256 public amtForSale;
 
-    /** 
-     * @notice Amount of underlying tokens pending withdrawal. 
-     * @dev When doing value calculations this is required because RCAs are burned immediately 
+    /**
+     * @notice Amount of underlying tokens pending withdrawal.
+     * @dev When doing value calculations this is required because RCAs are burned immediately
      * upon request, but underlying tokens only leave the contract once the withdrawal is finalized.
      */
     uint256 public pendingWithdrawal;
     /// @notice withdrawal variable for withdrawal delays.
     uint256 public withdrawalDelay;
     /// @notice Requests by users for withdrawals.
-    mapping (address => WithdrawRequest) public withdrawRequests;
+    mapping(address => WithdrawRequest) public withdrawRequests;
 
-    /** 
+    /**
      * @notice Last time the contract has been updated.
      * @dev Used to calculate APR if fees are implemented.
      */
@@ -69,36 +69,55 @@ abstract contract RcaShieldBase is ERC20, Governable {
     struct WithdrawRequest {
         uint112 uAmount;
         uint112 rcaAmount;
-        uint32  endTime;
+        uint32 endTime;
     }
 
     /// @notice Notification of the mint of new tokens.
-    event Mint(address indexed sender, address indexed to, address indexed referrer, uint256 uAmount, uint256 rcaAmount, uint256 timestamp);
+    event Mint(
+        address indexed sender,
+        address indexed to,
+        address indexed referrer,
+        uint256 uAmount,
+        uint256 rcaAmount,
+        uint256 timestamp
+    );
     /// @notice Notification of an initial redeem request.
     event RedeemRequest(address indexed user, uint256 uAmount, uint256 rcaAmount, uint256 endTime, uint256 timestamp);
     /// @notice Notification of a redeem finalization after withdrawal delay.
-    event RedeemFinalize(address indexed user,address indexed to, uint256 uAmount, uint256 rcaAmount, uint256 timestamp);
+    event RedeemFinalize(
+        address indexed user,
+        address indexed to,
+        uint256 uAmount,
+        uint256 rcaAmount,
+        uint256 timestamp
+    );
     /// @notice Notification of a purchase of the underlying token.
-    event PurchaseU(address indexed to, uint256 uAmount,uint256 ethAmount, uint256 price, uint256 timestamp);
+    event PurchaseU(address indexed to, uint256 uAmount, uint256 ethAmount, uint256 price, uint256 timestamp);
     /// @notice Notification of a purchase of an RCA token.
-    event PurchaseRca(address indexed to, uint256 uAmount,uint256 rcaAmount, uint256 ethAmount, uint256 price, uint256 timestamp);
+    event PurchaseRca(
+        address indexed to,
+        uint256 uAmount,
+        uint256 rcaAmount,
+        uint256 ethAmount,
+        uint256 price,
+        uint256 timestamp
+    );
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////// modifiers //////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////// modifiers //////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
      * @notice Restrict set functions to only controller for many variables.
      */
-    modifier onlyController()
-    {
+    modifier onlyController() {
         require(msg.sender == address(controller), "Function must only be called by controller.");
         _;
     }
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////// constructor ////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////// constructor ////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
      * @notice Construct shield and RCA ERC20 token.
@@ -109,25 +128,20 @@ abstract contract RcaShieldBase is ERC20, Governable {
      * @param _controller Address of the controller that maintains the shield.
      */
     constructor(
-        string  memory _name,
-        string  memory _symbol,
+        string memory _name,
+        string memory _symbol,
         address _uToken,
         address _governor,
         address _controller
-    )
-    ERC20(
-        _name,
-        _symbol
-    )
-    {
+    ) ERC20(_name, _symbol) {
         initializeGovernable(_governor);
-        uToken     = IERC20(_uToken);
+        uToken = IERC20(_uToken);
         controller = IRcaController(_controller);
     }
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////// initialize /////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////// initialize /////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
      * @notice Controller calls to initiate which sets current contract variables. All %s are 1000 == 10%.
@@ -141,21 +155,18 @@ abstract contract RcaShieldBase is ERC20, Governable {
         uint256 _discount,
         address payable _treasury,
         uint256 _withdrawalDelay
-    )
-      external
-      onlyController
-    {
+    ) external onlyController {
         require(treasury == address(0), "Contract has already been initialized.");
-        apr             = _apr;
-        discount        = _discount;
-        treasury        = _treasury;
+        apr = _apr;
+        discount = _discount;
+        treasury = _treasury;
         withdrawalDelay = _withdrawalDelay;
-        lastUpdate      = block.timestamp;
+        lastUpdate = block.timestamp;
     }
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////// external //////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////// external //////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
      * @notice Mint tokens to an address. Not automatically to msg.sender so we can more easily zap assets.
@@ -170,29 +181,18 @@ abstract contract RcaShieldBase is ERC20, Governable {
      * @param _liqForClaimsProof Merkle proof to verify cumulative liquidated.
      */
     function mintTo(
-        address   _user,
-        address   _referrer,
-        uint256   _uAmount,
-        uint256   _expiry,
-        uint8     _v,
-        bytes32   _r,
-        bytes32   _s,
-        uint256   _newCumLiqForClaims,
+        address _user,
+        address _referrer,
+        uint256 _uAmount,
+        uint256 _expiry,
+        uint8 _v,
+        bytes32 _r,
+        bytes32 _s,
+        uint256 _newCumLiqForClaims,
         bytes32[] calldata _liqForClaimsProof
-    )
-      external
-    {
+    ) external {
         // Call controller to check capacity limits, add to capacity limits, emit events, check for new "for sale".
-        controller.mint(
-            _user,
-            _uAmount,
-            _expiry,
-            _v,
-            _r,
-            _s,
-            _newCumLiqForClaims,
-            _liqForClaimsProof
-        );
+        controller.mint(_user, _uAmount, _expiry, _v, _r, _s, _newCumLiqForClaims, _liqForClaimsProof);
 
         // Only update fees after potential contract update.
         _update();
@@ -203,18 +203,12 @@ abstract contract RcaShieldBase is ERC20, Governable {
 
         _afterMint(_uAmount);
 
-        emit Mint(
-            msg.sender,
-            _user,
-            _referrer,
-            _uAmount,
-            rcaAmount,
-            block.timestamp
-        );
+        emit Mint(msg.sender, _user, _referrer, _uAmount, rcaAmount, block.timestamp);
     }
 
     /**
-     * @notice Request redemption of RCAs back to the underlying token. Has a withdrawal delay so it's 2 parts (request and finalize).
+     * @notice Request redemption of RCAs back to the underlying token.
+     * Has a withdrawal delay so it's 2 parts (request and finalize).
      * @param _rcaAmount The amount of tokens (in RCAs) to be redeemed.
      * @param _newCumLiqForClaims New cumulative liquidated if this must be updated.
      * @param _liqForClaimsProof Merkle proof to verify the new cumulative liquidated.
@@ -222,14 +216,12 @@ abstract contract RcaShieldBase is ERC20, Governable {
      * @param _percentReservedProof Merkle proof for the new percent reserved.
      */
     function redeemRequest(
-        uint256   _rcaAmount,
-        uint256   _newCumLiqForClaims,
+        uint256 _rcaAmount,
+        uint256 _newCumLiqForClaims,
         bytes32[] calldata _liqForClaimsProof,
-        uint256   _newPercentReserved,
+        uint256 _newPercentReserved,
         bytes32[] calldata _percentReservedProof
-    )
-      external
-    {
+    ) external {
         controller.redeemRequest(
             msg.sender,
             _newCumLiqForClaims,
@@ -248,18 +240,12 @@ abstract contract RcaShieldBase is ERC20, Governable {
         pendingWithdrawal += uAmount;
 
         WithdrawRequest memory curRequest = withdrawRequests[msg.sender];
-        uint112 newUAmount                = uint112(uAmount) + curRequest.uAmount;
-        uint112 newRcaAmount              = uint112(_rcaAmount) + curRequest.rcaAmount;
-        uint32 endTime                    = uint32(block.timestamp) + uint32(withdrawalDelay);
-        withdrawRequests[msg.sender]      = WithdrawRequest(newUAmount, newRcaAmount, endTime);
+        uint112 newUAmount = uint112(uAmount) + curRequest.uAmount;
+        uint112 newRcaAmount = uint112(_rcaAmount) + curRequest.rcaAmount;
+        uint32 endTime = uint32(block.timestamp) + uint32(withdrawalDelay);
+        withdrawRequests[msg.sender] = WithdrawRequest(newUAmount, newRcaAmount, endTime);
 
-        emit RedeemRequest(
-            msg.sender,
-            uint256(uAmount),
-            _rcaAmount,
-            uint256(endTime),
-            block.timestamp
-        );
+        emit RedeemRequest(msg.sender, uint256(uAmount), _rcaAmount, uint256(endTime), block.timestamp);
     }
 
     /**
@@ -270,14 +256,12 @@ abstract contract RcaShieldBase is ERC20, Governable {
      * @param _liqForClaimsProof Merkle proof to verify new cumulative liquidation.
      */
     function redeemFinalize(
-        address   _to,
-        bool      _zapper,
-        bytes     calldata _zapperData,
-        uint256   _newCumLiqForClaims,
+        address _to,
+        bool _zapper,
+        bytes calldata _zapperData,
+        uint256 _newCumLiqForClaims,
         bytes32[] calldata _liqForClaimsProof
-    )
-      external
-    {
+    ) external {
         address user = msg.sender;
 
         WithdrawRequest memory request = withdrawRequests[user];
@@ -286,29 +270,19 @@ abstract contract RcaShieldBase is ERC20, Governable {
         // endTime > 0 ensures request exists.
         require(request.endTime > 0 && uint32(block.timestamp) > request.endTime, "Withdrawal not yet allowed.");
 
-        controller.redeemFinalize(
-            user,
-            _newCumLiqForClaims,
-            _liqForClaimsProof
-        );
+        controller.redeemFinalize(user, _newCumLiqForClaims, _liqForClaimsProof);
 
         _update();
 
         pendingWithdrawal -= uint256(request.uAmount);
 
-        uToken.safeTransfer( _to, uint256(request.uAmount) );
+        uToken.safeTransfer(_to, uint256(request.uAmount));
 
         // The cool part about doing it this way rather than having user send RCAs to zapper contract,
         // then it exchanging and returning Ether is that it's more gas efficient and no approvals are needed.
         if (_zapper) IZapper(_to).zapTo(user, uint256(request.uAmount), _zapperData);
 
-        emit RedeemFinalize(
-            user,
-            _to,
-            uint256(request.uAmount),
-            uint256(request.rcaAmount),
-            block.timestamp
-        );
+        emit RedeemFinalize(user, _to, uint256(request.uAmount), uint256(request.rcaAmount), block.timestamp);
     }
 
     /**
@@ -321,30 +295,21 @@ abstract contract RcaShieldBase is ERC20, Governable {
      * @param _liqForClaimsProof Merkle proof for new liquidation amounts.
      */
     function purchaseU(
-        address   _user,
-        uint256   _uAmount,
-        uint256   _uEthPrice,
+        address _user,
+        uint256 _uAmount,
+        uint256 _uEthPrice,
         bytes32[] calldata _priceProof,
-        uint256   _newCumLiqForClaims,
+        uint256 _newCumLiqForClaims,
         bytes32[] calldata _liqForClaimsProof
-    )
-      external
-      payable
-    {
+    ) external payable {
         // If user submits incorrect price, tx will fail here.
-        controller.purchase(
-            _user,
-            _uEthPrice,
-            _priceProof,
-            _newCumLiqForClaims,
-            _liqForClaimsProof
-        );
+        controller.purchase(_user, _uEthPrice, _priceProof, _newCumLiqForClaims, _liqForClaimsProof);
 
         _update();
 
-        uint256 price = _uEthPrice  - (_uEthPrice * discount / DENOMINATOR);
+        uint256 price = _uEthPrice - ((_uEthPrice * discount) / DENOMINATOR);
         // divide by 1 ether because price also has 18 decimals.
-        uint256 ethAmount = price * _uAmount / 1 ether;
+        uint256 ethAmount = (price * _uAmount) / 1 ether;
         require(msg.value == ethAmount, "Incorrect Ether sent.");
 
         // If amount is bigger than for sale, tx will fail here.
@@ -352,72 +317,50 @@ abstract contract RcaShieldBase is ERC20, Governable {
 
         uToken.safeTransfer(_user, _uAmount);
         treasury.transfer(msg.value);
-        
-        emit PurchaseU(
-            _user,
-            _uAmount,
-            ethAmount,
-            _uEthPrice,
-            block.timestamp
-        );
+
+        emit PurchaseU(_user, _uAmount, ethAmount, _uEthPrice, block.timestamp);
     }
 
     /**
      * @notice purchaseRca allows a user to purchase the RCA directly with Ether through liquidation.
      * @param _user The user to make the purchase for.
      * @param _uAmount The amount of underlying tokens to purchase.
-     * @param _uEthPrice The underlying token price in Ether per token. 
+     * @param _uEthPrice The underlying token price in Ether per token.
      * @param _priceProof Merkle proof to verify this price.
      * @param _newCumLiqForClaims Old cumulative amount for sale.
      * @param _liqForClaimsProof Merkle proof of the for sale amounts.
      */
     function purchaseRca(
-        address   _user,
-        uint256   _uAmount,
-        uint256   _uEthPrice,
+        address _user,
+        uint256 _uAmount,
+        uint256 _uEthPrice,
         bytes32[] calldata _priceProof,
-        uint256   _newCumLiqForClaims,
+        uint256 _newCumLiqForClaims,
         bytes32[] calldata _liqForClaimsProof
-    )
-      external
-      payable
-    {
+    ) external payable {
         // If user submits incorrect price, tx will fail here.
-        controller.purchase(
-            _user,
-            _uEthPrice,
-            _priceProof,
-            _newCumLiqForClaims,
-            _liqForClaimsProof
-        );
+        controller.purchase(_user, _uEthPrice, _priceProof, _newCumLiqForClaims, _liqForClaimsProof);
 
         _update();
 
-        uint256 price = _uEthPrice  - (_uEthPrice * discount / DENOMINATOR);
+        uint256 price = _uEthPrice - ((_uEthPrice * discount) / DENOMINATOR);
         // divide by 1 ether because price also has 18 decimals.
-        uint256 ethAmount = price * _uAmount / 1 ether;
+        uint256 ethAmount = (price * _uAmount) / 1 ether;
         require(msg.value == ethAmount, "Incorrect Ether sent.");
-        
+
         // If amount is too big than for sale, tx will fail here.
         uint256 rcaAmount = _rcaValue(_uAmount, amtForSale);
-        amtForSale        -= _uAmount;
+        amtForSale -= _uAmount;
 
         _mint(_user, rcaAmount);
         treasury.transfer(msg.value);
 
-        emit PurchaseRca(
-            _user,
-            _uAmount,
-            rcaAmount,
-            _uEthPrice,
-            ethAmount,
-            block.timestamp
-        );
+        emit PurchaseRca(_user, _uAmount, rcaAmount, _uEthPrice, ethAmount, block.timestamp);
     }
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////// view ////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    /////////////////////////////////////////////////// view ////////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
      * @dev External version of RCA value is needed so that frontend can properly
@@ -430,13 +373,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
         uint256 _rcaAmount,
         uint256 _cumLiqForClaims,
         uint256 _percentReserved
-    )
-      external
-      view
-    returns(
-        uint256 uAmount
-    )
-    {
+    ) external view returns (uint256 uAmount) {
         uint256 extraForSale = getExtraForSale(_cumLiqForClaims);
         uAmount = _uValue(_rcaAmount, amtForSale + extraForSale, _percentReserved);
     }
@@ -447,22 +384,13 @@ abstract contract RcaShieldBase is ERC20, Governable {
      * @param _uAmount Amount of underlying tokens (18 decimal).
      * @param _cumLiqForClaims New cumulative liquidated if this must be updated.
      */
-    function rcaValue(
-        uint256   _uAmount,
-        uint256   _cumLiqForClaims
-    )
-      external
-      view
-    returns(
-        uint256 rcaAmount
-    )
-    {
+    function rcaValue(uint256 _uAmount, uint256 _cumLiqForClaims) external view returns (uint256 rcaAmount) {
         uint256 extraForSale = getExtraForSale(_cumLiqForClaims);
         rcaAmount = _rcaValue(_uAmount, amtForSale + extraForSale);
     }
 
     /**
-     * @notice Convert RCA value to underlying tokens. This is internal because new 
+     * @notice Convert RCA value to underlying tokens. This is internal because new
      * for sale amounts will already have been retrieved and updated.
      * @param _rcaAmount The amount of RCAs to find the underlying value of.
      * @param _totalForSale Used by external value calls cause updates aren't made on those.
@@ -472,29 +400,16 @@ abstract contract RcaShieldBase is ERC20, Governable {
         uint256 _rcaAmount,
         uint256 _totalForSale,
         uint256 _percentReserved
-    )
-      internal
-      view
-    returns(
-        uint256 uAmount
-    )
-    {
-        uint256 balance    = _uBalance();
+    ) internal view returns (uint256 uAmount) {
+        uint256 balance = _uBalance();
         uint256 subtrahend = _totalForSale + pendingWithdrawal;
 
-        if (totalSupply() == 0)        return _rcaAmount; 
+        if (totalSupply() == 0) return _rcaAmount;
         else if (balance < subtrahend) return 0;
 
-        uAmount = 
-            (balance - subtrahend)
-            * _rcaAmount
-            / (totalSupply());
+        uAmount = ((balance - subtrahend) * _rcaAmount) / (totalSupply());
 
-        if (_percentReserved > 0)
-            uAmount -= 
-            (uAmount 
-            * _percentReserved 
-            / DENOMINATOR);
+        if (_percentReserved > 0) uAmount -= ((uAmount * _percentReserved) / DENOMINATOR);
     }
 
     /**
@@ -502,76 +417,56 @@ abstract contract RcaShieldBase is ERC20, Governable {
      * @param _uAmount Amount of underlying tokens to find RCA value of.
      * @param _totalForSale Used by external value calls cause updates aren't made on those.
      */
-    function _rcaValue(
-        uint256 _uAmount,
-        uint256 _totalForSale
-    )
-      internal
-      view
-    returns(
-        uint256 rcaAmount
-    )
-    {
-        uint256 balance    = _uBalance();
+    function _rcaValue(uint256 _uAmount, uint256 _totalForSale) internal view returns (uint256 rcaAmount) {
+        uint256 balance = _uBalance();
         uint256 subtrahend = _totalForSale + pendingWithdrawal;
 
         if (balance == 0 || balance < subtrahend) return _uAmount;
-        
-        rcaAmount = 
-            totalSupply()
-            * _uAmount
-            / (balance - subtrahend);
+
+        rcaAmount = (totalSupply() * _uAmount) / (balance - subtrahend);
     }
 
     /**
      * @notice For frontend calls. Doesn't need to verify info because it's not changing state.
      */
-    function getExtraForSale(
-        uint256 _newCumLiqForClaims
-    )
-      public
-      view
-    returns(
-        uint256 extraForSale
-    )
-    {
+    function getExtraForSale(uint256 _newCumLiqForClaims) public view returns (uint256 extraForSale) {
         // Check for liquidation, then percent paused, then APR
-        (/** */, /** */, /** */, /** */, uint32 aprUpdate, /** */) = controller.systemUpdates();
+        (
+            ,
+            ,
+            ,
+            ,
+            /** */
+            /** */
+            /** */
+            /** */
+            uint32 aprUpdate, /** */
+
+        ) = controller.systemUpdates();
         uint256 extraLiqForClaims = _newCumLiqForClaims - cumLiqForClaims;
-        uint256 extraFees = _getInterimFees(
-                                controller.apr(),
-                                uint256(aprUpdate)
-                            );
+        uint256 extraFees = _getInterimFees(controller.apr(), uint256(aprUpdate));
         extraForSale = extraFees + extraLiqForClaims;
         return extraForSale;
     }
 
     /**
      * @notice Get the amount that should be added to "amtForSale" based on actions within the time since last update.
-     * @dev If values have changed within the interim period, this function averages them to find new owed amounts for fees.
+     * @dev If values have changed within the interim period,
+     * this function averages them to find new owed amounts for fees.
      * @param _newApr new APR.
      * @param _aprUpdate start time for new APR.
      */
-    function _getInterimFees(
-        uint256 _newApr,
-        uint256 _aprUpdate
-    )
-      internal
-      view
-    returns(
-        uint256 fees
-    )
-    {
+    function _getInterimFees(uint256 _newApr, uint256 _aprUpdate) internal view returns (uint256 fees) {
         // Get all variables that are currently in this contract's state.
-        uint256 uBalance         = _uBalance();
-        uint256 aprAvg           = apr * BUFFER;
+        uint256 uBalance = _uBalance();
+        uint256 aprAvg = apr * BUFFER;
         uint256 totalTimeElapsed = block.timestamp - lastUpdate;
 
         // Find average APR throughout period if it has been updated.
         if (_aprUpdate > lastUpdate) {
             uint256 aprPrev = apr * (_aprUpdate - lastUpdate);
-            uint256 aprCur  = _newApr * (block.timestamp - _aprUpdate);
-            aprAvg          = (aprPrev + aprCur) * BUFFER / totalTimeElapsed;
+            uint256 aprCur = _newApr * (block.timestamp - _aprUpdate);
+            aprAvg = ((aprPrev + aprCur) * BUFFER) / totalTimeElapsed;
         }
 
         // Will probably never occur, but just in case.
@@ -579,47 +474,40 @@ abstract contract RcaShieldBase is ERC20, Governable {
 
         // Calculate fees based on average active amount
         uint256 activeInclReserved = uBalance - pendingWithdrawal - amtForSale;
-        fees = activeInclReserved * aprAvg * totalTimeElapsed / YEAR_SECS / DENOMINATOR / BUFFER;
+        fees = (activeInclReserved * aprAvg * totalTimeElapsed) / YEAR_SECS / DENOMINATOR / BUFFER;
     }
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////// internal ///////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////// internal ///////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
      * @notice Update the amtForSale if there's an active fee.
      */
-    function _update()
-      internal
-    {
+    function _update() internal {
         if (apr > 0) {
-            uint256 balance    = _uBalance();
+            uint256 balance = _uBalance();
             uint256 subtrahend = amtForSale + pendingWithdrawal;
 
             // If liquidation for claims is set incorrectly this could occur and break the contract.
             if (balance < subtrahend) return;
 
-            uint256 secsElapsed        = block.timestamp - lastUpdate;
-            uint256 active             = balance - subtrahend;
-            uint256 activeExclReserved = active - (active * percentReserved / DENOMINATOR);
+            uint256 secsElapsed = block.timestamp - lastUpdate;
+            uint256 active = balance - subtrahend;
+            uint256 activeExclReserved = active - ((active * percentReserved) / DENOMINATOR);
 
-            amtForSale += 
-                activeExclReserved
-                * secsElapsed 
-                * apr
-                / YEAR_SECS
-                / DENOMINATOR;
+            amtForSale += (activeExclReserved * secsElapsed * apr) / YEAR_SECS / DENOMINATOR;
         }
 
         lastUpdate = block.timestamp;
     }
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////// internal ///////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////// internal ///////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
     /// @notice Check balance of underlying token.
-    function _uBalance() internal virtual view returns(uint256);
+    function _uBalance() internal view virtual returns (uint256);
 
     /// @notice Logic to run after a mint, such as if we need to stake the underlying token.
     function _afterMint(uint256 _uAmount) internal virtual;
@@ -627,26 +515,17 @@ abstract contract RcaShieldBase is ERC20, Governable {
     /// @notice Logic to run after a redeem, such as unstaking.
     function _afterRedeem(uint256 _uAmount) internal virtual;
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////// onlyController //////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    /////////////////////////////////////////////// onlyController //////////////////////////////////////////////
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
      * @notice Update function to be called by controller. This is only called when a controller has made
      * an APR update since the last shield update was made, so it must do extra calculations to determine
      * what the exact costs throughout the period were according to when system updates were made.
      */
-    function controllerUpdate(
-        uint256 _newApr,
-        uint256 _aprUpdate
-    )
-      external
-      onlyController
-    {
-        uint256 extraFees = _getInterimFees(
-                                _newApr,
-                                _aprUpdate
-                            );
+    function controllerUpdate(uint256 _newApr, uint256 _aprUpdate) external onlyController {
+        uint256 extraFees = _getInterimFees(_newApr, _aprUpdate);
 
         amtForSale += extraFees;
         lastUpdate = block.timestamp;
@@ -655,13 +534,8 @@ abstract contract RcaShieldBase is ERC20, Governable {
     /**
      * @notice Add a for sale amount to this shield vault.
      * @param _newCumLiqForClaims New cumulative total for sale.
-    **/
-    function setLiqForClaims(
-        uint256 _newCumLiqForClaims
-    )
-      external
-      onlyController
-    {
+     **/
+    function setLiqForClaims(uint256 _newCumLiqForClaims) external onlyController {
         if (_newCumLiqForClaims > cumLiqForClaims) {
             amtForSale += _newCumLiqForClaims - cumLiqForClaims;
         } else {
@@ -675,26 +549,16 @@ abstract contract RcaShieldBase is ERC20, Governable {
     /**
      * @notice Change the treasury address to which funds will be sent.
      * @param _newTreasury New treasury address.
-    **/
-    function setTreasury(
-        address _newTreasury
-    )
-      external
-      onlyController
-    {
+     **/
+    function setTreasury(address _newTreasury) external onlyController {
         treasury = payable(_newTreasury);
     }
 
     /**
      * @notice Change the percent reserved on this vault. 1000 == 10%.
      * @param _newPercentReserved New percent reserved.
-    **/
-    function setPercentReserved(
-        uint256 _newPercentReserved
-    )
-      external
-      onlyController
-    {
+     **/
+    function setPercentReserved(uint256 _newPercentReserved) external onlyController {
         // Protection to not have too much reserved from any single vault.
         require(_newPercentReserved <= 5000, "May not reserve more than 50%.");
         percentReserved = _newPercentReserved;
@@ -703,56 +567,36 @@ abstract contract RcaShieldBase is ERC20, Governable {
     /**
      * @notice Change the withdrawal delay of withdrawing underlying tokens from vault. In seconds.
      * @param _newWithdrawalDelay New withdrawal delay.
-    **/
-    function setWithdrawalDelay(
-        uint256 _newWithdrawalDelay
-    )
-      external
-      onlyController
-    {
+     **/
+    function setWithdrawalDelay(uint256 _newWithdrawalDelay) external onlyController {
         withdrawalDelay = _newWithdrawalDelay;
     }
 
     /**
      * @notice Change the discount that users get for purchasing from us. 1000 == 10%.
      * @param _newDiscount New discount.
-    **/
-    function setDiscount(
-        uint256 _newDiscount
-    )
-      external
-      onlyController
-    {
+     **/
+    function setDiscount(uint256 _newDiscount) external onlyController {
         discount = _newDiscount;
     }
 
     /**
      * @notice Change the treasury address to which funds will be sent.
      * @param _newApr New APR. 1000 == 10%.
-    **/
-    function setApr(
-        uint256 _newApr
-    )
-      external
-      onlyController
-    {
+     **/
+    function setApr(uint256 _newApr) external onlyController {
         apr = _newApr;
     }
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////// onlyGov //////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////// onlyGov //////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
      * @notice Update Controller to a new address. Very rare case for this to be used.
      * @param _newController Address of the new Controller contract.
      */
-    function setController(
-        address _newController
-    )
-      external
-      onlyGov
-    {
+    function setController(address _newController) external onlyGov {
         controller = IRcaController(_newController);
     }
 
@@ -761,13 +605,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
      * at least at the beginning to ensure we don't have too much risk in certain protocols.
      * @param _coverAddress Address that we need to send 0 eth to to confirm we had a loss.
      */
-    function proofOfLoss(
-        address payable _coverAddress
-    )
-      external
-      onlyGov
-    {
+    function proofOfLoss(address payable _coverAddress) external onlyGov {
         _coverAddress.transfer(0);
     }
-
 }
