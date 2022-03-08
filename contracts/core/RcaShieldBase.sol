@@ -431,20 +431,8 @@ abstract contract RcaShieldBase is ERC20, Governable {
      */
     function getExtraForSale(uint256 _newCumLiqForClaims) public view returns (uint256 extraForSale) {
         // Check for liquidation, then percent paused, then APR
-        (
-            ,
-            ,
-            ,
-            ,
-            /** */
-            /** */
-            /** */
-            /** */
-            uint32 aprUpdate, /** */
-
-        ) = controller.systemUpdates();
         uint256 extraLiqForClaims = _newCumLiqForClaims - cumLiqForClaims;
-        uint256 extraFees = _getInterimFees(controller.apr(), uint256(aprUpdate));
+        uint256 extraFees = _getInterimFees(controller.apr(), uint256(controller.getAprUpdate()));
         extraForSale = extraFees + extraLiqForClaims;
         return extraForSale;
     }

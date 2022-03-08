@@ -50,6 +50,8 @@ interface IRcaController {
 
     function apr() external view returns (uint256);
 
+    function getAprUpdate() external view returns (uint32);
+
     function systemUpdates()
         external
         view
