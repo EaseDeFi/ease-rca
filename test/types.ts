@@ -34,6 +34,7 @@ export type MerkleTrees = {
   capTree1: BalanceTree;
   liqTree1: BalanceTree;
   priceTree1: BalanceTree;
+  priceTree2: BalanceTree;
   liqTree2: BalanceTree;
   resTree1: BalanceTree;
   resTree2: BalanceTree;
@@ -44,6 +45,7 @@ export type MerkleTrees = {
 export type MerkleProofs = {
   capProof1: string[];
   priceProof1: string[];
+  priceProof2: string[];
   liqProof1: string[];
   liqProof2: string[];
   resProof1: string[];
