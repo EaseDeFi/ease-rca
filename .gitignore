@@ -7,6 +7,7 @@ artifacts/
 coverage/
 coverage.json
 src/types
+abi/
 
 # files
 .env
