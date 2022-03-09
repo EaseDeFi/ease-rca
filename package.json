@@ -51,7 +51,7 @@
     "eth-gas-reporter": "^0.2.24",
     "ethereum-waffle": "^3.2.0",
     "ethereumjs-util": "^7.0.5",
-    "ethers": "^5.0.19",
+    "ethers": "5.4.6",
     "ethlint": "1.2.5",
     "hardhat-abi-exporter": "^2.8.0",
     "hardhat-gas-reporter": "^1.0.7",
