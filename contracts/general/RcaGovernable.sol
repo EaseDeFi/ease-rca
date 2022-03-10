@@ -1,7 +1,7 @@
 /// SPDX-License-Identifier: UNLICENSED
 
 pragma solidity ^0.8.11;
-import '../general/Governable.sol';
+import "../general/Governable.sol";
 
 /**
  * @title Governable
@@ -25,14 +25,12 @@ contract RcaGovernable is Governable {
         address _guardian,
         address _capOracle,
         address _priceOracle
-    ) 
-      internal 
-    {
+    ) internal {
         require(governor() == address(0), "already initialized");
         initializeGovernable(_governor);
 
-        guardian    = _guardian;
-        capOracle   = _capOracle;
+        guardian = _guardian;
+        capOracle = _capOracle;
         priceOracle = _priceOracle;
 
         emit NewGuardian(address(0), _guardian);
@@ -62,33 +60,17 @@ contract RcaGovernable is Governable {
      * @notice Allows the current owner to transfer control of the contract to a newOwner.
      * @param _newGuardian The address to transfer ownership to.
      */
-    function setGuardian(
-        address _newGuardian
-    ) 
-      public 
-      onlyGov 
-    {
+    function setGuardian(address _newGuardian) public onlyGov {
         guardian = _newGuardian;
     }
 
-    function setPriceOracle(
-        address _newPriceOracle
-    ) 
-      public 
-      onlyGov 
-    {
+    function setPriceOracle(address _newPriceOracle) public onlyGov {
         priceOracle = _newPriceOracle;
     }
 
-    function setCapOracle(
-        address _newCapOracle
-    ) 
-      public 
-      onlyGov 
-    {
+    function setCapOracle(address _newCapOracle) public onlyGov {
         capOracle = _newCapOracle;
     }
 
     uint256[50] private __gap;
 }
-

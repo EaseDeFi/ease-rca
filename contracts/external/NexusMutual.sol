@@ -23,22 +23,20 @@ interface INXMMaster {
 
     function getLatestAddress(bytes2 _contractName) external view returns (address payable contractAddress);
 
-    function upgradeMultipleContracts(
-        bytes2[] calldata _contractCodes,
-        address payable[] calldata newAddresses
-    ) external;
+    function upgradeMultipleContracts(bytes2[] calldata _contractCodes, address payable[] calldata newAddresses)
+        external;
 
     function removeContracts(bytes2[] calldata contractCodesToRemove) external;
 
     function addNewInternalContracts(
         bytes2[] calldata _contractCodes,
         address payable[] calldata newAddresses,
-        uint[] calldata _types
+        uint256[] calldata _types
     ) external;
 
     function updateOwnerParameters(bytes8 code, address payable val) external;
 }
 
 interface IClaimProof {
-    function addProof(uint _coverId, string calldata _ipfsHash) external;
+    function addProof(uint256 _coverId, string calldata _ipfsHash) external;
 }

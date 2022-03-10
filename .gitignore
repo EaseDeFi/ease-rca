@@ -7,6 +7,10 @@ artifacts/
 coverage/
 coverage.json
 src/types
+abi/
 
 # files
 .env
+test/ScratchPad.md
+test/constants.ts
+test/rcaShieldAAVE.ts
