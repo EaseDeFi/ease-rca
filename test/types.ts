@@ -6,7 +6,6 @@ import { RcaShieldAave } from "../src/types/RcaShieldAave";
 import { RcaTreasury } from "../src/types/RcaTreasury";
 import BalanceTree from "./balance-tree";
 import ClaimTree from "./claim-tree";
-
 export type Signers = {
   user: SignerWithAddress;
   gov: SignerWithAddress;
@@ -21,7 +20,6 @@ export type Signers = {
   capOracle: SignerWithAddress;
   otherAccounts: SignerWithAddress[];
 };
-
 export type Contracts = {
   rcaShieldAave: RcaShieldAave;
   uToken: MockERC20;
@@ -34,16 +32,17 @@ export type MerkleTrees = {
   capTree1: BalanceTree;
   liqTree1: BalanceTree;
   priceTree1: BalanceTree;
+  priceTree2: BalanceTree;
   liqTree2: BalanceTree;
   resTree1: BalanceTree;
   resTree2: BalanceTree;
   claimTree1: ClaimTree;
   claimTree2: ClaimTree;
 };
-
 export type MerkleProofs = {
   capProof1: string[];
   priceProof1: string[];
+  priceProof2: string[];
   liqProof1: string[];
   liqProof2: string[];
   resProof1: string[];
