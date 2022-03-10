@@ -1,6 +1,6 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { increase, getTimestamp, mine, ether, getSignatureDetailsFromCapOracle, formatEther } from "./utils";
+import { increase, getTimestamp, mine, ether, getSignatureDetailsFromCapOracle } from "./utils";
 import { BigNumber } from "ethers";
 
 import BalanceTree from "./balance-tree";
