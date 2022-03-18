@@ -1,4 +1,3 @@
-import dotenv from "dotenv";
 import { ethers } from "hardhat";
 import { providers, BigNumber } from "ethers";
 import { RcaController } from "../src/types/RcaController";
@@ -9,8 +8,6 @@ import { RcaShieldAave } from "../src/types/RcaShieldAave";
 import { RcaShieldOnsen } from "../src/types/RcaShieldOnsen";
 import { RcaShieldConvex } from "../src/types/RcaShieldConvex";
 import { RcaShieldCompound } from "../src/types/RcaShieldCompound";
-
-dotenv.config();
 
 export function hexSized(str: string, length: number): string {
   const raw = Buffer.from(str).toString("hex");
