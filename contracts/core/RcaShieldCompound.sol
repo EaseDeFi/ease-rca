@@ -14,10 +14,11 @@ contract RcaShieldCompound is RcaShieldBase {
         string memory _name,
         string memory _symbol,
         address _uToken,
+        uint256 _uTokenDecimals,
         address _governance,
         address _controller,
         IComptroller _comptroller
-    ) RcaShieldBase(_name, _symbol, _uToken, _governance, _controller) {
+    ) RcaShieldBase(_name, _symbol, _uToken, _uTokenDecimals, _governance, _controller) {
         comptroller = _comptroller;
         address[] memory markets = new address[](1);
         markets[0] = _uToken;
