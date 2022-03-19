@@ -21,6 +21,8 @@ contract RcaController is RcaGovernable {
     mapping(address => bool) public shieldMapping;
     /// @notice Percents of coverage for each protocol of a specific shield, 1000 == 10%.
     mapping(address => ProtocolPercent[]) public shieldProtocolPercents;
+    /// @notice Address => whether or not router is verified.
+    mapping(address => bool) public isRouterVerified;
     /**
      * @dev For a Yearn vault with a Curve token with DAI, USDC, USDT:
      * Yearn|100%, Curve|100%, DAI|100%, USDC|100%, USDT|100%
@@ -187,17 +189,20 @@ contract RcaController is RcaGovernable {
     /**
      * @notice Updates contract, emits event for redeem action.
      * @param _user User that is redeeming tokens.
+     * @param _to Router address which should be used for zapping.
      * @param _newCumLiqForClaims New cumulative amount of liquidated tokens if an update is needed.
      * @param _liqForClaimsProof Merkle proof to verify the new cumulative liquidated if needed.
      */
     function redeemFinalize(
         address _user,
+        address _to,
         uint256 _newCumLiqForClaims,
         bytes32[] calldata _liqForClaimsProof
-    ) external onlyShield {
+    ) external onlyShield returns (bool verificationStatus) {
         _update(_newCumLiqForClaims, _liqForClaimsProof, 0, new bytes32[](0), false);
 
         emit RedeemFinalize(msg.sender, _user, block.timestamp);
+        return isRouterVerified[_to];
     }
 
     /**
@@ -507,6 +512,16 @@ contract RcaController is RcaGovernable {
     function setPercentReserved(bytes32 _newReservedRoot) external onlyGuardian {
         reservedRoot = _newReservedRoot;
         systemUpdates.reservedUpdate = uint32(block.timestamp);
+    }
+
+    /**
+     * @notice Admin can set which router is verified and which is not.
+     * @param _routerAddress Address of a router.
+     * @param _verified New verified status of the router.
+     */
+    function setRouteVerified(address _routerAddress, bool _verified) external onlyGuardian {
+        // TODO: check if already true or false?
+        isRouterVerified[_routerAddress] = _verified;
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////
