@@ -519,7 +519,7 @@ contract RcaController is RcaGovernable {
      * @param _routerAddress Address of a router.
      * @param _verified New verified status of the router.
      */
-    function setRouteVerified(address _routerAddress, bool _verified) external onlyGuardian {
+    function setRouterVerified(address _routerAddress, bool _verified) external onlyGuardian {
         // TODO: check if already true or false?
         isRouterVerified[_routerAddress] = _verified;
     }
