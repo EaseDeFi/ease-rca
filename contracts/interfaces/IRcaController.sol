@@ -24,6 +24,7 @@ interface IRcaController {
 
     function redeemFinalize(
         address user,
+        address _to,
         uint256 _newCumLiq,
         bytes32[] calldata cumLiqProof
     ) external;
