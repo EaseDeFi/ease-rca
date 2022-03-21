@@ -1,3 +1,4 @@
+import dotenv from "dotenv";
 import { ethers } from "hardhat";
 import { providers, BigNumber } from "ethers";
 import { RcaController } from "../src/types/RcaController";
@@ -8,6 +9,9 @@ import { RcaShieldAave } from "../src/types/RcaShieldAave";
 import { RcaShieldOnsen } from "../src/types/RcaShieldOnsen";
 import { RcaShieldConvex } from "../src/types/RcaShieldConvex";
 import { RcaShieldCompound } from "../src/types/RcaShieldCompound";
+import { getForkingBlockNumber, getMainnetUrl, isMainnetFork } from "../env_helpers";
+
+dotenv.config();
 
 export function hexSized(str: string, length: number): string {
   const raw = Buffer.from(str).toString("hex");
@@ -52,6 +56,23 @@ export async function mine() {
   const signers = await ethers.getSigners();
   const signer = signers[0];
   await (signer.provider as providers.JsonRpcProvider).send("evm_mine", []);
+}
+export async function resetBlockchain() {
+  const signer = (await ethers.getSigners())[0];
+  const provider = signer.provider as providers.JsonRpcProvider;
+
+  if (isMainnetFork()) {
+    await provider.send("hardhat_reset", [
+      {
+        forking: {
+          blockNumber: getForkingBlockNumber(),
+          jsonRpcUrl: getMainnetUrl(),
+        },
+      },
+    ]);
+  } else {
+    await (signer.provider as providers.JsonRpcProvider).send("hardhat_reset", []);
+  }
 }
 
 export function formatEther(amount: BigNumber): string {
