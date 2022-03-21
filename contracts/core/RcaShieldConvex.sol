@@ -36,7 +36,7 @@ contract RcaShieldConvex is RcaShieldBase {
     ) external {
         require(_token != address(uToken), "cannot buy underlying token");
         controller.verifyPrice(_token, _tokenPrice, _tokenPriceProof);
-        controller.verifyPrice(address(this), _underlyingPrice, _underlyinPriceProof);
+        controller.verifyPrice(address(uToken), _underlyingPrice, _underlyinPriceProof);
         uint256 underlyingAmount = (_amount * _tokenPrice) / _underlyingPrice;
         if (discount > 0) {
             underlyingAmount -= (underlyingAmount * discount) / DENOMINATOR;
