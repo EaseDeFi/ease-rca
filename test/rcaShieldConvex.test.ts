@@ -313,6 +313,40 @@ describe("RcaShieldConvex", function () {
           merkleProofs.liqProof1,
         );
     });
+    it("should not allow user to purchase underlying token", async function () {
+      // 1. wait for half a year
+      await increase(TIME_IN_SECS.halfYear);
+      await mine();
+      // 2. call getReward function
+      await contracts.rcaShieldConvex.getReward();
+      // 3. call purchase function
+      // underlying price proof
+      const underLyingPrice = ether("0.001");
+
+      const underLyingPriceProof = merkleTrees.priceTree1.getProof(contracts.uToken.address, underLyingPrice);
+      /*
+      ---------------------------------------------------------------------------------------------
+      ------------------------------------PURCHASE CRV REWARD--------------------------------------
+      ---------------------------------------------------------------------------------------------
+      */
+      // token price proof for crv
+      const crvPrice = ether("0.001");
+      const crvPriceProof = merkleTrees.priceTree1.getProof(crvToken.address, crvPrice);
+      // buy crv reward token for referrer signer
+      const crvAmountToBuy = ether("1");
+      await expect(
+        contracts.rcaShieldConvex
+          .connect(signers.referrer)
+          .purchase(
+            contracts.uToken.address,
+            crvAmountToBuy,
+            crvPrice,
+            crvPriceProof,
+            underLyingPrice,
+            underLyingPriceProof,
+          ),
+      ).to.be.revertedWith("cannot buy underlying token");
+    });
     it("should allow user to purchase shield reward balance", async function () {
       // 1. wait for half a year
       await increase(TIME_IN_SECS.halfYear);
