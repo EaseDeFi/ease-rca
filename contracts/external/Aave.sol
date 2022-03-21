@@ -288,7 +288,8 @@ interface ILendingPool {
      * IMPORTANT There are security concerns for developers of flashloan receiver contracts
      *  that must be kept into consideration.
      * For further details please visit https://developers.aave.com
-     * @param receiverAddress The address of the contract receiving the funds, implementing the IFlashLoanReceiver interface
+     * @param receiverAddress The address of the contract receiving the funds,
+     * implementing the IFlashLoanReceiver interface
      * @param assets The addresses of the assets being flash-borrowed
      * @param amounts The amounts amounts being flash-borrowed
      * @param modes Types of the debt to open if the flash loan is not returned:

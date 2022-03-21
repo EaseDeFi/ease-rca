@@ -8,6 +8,7 @@ import {
   getSignatureDetailsFromCapOracle,
   getExpectedUValue,
   getExpectedRcaValue,
+  formatEther,
 } from "./utils";
 import { BigNumber } from "ethers";
 
@@ -68,7 +69,7 @@ describe("RCAs and Controller", function () {
       "Test Token RCA", // token name
       "TEST-RCA", // symbol
       contracts.uToken.address, // underlying token
-      BigNumber.from(18),
+      await contracts.uToken.decimals(),
       signers.gov.address, // governor
       contracts.rcaController.address, // rcaController
     );
@@ -192,9 +193,11 @@ describe("RCAs and Controller", function () {
             signers.user.address,
             signers.user.address,
             signers.referrer.address,
-            uAmount,
+            uAmount
+              .mul(BigNumber.from(10).pow(await contracts.uToken.decimals()))
+              .div(BigNumber.from(10).pow(await contracts.rcaShield.decimals())),
             rcaAmount,
-            (await getTimestamp()).add(1),
+            await getTimestamp(),
           );
 
         const rcaBal = await contracts.rcaShield.balanceOf(signers.user.address);
@@ -374,9 +377,11 @@ describe("RCAs and Controller", function () {
             signers.user.address,
             signers.user.address,
             signers.referrer.address,
-            uAmount,
+            uAmount
+              .mul(BigNumber.from(10).pow(await contracts.uToken.decimals()))
+              .div(BigNumber.from(10).pow(await contracts.rcaShield.decimals())),
             rcaAmount,
-            (await getTimestamp()).add(1),
+            await getTimestamp(),
           );
       });
     });
@@ -713,7 +718,12 @@ describe("RCAs and Controller", function () {
         let uTokenBalanceAfter = await contracts.uToken.balanceOf(userAddress);
 
         // difference balance should be equal uAmount being purchased
-        expect(uTokenBalanceAfter.sub(uTokenBalanceBefore)).to.be.equal(uAmount);
+        expect(
+          uTokenBalanceAfter
+            .sub(uTokenBalanceBefore)
+            .mul(BigNumber.from(10).pow(await contracts.rcaShield.decimals()))
+            .div(BigNumber.from(10).pow(await contracts.uToken.decimals())),
+        ).to.be.equal(uAmount);
 
         // purchase underlying token again
         uTokenBalanceBefore = uTokenBalanceAfter;
@@ -731,7 +741,12 @@ describe("RCAs and Controller", function () {
         uTokenBalanceAfter = await contracts.uToken.balanceOf(userAddress);
 
         // balance difference should be equal amount of uToken being purchased
-        expect(uTokenBalanceAfter.sub(uTokenBalanceBefore)).to.be.equal(uAmount);
+        expect(
+          uTokenBalanceAfter
+            .sub(uTokenBalanceBefore)
+            .mul(BigNumber.from(10).pow(await contracts.rcaShield.decimals()))
+            .div(BigNumber.from(10).pow(await contracts.uToken.decimals())),
+        ).to.be.equal(uAmount);
       });
 
       it("should increase treasury balance on rca purchase", async function () {
@@ -835,7 +850,6 @@ describe("RCAs and Controller", function () {
           const ethDiscount = etherToSend.mul(discount).div(denominator);
           const ethToSendAfterDiscount = etherToSend.sub(ethDiscount);
 
-          const timestamp = (await getTimestamp()).add(1);
           await expect(
             contracts.rcaShield.purchaseU(
               userAddress,
@@ -850,7 +864,16 @@ describe("RCAs and Controller", function () {
             ),
           )
             .to.emit(contracts.rcaShield, "PurchaseU")
-            .withArgs(userAddress, uAmount, ethToSendAfterDiscount, ethPerUToken, timestamp);
+            .withArgs(
+              userAddress,
+
+              uAmount
+                .mul(BigNumber.from(10).pow(await contracts.uToken.decimals()))
+                .div(BigNumber.from(10).pow(await contracts.rcaShield.decimals())),
+              ethToSendAfterDiscount,
+              ethPerUToken,
+              await getTimestamp(),
+            );
         });
       });
       describe("#rcaController", function () {
