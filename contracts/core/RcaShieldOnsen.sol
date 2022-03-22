@@ -18,12 +18,13 @@ contract RcaShieldOnsen is RcaShieldBase {
         string memory _name,
         string memory _symbol,
         address _uToken,
+        uint256 _uTokenDecimals,
         address _governance,
         address _controller,
         IMasterChefV2 _masterChef,
         IERC20 _sushi,
         uint256 _pid
-    ) RcaShieldBase(_name, _symbol, _uToken, _governance, _controller) {
+    ) RcaShieldBase(_name, _symbol, _uToken, _uTokenDecimals, _governance, _controller) {
         masterChef = _masterChef;
         sushi = _sushi;
         pid = _pid;

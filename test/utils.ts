@@ -4,6 +4,10 @@ import { RcaController } from "../src/types/RcaController";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { RcaShield } from "../src/types/RcaShield";
 import { MockERC20 } from "../src/types/MockERC20";
+import { RcaShieldAave } from "../src/types/RcaShieldAave";
+import { RcaShieldOnsen } from "../src/types/RcaShieldOnsen";
+import { RcaShieldConvex } from "../src/types/RcaShieldConvex";
+import { RcaShieldCompound } from "../src/types/RcaShieldCompound";
 
 export function hexSized(str: string, length: number): string {
   const raw = Buffer.from(str).toString("hex");
@@ -36,11 +40,20 @@ export function ether(amount: string): BigNumber {
   return ethers.utils.parseEther(amount);
 }
 
+export function parseCToken(amount: string): BigNumber {
+  return ethers.utils.parseUnits(amount, 8);
+}
+
+export function formatCToken(amount: BigNumber): string {
+  return ethers.utils.formatUnits(amount, 8);
+}
+
 export async function mine() {
   const signers = await ethers.getSigners();
   const signer = signers[0];
   await (signer.provider as providers.JsonRpcProvider).send("evm_mine", []);
 }
+
 export function formatEther(amount: BigNumber): string {
   return ethers.utils.formatEther(amount);
 }
@@ -79,12 +92,13 @@ export async function getSignatureDetailsFromCapOracle({
 
   return { vInt, r, s, expiry };
 }
+type Shield = RcaShield | RcaShieldAave | RcaShieldOnsen | RcaShieldConvex | RcaShieldCompound;
 
 type UValueArgs = {
   newCumLiqForClaims: BigNumber;
   rcaAmountForUvalue: BigNumber;
   percentReserved: BigNumber;
-  rcaShield: RcaShield;
+  rcaShield: Shield;
   uToken: MockERC20;
 };
 
@@ -100,17 +114,17 @@ export async function getExpectedUValue({
   const extraForSale = await rcaShield.getExtraForSale(newCumLiqForClaims);
   const amtForSale = await rcaShield.amtForSale();
   const totalForSale = amtForSale.add(extraForSale);
-  const shieldUTokenBalance = await uToken.balanceOf(rcaShield.address);
+  const shieldUTokenBalance = (await uToken.balanceOf(rcaShield.address))
+    .mul(BigNumber.from(10).pow(await rcaShield.decimals()))
+    .div(BigNumber.from(10).pow(await uToken.decimals()));
   const pendingWithdrawal = await rcaShield.pendingWithdrawal();
   const subtrahend = totalForSale.add(pendingWithdrawal);
   const totalRcaTokenSupply = await rcaShield.totalSupply();
 
   expectedUValue = shieldUTokenBalance.sub(subtrahend).mul(rcaAmountForUvalue).div(totalRcaTokenSupply);
-
   if (totalRcaTokenSupply.isZero()) {
     expectedUValue = rcaAmountForUvalue;
-  }
-  if (shieldUTokenBalance.lt(subtrahend)) {
+  } else if (shieldUTokenBalance.lt(subtrahend)) {
     expectedUValue = BigNumber.from(0);
   }
 
@@ -122,7 +136,7 @@ export async function getExpectedUValue({
 type RcaValueArgs = {
   uAmountForRcaValue: BigNumber;
   newCumLiqForClaims: BigNumber;
-  rcaShield: RcaShield;
+  rcaShield: Shield;
   uToken: MockERC20;
 };
 
@@ -136,7 +150,9 @@ export async function getExpectedRcaValue({
   const amountForSale = await rcaShield.amtForSale();
   const extraForSale = await rcaShield.getExtraForSale(newCumLiqForClaims);
   const totalForSale = amountForSale.add(extraForSale);
-  const shieldUTokenBalance = await uToken.balanceOf(rcaShield.address);
+  const shieldUTokenBalance = (await uToken.balanceOf(rcaShield.address))
+    .mul(BigNumber.from(10).pow(await rcaShield.decimals()))
+    .div(BigNumber.from(10).pow(await uToken.decimals()));
   const pendingWithdrawal = await rcaShield.pendingWithdrawal();
   const rcaTotalSupply = await rcaShield.totalSupply();
   const subtrahend = totalForSale.add(pendingWithdrawal);

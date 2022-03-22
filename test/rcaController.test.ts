@@ -64,6 +64,7 @@ describe("RCA controller", function () {
       rcaTokenName, // token name
       rcaTokenSymbol, // symbol
       contracts.uToken.address, // underlying token
+      BigNumber.from(18),
       signers.gov.address, // governor
       contracts.rcaController.address, // rcaController
     );
