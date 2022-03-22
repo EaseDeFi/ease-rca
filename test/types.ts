@@ -108,6 +108,7 @@ export type MainnetAccounts = {
   cvxCRVWhale: string;
   cCompWhale: string;
   cEthWhale: string;
+  compWhale: string;
 };
 
 export type MainnetAddresses = {

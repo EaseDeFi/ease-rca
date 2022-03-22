@@ -23,12 +23,20 @@ contract RcaShieldCompound is RcaShieldBase {
         address[] memory markets = new address[](1);
         markets[0] = _uToken;
         _comptroller.enterMarkets(markets);
+        uint256[] memory entered = _comptroller.enterMarkets(markets);
+        require(entered[0] == 0, "enterMarkets() failed");
     }
 
+    // TODO: find ways to minimize gas cost (1.97 mil gas per call as of now)
+    // this update costs just 156k gas wrt 1.97 mil gas before
     function getReward() external {
-        comptroller.claimComp(address(this));
+        address[] memory cTokens = new address[](1);
+        cTokens[0] = address(uToken);
+        comptroller.claimComp(address(this), cTokens);
     }
 
+    // gas after token decimals handleing = 214858
+    // gas before token decimals handleing = 213594
     function purchase(
         address _token,
         uint256 _amount, // token amount to buy
@@ -39,15 +47,19 @@ contract RcaShieldCompound is RcaShieldBase {
     ) external {
         require(_token != address(uToken), "cannot buy underlyingToken");
         controller.verifyPrice(_token, _tokenPrice, _tokenPriceProof);
-        controller.verifyPrice(address(this), _underlyingPrice, _underlyinPriceProof);
+        controller.verifyPrice(address(uToken), _underlyingPrice, _underlyinPriceProof);
 
         uint256 underlyingAmount = (_amount * _tokenPrice) / _underlyingPrice;
         if (discount > 0) {
             underlyingAmount -= (underlyingAmount * discount) / DENOMINATOR;
         }
 
-        IERC20Metadata(_token).safeTransfer(msg.sender, _amount);
-        uToken.safeTransferFrom(msg.sender, address(this), underlyingAmount);
+        IERC20Metadata token = IERC20Metadata(_token);
+        // normalize token amount to transfer to the user so that it can handle different decimals
+        _amount = (_amount * 10**token.decimals()) / BUFFER;
+
+        token.safeTransfer(msg.sender, _amount);
+        uToken.safeTransferFrom(msg.sender, address(this), _normalizedUAmount(underlyingAmount));
     }
 
     function _uBalance() internal view override returns (uint256) {
