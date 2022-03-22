@@ -6,7 +6,7 @@ import "./RcaShieldBase.sol";
 import "../external/Convex.sol";
 
 contract RcaShieldConvex is RcaShieldBase {
-    using SafeERC20 for IERC20;
+    using SafeERC20 for IERC20Metadata;
 
     IConvexRewardPool public immutable rewardPool;
 
@@ -41,7 +41,7 @@ contract RcaShieldConvex is RcaShieldBase {
         if (discount > 0) {
             underlyingAmount -= (underlyingAmount * discount) / DENOMINATOR;
         }
-        IERC20(_token).safeTransfer(msg.sender, _amount);
+        IERC20Metadata(_token).safeTransfer(msg.sender, _amount);
         uToken.safeTransferFrom(msg.sender, address(this), underlyingAmount);
         uToken.safeApprove(address(rewardPool), underlyingAmount);
         rewardPool.stake(underlyingAmount);

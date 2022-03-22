@@ -6,7 +6,7 @@ import "./RcaShieldBase.sol";
 import "../external/Compound.sol";
 
 contract RcaShieldCompound is RcaShieldBase {
-    using SafeERC20 for IERC20;
+    using SafeERC20 for IERC20Metadata;
 
     IComptroller public immutable comptroller;
 
@@ -40,11 +40,13 @@ contract RcaShieldCompound is RcaShieldBase {
         require(_token != address(uToken), "cannot buy underlyingToken");
         controller.verifyPrice(_token, _tokenPrice, _tokenPriceProof);
         controller.verifyPrice(address(this), _underlyingPrice, _underlyinPriceProof);
+
         uint256 underlyingAmount = (_amount * _tokenPrice) / _underlyingPrice;
         if (discount > 0) {
             underlyingAmount -= (underlyingAmount * discount) / DENOMINATOR;
         }
-        IERC20(_token).safeTransfer(msg.sender, _amount);
+
+        IERC20Metadata(_token).safeTransfer(msg.sender, _amount);
         uToken.safeTransferFrom(msg.sender, address(this), underlyingAmount);
     }
 

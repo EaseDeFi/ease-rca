@@ -18,7 +18,7 @@ import "hardhat/console.sol";
  * @author Robert M.C. Forster, Romke Jonker, Taek Lee
  **/
 abstract contract RcaShieldBase is ERC20, Governable {
-    using SafeERC20 for IERC20;
+    using SafeERC20 for IERC20Metadata;
 
     uint256 constant YEAR_SECS = 31536000;
     uint256 constant DENOMINATOR = 10000;
@@ -28,7 +28,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
     /// @notice Controller of RCA contract that takes care of actions.
     IRcaController public controller;
     /// @notice Underlying token that is protected by the shield.
-    IERC20 public immutable uToken;
+    IERC20Metadata public immutable uToken;
     /// @notice Percent to pay per year. 1000 == 10%.
     uint256 public apr;
     /// @notice Current sale discount to sell tokens cheaper.
@@ -138,7 +138,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
         address _controller
     ) ERC20(_name, _symbol) {
         initializeGovernable(_governor);
-        uToken = IERC20(_uToken);
+        uToken = IERC20Metadata(_uToken);
         controller = IRcaController(_controller);
         BUFFER_UTOKEN = 10**_uTokenDecimals;
     }
