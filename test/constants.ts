@@ -36,7 +36,7 @@ export const MAINNET_ADDRESSES: MainnetAddresses = {
     cvxCRVWhale: "0xE4360E6e45F5b122586BCA3b9d7b222EA69C5568",
     cCompWhale: "0xa23CB68780be74b254a5f7210Ec6cF1c76289953",
     cEthWhale: "0xde55095aAC488dE3926463aeDf6A9B117F180260",
-
+    compWhale: "0x0f50d31b3eaefd65236dd3736b863cffa4c63c4e",
   },
 };
 

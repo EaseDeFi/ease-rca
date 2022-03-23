@@ -33,6 +33,9 @@ describe("RcaShieldCompound", function () {
   // reward tokens
   let compToken: MockERC20;
   let compWhale: SignerWithAddress;
+  before(async function () {
+    await resetBlockchain();
+  });
   beforeEach(async function () {
     const _signers: SignerWithAddress[] = await ethers.getSigners();
     signers.gov = _signers[1];
