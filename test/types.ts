@@ -113,6 +113,7 @@ export type MainnetAccounts = {
   compWhale: string;
   sushiWhale: string;
   bitWethWhale: string;
+
 };
 
 export type MainnetAddresses = {

@@ -49,12 +49,14 @@ contract RcaShieldOnsen is RcaShieldBase {
         if (discount > 0) {
             underlyingAmount -= (underlyingAmount * discount) / DENOMINATOR;
         }
+
         IERC20Metadata token = IERC20Metadata(_token);
         // normalize token amount to transfer to the user so that it can handle different decimals
         _amount = (_amount * 10**token.decimals()) / BUFFER;
 
         token.safeTransfer(msg.sender, _amount);
         uToken.safeTransferFrom(msg.sender, address(this), _normalizedUAmount(underlyingAmount));
+
         uToken.safeApprove(address(masterChef), underlyingAmount);
         masterChef.deposit(pid, underlyingAmount, address(this));
     }

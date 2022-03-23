@@ -41,6 +41,7 @@ export const MAINNET_ADDRESSES: MainnetAddresses = {
     compWhale: "0x0f50d31b3eaefd65236dd3736b863cffa4c63c4e",
     bitWethWhale: "0x54b55662901aF57B31fb6B52AF8175b652A5816e",
     sushiWhale: "0xabea1a9b8b4a4534ae6b71041aa48067d84a3df3",
+
   },
 };
 
