@@ -6,7 +6,7 @@ import "./RcaShieldBase.sol";
 import "../external/Aave.sol";
 
 contract RcaShieldAave is RcaShieldBase {
-    using SafeERC20 for IERC20;
+    using SafeERC20 for IERC20Metadata;
 
     IIncentivesController public immutable incentivesController;
 
@@ -44,7 +44,7 @@ contract RcaShieldAave is RcaShieldBase {
         if (discount > 0) {
             underlyingAmount -= (underlyingAmount * discount) / DENOMINATOR;
         }
-        IERC20(_token).safeTransfer(msg.sender, _amount);
+        IERC20Metadata(_token).safeTransfer(msg.sender, _amount);
         uToken.safeTransferFrom(msg.sender, address(this), underlyingAmount);
     }
 

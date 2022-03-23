@@ -6,7 +6,7 @@ import "./RcaShieldBase.sol";
 import { IMasterChefV2 } from "../external/Sushiswap.sol";
 
 contract RcaShieldOnsen is RcaShieldBase {
-    using SafeERC20 for IERC20;
+    using SafeERC20 for IERC20Metadata;
 
     IMasterChefV2 public immutable masterChef;
 
@@ -49,7 +49,7 @@ contract RcaShieldOnsen is RcaShieldBase {
         if (discount > 0) {
             underlyingAmount -= (underlyingAmount * discount) / DENOMINATOR;
         }
-        IERC20(_token).safeTransfer(msg.sender, _amount);
+        IERC20Metadata(_token).safeTransfer(msg.sender, _amount);
         uToken.safeTransferFrom(msg.sender, address(this), underlyingAmount);
         uToken.safeApprove(address(masterChef), underlyingAmount);
         masterChef.deposit(pid, underlyingAmount, address(this));
