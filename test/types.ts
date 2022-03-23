@@ -109,6 +109,7 @@ export type MainnetAccounts = {
   cCompWhale: string;
   cEthWhale: string;
   compWhale: string;
+
 };
 
 export type MainnetAddresses = {

@@ -16,7 +16,9 @@ import { expect } from "chai";
 import BalanceTree from "./balance-tree";
 import { BigNumber } from "ethers";
 
+
 describe("RcaShieldConvex", function () {
+
   const DENOMINATOR = BigNumber.from(10000);
   const contracts = {} as Contracts;
   const signers = {} as Signers;
@@ -27,6 +29,11 @@ describe("RcaShieldConvex", function () {
   let crvToken: MockERC20;
   let threeCRVToken: MockERC20;
   let cvxToken: MockERC20;
+
+  before(async function () {
+    await resetBlockchain();
+  });
+
   beforeEach(async function () {
     const _signers: SignerWithAddress[] = await ethers.getSigners();
     signers.user = _signers[0];
