@@ -92,6 +92,8 @@ export type ConvexContracts = {
 export type OnsenContracts = {
   sushiToken: string;
   masterChefV2: string;
+  bitWethPid: number;
+  bitWethPair: string;
 };
 
 export type MainnetContracts = {
@@ -109,6 +111,8 @@ export type MainnetAccounts = {
   cCompWhale: string;
   cEthWhale: string;
   compWhale: string;
+  sushiWhale: string;
+  bitWethWhale: string;
 };
 
 export type MainnetAddresses = {

@@ -26,7 +26,9 @@ export const MAINNET_ADDRESSES: MainnetAddresses = {
     },
     onsen: {
       masterChefV2: "0xEF0881eC094552b2e128Cf945EF17a6752B4Ec5d",
-      sushiToken: "",
+      sushiToken: "0x6b3595068778dd592e39a122f4f5a5cf09c90fe2",
+      bitWethPid: 17,
+      bitWethPair: "0xE12af1218b4e9272e9628D7c7Dc6354D137D024e",
     },
   },
   accounts: {
@@ -37,6 +39,8 @@ export const MAINNET_ADDRESSES: MainnetAddresses = {
     cCompWhale: "0xa23CB68780be74b254a5f7210Ec6cF1c76289953",
     cEthWhale: "0xde55095aAC488dE3926463aeDf6A9B117F180260",
     compWhale: "0x0f50d31b3eaefd65236dd3736b863cffa4c63c4e",
+    bitWethWhale: "0x54b55662901aF57B31fb6B52AF8175b652A5816e",
+    sushiWhale: "0xabea1a9b8b4a4534ae6b71041aa48067d84a3df3",
   },
 };
 
