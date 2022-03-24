@@ -37,15 +37,20 @@ contract RcaShieldAave is RcaShieldBase {
         uint256 _underlyingPrice,
         bytes32[] calldata _underlyinPriceProof
     ) external {
-        require(_token != address(uToken), "cannot buy underlyingToken");
+        require(_token != address(uToken), "cannot buy underlying token");
         controller.verifyPrice(_token, _tokenPrice, _tokenPriceProof);
-        controller.verifyPrice(address(this), _underlyingPrice, _underlyinPriceProof);
+        controller.verifyPrice(address(uToken), _underlyingPrice, _underlyinPriceProof);
         uint256 underlyingAmount = (_amount * _tokenPrice) / _underlyingPrice;
         if (discount > 0) {
             underlyingAmount -= (underlyingAmount * discount) / DENOMINATOR;
         }
-        IERC20Metadata(_token).safeTransfer(msg.sender, _amount);
-        uToken.safeTransferFrom(msg.sender, address(this), underlyingAmount);
+
+        IERC20Metadata token = IERC20Metadata(_token);
+        // normalize token amount to transfer to the user so that it can handle different decimals
+        _amount = (_amount * 10**token.decimals()) / BUFFER;
+
+        token.safeTransfer(msg.sender, _amount);
+        uToken.safeTransferFrom(msg.sender, address(this), _normalizedUAmount(underlyingAmount));
     }
 
     function _uBalance() internal view override returns (uint256) {

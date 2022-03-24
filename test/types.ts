@@ -24,14 +24,9 @@ export type Signers = {
   priceOracle: SignerWithAddress;
   capOracle: SignerWithAddress;
   otherAccounts: SignerWithAddress[];
-  aAAVEWhale: SignerWithAddress;
-  aaveWhale: SignerWithAddress;
-  cvxCRVWhale: SignerWithAddress;
 };
 export type Contracts = {
   uToken: MockERC20;
-  aaveToken: MockERC20;
-  stkAAVEToken: MockERC20;
   cvxCRVToken: MockERC20;
   rcaController: RcaController;
   rcaTreasury: RcaTreasury;
@@ -77,6 +72,8 @@ export type AaveContracts = {
   aAAVEToken: string;
   token: string;
   stkAAVEToken: string;
+  aWeth: string;
+  aWbtc: string;
 };
 
 export type ConvexContracts = {
@@ -106,6 +103,8 @@ export type MainnetContracts = {
 export type MainnetAccounts = {
   aAAVEWhale: string;
   aaveWhale: string;
+  aWethWhale: string;
+  aWbtcWhale: string;
   cvxWhale: string;
   cvxCRVWhale: string;
   cCompWhale: string;
@@ -113,6 +112,7 @@ export type MainnetAccounts = {
   compWhale: string;
   sushiWhale: string;
   bitWethWhale: string;
+  stkAAVEWhale: string;
 };
 
 export type MainnetAddresses = {
