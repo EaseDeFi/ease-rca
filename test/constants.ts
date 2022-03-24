@@ -1,10 +1,12 @@
 import { MainnetAddresses, TimeInSecs } from "./types";
-
+// check
 export const MAINNET_ADDRESSES: MainnetAddresses = {
   contracts: {
     aave: {
       incentivesController: "0xd784927Ff2f95ba542BfC824c8a8a98F3495f6b5",
       aAAVEToken: "0xFFC97d72E13E01096502Cb8Eb52dEe56f74DAD7B",
+      aWeth: "0x030bA81f1c18d280636F32af80b9AAd02Cf0854e",
+      aWbtc: "0x9ff58f4fFB29fA2266Ab25e75e2A8b3503311656",
       token: "0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9",
       stkAAVEToken: "0x4da27a545c0c5B758a6BA100e3a049001de870f5",
     },
@@ -34,6 +36,8 @@ export const MAINNET_ADDRESSES: MainnetAddresses = {
   accounts: {
     aAAVEWhale: "0x9080bdc6377e4ef9d51eddae526fb713c535041f",
     aaveWhale: "0x26a78D5b6d7a7acEEDD1e6eE3229b372A624d8b7",
+    aWethWhale: "0x8aceab8167c80cb8b3de7fa6228b889bb1130ee8",
+    aWbtcWhale: "0x602d9abd5671d24026e2ca473903ff2a9a957407",
     cvxWhale: "0x0aCA67Fa70B142A3b9bF2eD89A81B40ff85dACdC",
     cvxCRVWhale: "0xE4360E6e45F5b122586BCA3b9d7b222EA69C5568",
     cCompWhale: "0xa23CB68780be74b254a5f7210Ec6cF1c76289953",
@@ -41,7 +45,7 @@ export const MAINNET_ADDRESSES: MainnetAddresses = {
     compWhale: "0x0f50d31b3eaefd65236dd3736b863cffa4c63c4e",
     bitWethWhale: "0x54b55662901aF57B31fb6B52AF8175b652A5816e",
     sushiWhale: "0xabea1a9b8b4a4534ae6b71041aa48067d84a3df3",
-
+    stkAAVEWhale: "0xafdabfb6227507ff6522b8a242168f6b5f353a6e",
   },
 };
 
