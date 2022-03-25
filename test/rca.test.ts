@@ -8,7 +8,6 @@ import {
   getSignatureDetailsFromCapOracle,
   getExpectedUValue,
   getExpectedRcaValue,
-  formatEther,
 } from "./utils";
 import { BigNumber } from "ethers";
 
@@ -69,7 +68,6 @@ describe("RCAs and Controller", function () {
       "Test Token RCA", // token name
       "TEST-RCA", // symbol
       contracts.uToken.address, // underlying token
-      await contracts.uToken.decimals(),
       signers.gov.address, // governor
       contracts.rcaController.address, // rcaController
     );

@@ -16,9 +16,7 @@ import { expect } from "chai";
 import BalanceTree from "./balance-tree";
 import { BigNumber } from "ethers";
 
-
 describe("RcaShieldConvex", function () {
-
   const DENOMINATOR = BigNumber.from(10000);
   const contracts = {} as Contracts;
   const signers = {} as Signers;
@@ -95,7 +93,6 @@ describe("RcaShieldConvex", function () {
         "rcaConvex Shield",
         "rcaCVX",
         contracts.uToken.address,
-        await contracts.uToken.decimals(),
         signers.gov.address,
         contracts.rcaController.address,
         MAINNET_ADDRESSES.contracts.convex.cvxCRVRewardPool,
