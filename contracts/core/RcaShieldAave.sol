@@ -51,6 +51,7 @@ contract RcaShieldAave is RcaShieldBase {
 
         token.safeTransfer(msg.sender, _amount);
         uToken.safeTransferFrom(msg.sender, address(this), _normalizedUAmount(underlyingAmount));
+
     }
 
     function _uBalance() internal view override returns (uint256) {
