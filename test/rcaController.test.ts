@@ -41,7 +41,7 @@ describe("RCA controller", function () {
     signers.otherAccounts = accounts.slice(7);
 
     const TOKEN = <MockERC20__factory>await ethers.getContractFactory("MockERC20");
-    contracts.uToken = <MockERC20>await TOKEN.deploy("Test Token", "TEST");
+    contracts.uToken = <MockERC20>await TOKEN.deploy("Test Token", "TEST", BigNumber.from(18));
 
     const RCA_TREASURY = <RcaTreasury__factory>await ethers.getContractFactory("RcaTreasury");
     contracts.rcaTreasury = <RcaTreasury>await RCA_TREASURY.connect(signers.gov).deploy(signers.gov.address);
