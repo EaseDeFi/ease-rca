@@ -26,7 +26,7 @@
     "@umb-network/toolbox": "^5.4.0",
     "bignumber.js": "9.0.1",
     "dotenv": "^16.0.0",
-    "hardhat": "^2.8.2"
+    "hardhat": "^2.9.2"
   },
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.0",
