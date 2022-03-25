@@ -22,21 +22,16 @@ contract RcaShieldCompound is RcaShieldBaseNormalized {
         comptroller = _comptroller;
         address[] memory markets = new address[](1);
         markets[0] = _uToken;
-        _comptroller.enterMarkets(markets);
         uint256[] memory entered = _comptroller.enterMarkets(markets);
         require(entered[0] == 0, "enterMarkets() failed");
     }
 
-    // TODO: find ways to minimize gas cost (1.97 mil gas per call as of now)
-    // this update costs just 156k gas wrt 1.97 mil gas before
     function getReward() external {
         address[] memory cTokens = new address[](1);
         cTokens[0] = address(uToken);
         comptroller.claimComp(address(this), cTokens);
     }
 
-    // gas after token decimals handleing = 214858
-    // gas before token decimals handleing = 213594
     function purchase(
         address _token,
         uint256 _amount, // token amount to buy
