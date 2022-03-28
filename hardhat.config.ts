@@ -102,6 +102,7 @@ const config: HardhatUserConfig = {
     tenderly: {
       url: process.env.TENDERLY_FORK || "",
       accounts: process.env.MAINNET_PRIVATE_KEY ? [`0x${process.env.MAINNET_PRIVATE_KEY}`] : [],
+      chainId: 1,
     },
   },
   paths: {
