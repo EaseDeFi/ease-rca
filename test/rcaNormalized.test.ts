@@ -415,8 +415,8 @@ describe("Normalized RCA and Controller", function () {
             sigValues.vInt,
             sigValues.r,
             sigValues.s,
-            ether("10"),
-            merkleProofs.liqProof1,
+            0,
+            [],
           );
         const afterShieldUpdated = await contracts.rcaController.lastShieldUpdate(contracts.rcaShield.address);
         const cumLiqForClaimsAfter = await contracts.rcaShield.cumLiqForClaims();
@@ -449,40 +449,48 @@ describe("Normalized RCA and Controller", function () {
         .mintTo(
           signers.user.address,
           signers.referrer.address,
-          ether("100"),
+          uAmount,
           sigValues.expiry,
           sigValues.vInt,
           sigValues.r,
           sigValues.s,
           0,
-          merkleProofs.liqProof1,
+          [],
         );
     });
 
     describe("#feature", function () {
       it("should be able to initiate and finalize redeem of RCA token", async function () {
+        const userUTokenBalanceBefore = await contracts.uToken.balanceOf(signers.user.address);
+        const userRcaBalBefore = await contracts.rcaShield.balanceOf(signers.user.address);
         await contracts.rcaShield
           .connect(signers.user)
           .redeemRequest(ether("100"), 0, merkleProofs.liqProof2, 0, merkleProofs.resProof1);
 
-        // Check request data
         const timestamp = await getTimestamp();
-        const requests = await contracts.rcaShield.withdrawRequests(signers.user.address);
-        expect(requests[0]).to.be.equal(ether("100"));
-        expect(requests[0]).to.be.equal(ether("100"));
+
+        // Check request data
+        const redeemRequest = await contracts.rcaShield.withdrawRequests(signers.user.address);
+        expect(redeemRequest.rcaAmount).to.be.equal(ether("100"));
+        expect(redeemRequest.uAmount).to.be.equal(ether("100"));
         const endTime = timestamp.add("86400");
-        expect(requests[2]).to.be.equal(endTime);
+        expect(redeemRequest.endTime).to.be.equal(endTime);
 
         // A bit more than 1 day withdrawal
-        increase(86500);
+        await increase(86500);
 
         await contracts.rcaShield
           .connect(signers.user)
           .redeemFinalize(signers.user.address, false, ethers.constants.AddressZero, 0, merkleProofs.liqProof1);
-        const rcaBal = await contracts.rcaShield.balanceOf(signers.user.address);
-        const uBal = await contracts.uToken.balanceOf(signers.user.address);
-        expect(rcaBal).to.be.equal(0);
-        expect(uBal).to.be.equal(ether("1000000"));
+        const userUTokenBalAfter = await contracts.uToken.balanceOf(signers.user.address);
+        const userRcaBalAfter = await contracts.rcaShield.balanceOf(signers.user.address);
+        expect(userRcaBalBefore.sub(userRcaBalAfter)).to.be.equal(redeemRequest.rcaAmount);
+        expect(
+          userUTokenBalAfter
+            .sub(userUTokenBalanceBefore)
+            .mul(BigNumber.from(10).pow(await contracts.rcaShield.decimals()))
+            .div(BigNumber.from(10).pow(await contracts.uToken.decimals())),
+        ).to.be.equal(redeemRequest.uAmount);
       });
 
       // If one request is made after another, the amounts should add to last amounts
@@ -490,24 +498,22 @@ describe("Normalized RCA and Controller", function () {
       it("should be able to stack redeem requests and reset time", async function () {
         await contracts.rcaShield.connect(signers.user).redeemRequest(ether("50"), 0, [], 0, merkleProofs.resProof1);
         // By increasing half a day we can check timestamp changing
-        const startTime = await getTimestamp();
-        let requests = await contracts.rcaShield.withdrawRequests(signers.user.address);
-        expect(requests[0]).to.be.equal(ether("50"));
-        expect(requests[1]).to.be.equal(ether("50"));
-        expect(requests[2]).to.be.equal(startTime.add("86400"));
+        let startTime = await getTimestamp();
+        let redeemRequest = await contracts.rcaShield.withdrawRequests(signers.user.address);
+        expect(redeemRequest.uAmount).to.be.equal(ether("50"));
+        expect(redeemRequest.rcaAmount).to.be.equal(ether("50"));
+        expect(redeemRequest.endTime).to.be.equal(startTime.add("86400"));
 
         // Wait half a day to make sure request time resets
         // (don't want both requests starting at the same time or we can't check).
         increase(43200);
 
         await contracts.rcaShield.connect(signers.user).redeemRequest(ether("50"), 0, [], 0, merkleProofs.resProof1);
-        const secondTime = await getTimestamp();
-        requests = await contracts.rcaShield.withdrawRequests(signers.user.address);
-        expect(requests[0]).to.be.equal(ether("100"));
-        expect(requests[1]).to.be.equal(ether("100"));
-        expect(requests[2]).to.be.equal(secondTime.add("86400"));
-
-        requests = await contracts.rcaShield.withdrawRequests(signers.user.address);
+        startTime = await getTimestamp();
+        redeemRequest = await contracts.rcaShield.withdrawRequests(signers.user.address);
+        expect(redeemRequest.uAmount).to.be.equal(ether("100"));
+        expect(redeemRequest.rcaAmount).to.be.equal(ether("100"));
+        expect(redeemRequest.endTime).to.be.equal(startTime.add("86400"));
       });
       // check with zapper
     });
@@ -618,7 +624,7 @@ describe("Normalized RCA and Controller", function () {
         .mintTo(
           signers.user.address,
           signers.referrer.address,
-          ether("1000"),
+          uAmount,
           sigValues.expiry,
           sigValues.vInt,
           sigValues.r,
