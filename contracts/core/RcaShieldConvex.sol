@@ -14,11 +14,10 @@ contract RcaShieldConvex is RcaShieldBase {
         string memory _name,
         string memory _symbol,
         address _uToken,
-        uint256 _uTokenDecimals,
         address _governance,
         address _controller,
         IConvexRewardPool _rewardPool
-    ) RcaShieldBase(_name, _symbol, _uToken, _uTokenDecimals, _governance, _controller) {
+    ) RcaShieldBase(_name, _symbol, _uToken, _governance, _controller) {
         rewardPool = _rewardPool;
     }
 

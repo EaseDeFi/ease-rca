@@ -2,10 +2,10 @@
 
 pragma solidity ^0.8.11;
 
-import "./RcaShieldBase.sol";
+import "./RcaShieldBaseNormalized.sol";
 import "../external/Compound.sol";
 
-contract RcaShieldCompound is RcaShieldBase {
+contract RcaShieldCompound is RcaShieldBaseNormalized {
     using SafeERC20 for IERC20Metadata;
 
     IComptroller public immutable comptroller;
@@ -18,25 +18,20 @@ contract RcaShieldCompound is RcaShieldBase {
         address _governance,
         address _controller,
         IComptroller _comptroller
-    ) RcaShieldBase(_name, _symbol, _uToken, _uTokenDecimals, _governance, _controller) {
+    ) RcaShieldBaseNormalized(_name, _symbol, _uToken, _uTokenDecimals, _governance, _controller) {
         comptroller = _comptroller;
         address[] memory markets = new address[](1);
         markets[0] = _uToken;
-        _comptroller.enterMarkets(markets);
         uint256[] memory entered = _comptroller.enterMarkets(markets);
         require(entered[0] == 0, "enterMarkets() failed");
     }
 
-    // TODO: find ways to minimize gas cost (1.97 mil gas per call as of now)
-    // this update costs just 156k gas wrt 1.97 mil gas before
     function getReward() external {
         address[] memory cTokens = new address[](1);
         cTokens[0] = address(uToken);
         comptroller.claimComp(address(this), cTokens);
     }
 
-    // gas after token decimals handleing = 214858
-    // gas before token decimals handleing = 213594
     function purchase(
         address _token,
         uint256 _amount, // token amount to buy
@@ -62,15 +57,11 @@ contract RcaShieldCompound is RcaShieldBase {
         uToken.safeTransferFrom(msg.sender, address(this), _normalizedUAmount(underlyingAmount));
     }
 
-    function _uBalance() internal view override returns (uint256) {
-        return (uToken.balanceOf(address(this)) * BUFFER) / BUFFER_UTOKEN;
-    }
-
     function _afterMint(uint256 _uAmount) internal override {
-        // no-op since we get aToken
+        // no-op since we get cToken
     }
 
     function _afterRedeem(uint256 _uAmount) internal override {
-        // no-op since we get aToken
+        // no-op since we get cToken
     }
 }

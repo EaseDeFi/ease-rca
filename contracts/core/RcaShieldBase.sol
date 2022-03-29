@@ -23,7 +23,6 @@ abstract contract RcaShieldBase is ERC20, Governable {
     uint256 constant YEAR_SECS = 31536000;
     uint256 constant DENOMINATOR = 10000;
     uint256 constant BUFFER = 1e18;
-    uint256 immutable BUFFER_UTOKEN;
 
     /// @notice Controller of RCA contract that takes care of actions.
     IRcaController public controller;
@@ -127,7 +126,6 @@ abstract contract RcaShieldBase is ERC20, Governable {
      * @param _name Name of the RCA token.
      * @param _symbol Symbol of the RCA token.
      * @param _uToken Address of the underlying token.
-     * @param _uTokenDecimals Decimals of the underlying token
      * @param _governor Address of the governor (owner) of the shield.
      * @param _controller Address of the controller that maintains the shield.
      */
@@ -135,14 +133,12 @@ abstract contract RcaShieldBase is ERC20, Governable {
         string memory _name,
         string memory _symbol,
         address _uToken,
-        uint256 _uTokenDecimals,
         address _governor,
         address _controller
     ) ERC20(_name, _symbol) {
         initializeGovernable(_governor);
         uToken = IERC20Metadata(_uToken);
         controller = IRcaController(_controller);
-        BUFFER_UTOKEN = 10**_uTokenDecimals;
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -196,7 +192,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
         bytes32 _s,
         uint256 _newCumLiqForClaims,
         bytes32[] calldata _liqForClaimsProof
-    ) external {
+    ) external virtual {
         // Call controller to check capacity limits, add to capacity limits, emit events, check for new "for sale".
         controller.mint(_user, _uAmount, _expiry, _v, _r, _s, _newCumLiqForClaims, _liqForClaimsProof);
 
@@ -205,8 +201,6 @@ abstract contract RcaShieldBase is ERC20, Governable {
 
         uint256 rcaAmount = _rcaValue(_uAmount, amtForSale);
 
-        // handles decimals diff of underlying tokens
-        _uAmount = _normalizedUAmount(_uAmount);
         uToken.safeTransferFrom(msg.sender, address(this), _uAmount);
 
         _mint(_user, rcaAmount);
@@ -271,7 +265,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
         bytes calldata _zapperData,
         uint256 _newCumLiqForClaims,
         bytes32[] calldata _liqForClaimsProof
-    ) external {
+    ) external virtual {
         address user = msg.sender;
 
         WithdrawRequest memory request = withdrawRequests[user];
@@ -286,15 +280,13 @@ abstract contract RcaShieldBase is ERC20, Governable {
 
         pendingWithdrawal -= uint256(request.uAmount);
 
-        // handles decimals diff of underlying tokens
-        uint256 transferAmount = _normalizedUAmount(request.uAmount);
-        uToken.safeTransfer(_to, transferAmount);
+        uToken.safeTransfer(_to, request.uAmount);
 
         // The cool part about doing it this way rather than having user send RCAs to zapper contract,
         // then it exchanging and returning Ether is that it's more gas efficient and no approvals are needed.
-        if (_zapper) IZapper(_to).zapTo(user, transferAmount, _zapperData);
+        if (_zapper) IZapper(_to).zapTo(user, request.uAmount, _zapperData);
 
-        emit RedeemFinalize(user, _to, transferAmount, uint256(request.rcaAmount), block.timestamp);
+        emit RedeemFinalize(user, _to, request.uAmount, uint256(request.rcaAmount), block.timestamp);
     }
 
     /**
@@ -313,7 +305,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
         bytes32[] calldata _priceProof,
         uint256 _newCumLiqForClaims,
         bytes32[] calldata _liqForClaimsProof
-    ) external payable {
+    ) external payable virtual {
         // If user submits incorrect price, tx will fail here.
         controller.purchase(_user, _uEthPrice, _priceProof, _newCumLiqForClaims, _liqForClaimsProof);
 
@@ -327,8 +319,6 @@ abstract contract RcaShieldBase is ERC20, Governable {
         // If amount is bigger than for sale, tx will fail here.
         amtForSale -= _uAmount;
 
-        // handles decimals diff of underlying tokens
-        _uAmount = _normalizedUAmount(_uAmount);
         uToken.safeTransfer(_user, _uAmount);
         treasury.transfer(msg.value);
 
@@ -401,15 +391,6 @@ abstract contract RcaShieldBase is ERC20, Governable {
     function rcaValue(uint256 _uAmount, uint256 _cumLiqForClaims) external view returns (uint256 rcaAmount) {
         uint256 extraForSale = getExtraForSale(_cumLiqForClaims);
         rcaAmount = _rcaValue(_uAmount, amtForSale + extraForSale);
-    }
-
-    /**
-     * @notice Normalizes underlying token amount by taking consideration of its
-     * decimals.
-     * @param _uAmount Utoken amount in 18 decimals
-     */
-    function _normalizedUAmount(uint256 _uAmount) internal view returns (uint256 amount) {
-        amount = (_uAmount * BUFFER_UTOKEN) / BUFFER;
     }
 
     /**

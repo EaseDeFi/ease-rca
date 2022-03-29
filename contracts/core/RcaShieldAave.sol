@@ -2,10 +2,10 @@
 
 pragma solidity ^0.8.11;
 
-import "./RcaShieldBase.sol";
+import "./RcaShieldBaseNormalized.sol";
 import "../external/Aave.sol";
 
-contract RcaShieldAave is RcaShieldBase {
+contract RcaShieldAave is RcaShieldBaseNormalized {
     using SafeERC20 for IERC20Metadata;
 
     IIncentivesController public immutable incentivesController;
@@ -18,7 +18,7 @@ contract RcaShieldAave is RcaShieldBase {
         address _governance,
         address _controller,
         IIncentivesController _incentivesController
-    ) RcaShieldBase(_name, _symbol, _uToken, _uTokenDecimals, _governance, _controller) {
+    ) RcaShieldBaseNormalized(_name, _symbol, _uToken, _uTokenDecimals, _governance, _controller) {
         incentivesController = _incentivesController;
     }
 
@@ -51,11 +51,6 @@ contract RcaShieldAave is RcaShieldBase {
 
         token.safeTransfer(msg.sender, _amount);
         uToken.safeTransferFrom(msg.sender, address(this), _normalizedUAmount(underlyingAmount));
-
-    }
-
-    function _uBalance() internal view override returns (uint256) {
-        return uToken.balanceOf(address(this));
     }
 
     function _afterMint(uint256 _uAmount) internal override {

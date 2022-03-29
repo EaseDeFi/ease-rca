@@ -98,7 +98,6 @@ describe("RcaShieldOnsen", function () {
         signers.gov.address,
         contracts.rcaController.address,
         masterChefV2.address,
-        sushiToken.address,
         BITWETH_PID,
       )
     );
@@ -162,9 +161,7 @@ describe("RcaShieldOnsen", function () {
   }
   describe("Initialize", function () {
     it("should initialize the shield with valid state", async function () {
-      // userInfo (pid, userAddr) => returns amount deposited/staked and rewardDebt
       expect(await contracts.rcaShieldOnsen.pid()).to.be.equal(BITWETH_PID);
-      expect((await contracts.rcaShieldOnsen.sushi()).toLowerCase()).to.be.equal(sushiToken.address);
       expect(await contracts.rcaShieldOnsen.masterChef()).to.be.equal(masterChefV2.address);
     });
   });

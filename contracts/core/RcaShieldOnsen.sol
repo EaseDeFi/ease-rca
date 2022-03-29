@@ -2,15 +2,13 @@
 
 pragma solidity ^0.8.11;
 
-import "./RcaShieldBase.sol";
+import "./RcaShieldBaseNormalized.sol";
 import { IMasterChefV2 } from "../external/Sushiswap.sol";
 
-contract RcaShieldOnsen is RcaShieldBase {
+contract RcaShieldOnsen is RcaShieldBaseNormalized {
     using SafeERC20 for IERC20Metadata;
 
     IMasterChefV2 public immutable masterChef;
-
-    IERC20 public immutable sushi;
 
     uint256 public immutable pid;
 
@@ -22,11 +20,9 @@ contract RcaShieldOnsen is RcaShieldBase {
         address _governance,
         address _controller,
         IMasterChefV2 _masterChef,
-        IERC20 _sushi,
         uint256 _pid
-    ) RcaShieldBase(_name, _symbol, _uToken, _uTokenDecimals, _governance, _controller) {
+    ) RcaShieldBaseNormalized(_name, _symbol, _uToken, _uTokenDecimals, _governance, _controller) {
         masterChef = _masterChef;
-        sushi = _sushi;
         pid = _pid;
     }
 
@@ -62,7 +58,9 @@ contract RcaShieldOnsen is RcaShieldBase {
     }
 
     function _uBalance() internal view override returns (uint256) {
-        return uToken.balanceOf(address(this)) + masterChef.userInfo(pid, address(this)).amount;
+        return
+            ((uToken.balanceOf(address(this)) + masterChef.userInfo(pid, address(this)).amount) * BUFFER) /
+            BUFFER_UTOKEN;
     }
 
     function _afterMint(uint256 _uAmount) internal override {
