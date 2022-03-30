@@ -101,9 +101,7 @@ describe("RcaShieldConvex", function () {
 
     await contracts.rcaShieldConvex.deployed();
 
-    await contracts.rcaController
-      .connect(signers.gov)
-      .initializeShield(contracts.rcaShieldConvex.address, [1, 2], [10000, 10000]);
+    await contracts.rcaController.connect(signers.gov).initializeShield(contracts.rcaShieldConvex.address);
 
     // initialize reward token contracts
     crvToken = <MockERC20>await ethers.getContractAt("MockERC20", MAINNET_ADDRESSES.contracts.convex.crvToken);

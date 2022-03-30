@@ -19,19 +19,11 @@ import "hardhat/console.sol";
 contract RcaController is RcaGovernable {
     /// @notice Address => whether or not it's a verified shield.
     mapping(address => bool) public shieldMapping;
-    /// @notice Percents of coverage for each protocol of a specific shield, 1000 == 10%.
-    mapping(address => ProtocolPercent[]) public shieldProtocolPercents;
+
     /// @notice Address => whether or not router is verified.
     mapping(address => bool) public isRouterVerified;
-    /**
-     * @dev For a Yearn vault with a Curve token with DAI, USDC, USDT:
-     * Yearn|100%, Curve|100%, DAI|100%, USDC|100%, USDT|100%
-     * Just used by frontend at the moment.
-     */
-    struct ProtocolPercent {
-        uint128 protocolId;
-        uint128 percent;
-    }
+
+
 
     /// @notice Fees for users per year for using the system. Ideally just 0 but option is here.
     /// In hundredths of %. 1000 == 10%.
@@ -416,27 +408,12 @@ contract RcaController is RcaGovernable {
     /**
      * @notice Initialize a new shield.
      * @param _shield Address of the shield to initialize.
-     * @param _protocols IDs of the protocols the shield is exposed to.
-     * @param _percents Percent (in hundredths, 1000 == 10%) of funds that are exposed to each protocol.
      */
-    function initializeShield(
-        address _shield,
-        uint128[] calldata _protocols,
-        uint128[] calldata _percents
-    ) external onlyGov {
-        require(_protocols.length == _percents.length, "Array lengths do not match.");
-
+    function initializeShield(address _shield) external onlyGov {
         IRcaShield(_shield).initialize(apr, discount, treasury, withdrawalDelay);
 
         shieldMapping[_shield] = true;
         lastShieldUpdate[_shield] = block.timestamp;
-
-        // Annoying stuff below because we can't push a struct to the mapping.
-        for (uint256 i = 0; i < _protocols.length; i++) {
-            shieldProtocolPercents[_shield].push();
-            shieldProtocolPercents[_shield][i].protocolId = _protocols[i];
-            shieldProtocolPercents[_shield][i].percent = _percents[i];
-        }
 
         emit ShieldCreated(
             _shield,

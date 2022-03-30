@@ -103,9 +103,7 @@ describe("RcaShieldOnsen", function () {
     );
     await contracts.rcaShieldOnsen.deployed();
 
-    await contracts.rcaController
-      .connect(signers.gov)
-      .initializeShield(contracts.rcaShieldOnsen.address, [1, 2], [10000, 10000]);
+    await contracts.rcaController.connect(signers.gov).initializeShield(contracts.rcaShieldOnsen.address);
     // Set liquidation tree.
     merkleTrees.liqTree1 = new BalanceTree([
       { account: contracts.rcaShieldOnsen.address, amount: ether("100") },

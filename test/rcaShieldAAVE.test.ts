@@ -103,9 +103,7 @@ describe("RcaShieldAave:aWeth", function () {
     // Wait for contract to get deployed
     await contracts.rcaShieldAave.deployed();
 
-    await contracts.rcaController
-      .connect(signers.gov)
-      .initializeShield(contracts.rcaShieldAave.address, [1, 2], [10000, 10000]);
+    await contracts.rcaController.connect(signers.gov).initializeShield(contracts.rcaShieldAave.address);
 
     // Set liquidation tree.
     merkleTrees.liqTree1 = new BalanceTree([
@@ -479,9 +477,7 @@ describe("RcaShieldAave:aWBTC", function () {
     // Wait for contract to get deployed
     await contracts.rcaShieldAave.deployed();
 
-    await contracts.rcaController
-      .connect(signers.gov)
-      .initializeShield(contracts.rcaShieldAave.address, [1, 2], [10000, 10000]);
+    await contracts.rcaController.connect(signers.gov).initializeShield(contracts.rcaShieldAave.address);
 
     // Set liquidation tree.
     merkleTrees.liqTree1 = new BalanceTree([
@@ -766,11 +762,9 @@ describe("RcaShieldAave:aWBTC", function () {
         .mul(BigNumber.from(10).pow(await contracts.uToken.decimals()))
         .div(BigNumber.from(10).pow(await contracts.rcaShieldAave.decimals()));
 
-
       // sometimes there's discrepencies with aWBTC transfers in minute fraction
       // this is the fix for it comment the below line to see the difference
       expectedUTokenDeduction = expectedUTokenDeduction.sub(expectedUTokenDeduction.mul(10).div(10000));
-
 
       // should allow user to buy on discount
       expect(userUtokenBalanceBefore.sub(userUtokenBalanceAfter)).to.be.gte(expectedUTokenDeduction);

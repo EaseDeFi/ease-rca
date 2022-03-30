@@ -119,9 +119,7 @@ describe("RCA controller", function () {
   describe("#initialState", function () {
     beforeEach(async function () {
       // initialize shield
-      await contracts.rcaController
-        .connect(signers.gov)
-        .initializeShield(contracts.rcaShield.address, [1, 2], [10000, 10000]);
+      await contracts.rcaController.connect(signers.gov).initializeShield(contracts.rcaShield.address);
     });
     // Approve rcaShield to take 1,000 underlying tokens, mint, should receive back 1,000 RCA tokens.
     it("should initialize rcaController correctly", async function () {
@@ -138,9 +136,7 @@ describe("RCA controller", function () {
   describe("verifyCapacitySig()", function () {
     beforeEach(async function () {
       // initialize shield
-      await contracts.rcaController
-        .connect(signers.gov)
-        .initializeShield(contracts.rcaShield.address, [1, 2], [10000, 10000]);
+      await contracts.rcaController.connect(signers.gov).initializeShield(contracts.rcaShield.address);
     });
     it("should succeed if valid arguments are passed", async function () {
       // approve tokens on user behalf
@@ -368,34 +364,20 @@ describe("RCA controller", function () {
     });
   });
   describe("initializeShield()", function () {
-    it("should revert if incorrect data lengths are provided", async function () {
-      await expect(
-        contracts.rcaController
-          .connect(signers.gov)
-          .initializeShield(contracts.rcaShield.address, [1, 2], [10000, 10000, 10000]),
-      ).to.be.revertedWith("Array lengths do not match.");
-    });
     it("should update protocol state", async function () {
       const shieldAddress = contracts.rcaShield.address;
-      await contracts.rcaController.connect(signers.gov).initializeShield(shieldAddress, [3, 4], [20000, 20000]);
+      await contracts.rcaController.connect(signers.gov).initializeShield(shieldAddress);
       // check shield mapping for shield address
       expect(await contracts.rcaController.shieldMapping(shieldAddress)).to.equal(true);
       // check if last shield update is updated
       const blockTimestamp = await getTimestamp();
       expect(await contracts.rcaController.lastShieldUpdate(shieldAddress)).to.equal(blockTimestamp);
-      // it should update shieldProtocolPercents mapping
-      const protocolPercents0 = await contracts.rcaController.shieldProtocolPercents(shieldAddress, 0);
-      const protocolPercents1 = await contracts.rcaController.shieldProtocolPercents(shieldAddress, 1);
-      expect(protocolPercents0.protocolId).to.be.equal(3);
-      expect(protocolPercents1.protocolId).to.be.equal(4);
-      expect(protocolPercents0.percent).to.be.equal(20000);
-      expect(protocolPercents1.percent).to.be.equal(20000);
     });
     it("should emit ShieldCreated event with valid arguments", async function () {
       const shieldAddress = contracts.rcaShield.address;
       const uTokenAddress = contracts.uToken.address;
       const blockTimestamp = (await getTimestamp()).add(1);
-      await expect(contracts.rcaController.connect(signers.gov).initializeShield(shieldAddress, [3, 4], [20000, 20000]))
+      await expect(contracts.rcaController.connect(signers.gov).initializeShield(shieldAddress))
         .to.emit(contracts.rcaController, "ShieldCreated")
         .withArgs(shieldAddress, uTokenAddress, rcaTokenName, rcaTokenSymbol, blockTimestamp);
     });
