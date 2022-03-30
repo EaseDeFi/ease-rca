@@ -15,7 +15,7 @@ import "hardhat/console.sol";
  * Each underlying token (not protocol) has its own RCA vault. This contract
  * doubles as the vault and the RCA token.
  * @dev This contract assumes uToken decimals of 18.
- * @author Robert M.C. Forster, Romke Jonker, Taek Lee
+ * @author Robert M.C. Forster, Romke Jonker, Taek Lee, Chiranjibi Poudyal
  **/
 abstract contract RcaShieldBase is ERC20, Governable {
     using SafeERC20 for IERC20Metadata;

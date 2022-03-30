@@ -369,6 +369,8 @@ describe("RCA controller", function () {
       await contracts.rcaController.connect(signers.gov).initializeShield(shieldAddress);
       // check shield mapping for shield address
       expect(await contracts.rcaController.shieldMapping(shieldAddress)).to.equal(true);
+      // check if active shields is updated
+      expect(await contracts.rcaController.activeShields(shieldAddress)).to.be.equal(true);
       // check if last shield update is updated
       const blockTimestamp = await getTimestamp();
       expect(await contracts.rcaController.lastShieldUpdate(shieldAddress)).to.equal(blockTimestamp);
@@ -470,6 +472,28 @@ describe("RCA controller", function () {
       const blockTimestamp = await getTimestamp();
       // check for last system updates for treasuryUpdate
       expect(systemUpdates.treasuryUpdate).to.equal(blockTimestamp);
+    });
+  });
+  describe("cancelShield()", function () {
+    it("should cancel shield support", async function () {
+      const shieldAddress = contracts.rcaShield.address;
+      await contracts.rcaController.connect(signers.gov).initializeShield(shieldAddress);
+      expect(await contracts.rcaController.activeShields(shieldAddress)).to.be.equal(true);
+
+      // cancleShield support
+      await contracts.rcaController.connect(signers.gov).cancelShield([shieldAddress]);
+      expect(await contracts.rcaController.activeShields(shieldAddress)).to.be.equal(false);
+    });
+    it("should emit ShieldCancelled event with valid args", async function () {
+      const shieldAddress = contracts.rcaShield.address;
+      await contracts.rcaController.connect(signers.gov).initializeShield(shieldAddress);
+      expect(await contracts.rcaController.activeShields(shieldAddress))
+        .to.emit(contracts.rcaController, "ShieldCancelled")
+        .withArgs([shieldAddress]);
+
+      // cancleShield support
+      await contracts.rcaController.connect(signers.gov).cancelShield([shieldAddress]);
+      expect(await contracts.rcaController.activeShields(shieldAddress)).to.be.equal(false);
     });
   });
   describe("setPercentReserved()", function () {

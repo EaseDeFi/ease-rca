@@ -13,12 +13,14 @@ import "hardhat/console.sol";
  * This contract creates vaults, emits events when anything happens on a vault,
  * keeps track of variables relevant to vault functionality, keeps track of capacities,
  * amounts for sale on each vault, prices of tokens, and updates vaults when needed.
- * @author Robert M.C. Forster, Romke Jonker, Taek Lee
+ * @author Robert M.C. Forster, Romke Jonker, Taek Lee, Chiranjibi Poudyal
  */
 
 contract RcaController is RcaGovernable {
     /// @notice Address => whether or not it's a verified shield.
     mapping(address => bool) public shieldMapping;
+    /// @notice Address => whether or not shield is active.
+    mapping(address => bool) public activeShields;
 
     /// @notice Address => whether or not router is verified.
     mapping(address => bool) public isRouterVerified;
@@ -76,6 +78,7 @@ contract RcaController is RcaGovernable {
         string symbol,
         uint256 timestamp
     );
+    event ShieldCancelled(address indexed rcaShield);
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////// modifiers //////////////////////////////////////////////////
@@ -413,6 +416,7 @@ contract RcaController is RcaGovernable {
         IRcaShield(_shield).initialize(apr, discount, treasury, withdrawalDelay);
 
         shieldMapping[_shield] = true;
+        activeShields[_shield] = true;
         lastShieldUpdate[_shield] = block.timestamp;
 
         emit ShieldCreated(
@@ -474,6 +478,17 @@ contract RcaController is RcaGovernable {
     function setTreasury(address payable _newTreasury) external onlyGov {
         treasury = _newTreasury;
         systemUpdates.treasuryUpdate = uint32(block.timestamp);
+    }
+
+    /**
+     * @notice Governance can cancel the shield support.
+     * @param _shields An array of shield addresses that are being cancelled.
+     */
+    function cancelShield(address[] memory _shields) external onlyGov {
+        for (uint256 i = 0; i < _shields.length; i++) {
+            activeShields[_shields[i]] = false;
+            emit ShieldCancelled(_shields[i]);
+        }
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////
