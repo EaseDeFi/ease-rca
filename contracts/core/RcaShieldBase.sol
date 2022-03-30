@@ -1,8 +1,41 @@
 /// SPDX-License-Identifier: UNLICENSED
 
+/**
+
+                               ................                            
+                          ..',,;;::::::::ccccc:;,'..                       
+                      ..',;;;;::::::::::::cccccllllc;..                    
+                    .';;;;;;;,'..............',:clllolc,.                  
+                  .,;;;;;,..                    .';cooool;.                
+                .';;;;;'.           .....          .,coodoc.               
+               .,;;;;'.       ..',;:::cccc:;,'.      .;odddl'              
+              .,;;;;.       .,:cccclllllllllool:'      ,odddl'             
+             .,:;:;.      .;ccccc:;,''''',;cooooo:.     ,odddc.            
+             ';:::'     .,ccclc,..         .':odddc.    .cdddo,            
+            .;:::,.     ,cccc;.              .:oddd:.    ,dddd:.           
+            '::::'     .ccll:.                .ldddo'    'odddc.           
+            ,::c:.     ,lllc'    .';;;::::::::codddd;    ,dxxxc.           
+           .,ccc:.    .;lllc.    ,oooooddddddddddddd;    :dxxd:            
+            ,cccc.     ;llll'    .;:ccccccccccccccc;.   'oxxxo'            
+            'cccc,     'loooc.                         'lxxxd;             
+            .:lll:.    .;ooooc.                      .;oxxxd:.             
+             ,llll;.    .;ooddo:'.                ..:oxxxxo;.              
+             .:llol,.     'coddddl:;''.........,;codxxxxd:.                
+              .:lool;.     .':odddddddddoooodddxxxxxxdl;.                  
+               .:ooooc'       .';codddddddxxxxxxdol:,.                     
+                .;ldddoc'.        ...'',,;;;,,''..                         
+                  .:oddddl:'.                          .,;:'.              
+                    .:odddddoc;,...              ..',:ldxxxx;              
+                      .,:odddddddoolcc::::::::cllodxxxxxxxd:.              
+                         .';clddxxxxxxxxxxxxxxxxxxxxxxoc;'.                
+                             ..',;:ccllooooooollc:;,'..                    
+                                        ......                             
+                                                                      
+**/
+
 pragma solidity 0.8.11;
 import "../general/Governable.sol";
-import "../interfaces/IZapper.sol";
+import "../interfaces/IRouter.sol";
 import "../interfaces/IRcaController.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
@@ -254,15 +287,14 @@ abstract contract RcaShieldBase is ERC20, Governable {
 
     /**
      * @notice Used to exchange RCA tokens back to the underlying token. Will have a 1-2 day delay upon withdrawal.
-     * This can mint to a "zapper" contract that can exchange the asset for Ether and send to the user.
+     * This can mint to a router contract that can exchange the asset for Ether and send to the user.
      * @param _to The destination of the tokens.
      * @param _newCumLiqForClaims New cumulative liquidated if this must be updated.
      * @param _liqForClaimsProof Merkle proof to verify new cumulative liquidation.
      */
     function redeemFinalize(
         address _to,
-        bool _zapper,
-        bytes calldata _zapperData,
+        bytes calldata _routerData,
         uint256 _newCumLiqForClaims,
         bytes32[] calldata _liqForClaimsProof
     ) external virtual {
@@ -284,10 +316,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
 
         // The cool part about doing it this way rather than having user send RCAs to zapper contract,
         // then it exchanging and returning Ether is that it's more gas efficient and no approvals are needed.
-        if (_zapper) {
-            require(isRouterVerified, "router not verified");
-            IZapper(_to).zapTo(user, uint256(request.uAmount), _zapperData);
-        }
+        if (isRouterVerified) IRouter(_to).routeTo(user, uint256(request.uAmount), _routerData);
 
         emit RedeemFinalize(user, _to, request.uAmount, uint256(request.rcaAmount), block.timestamp);
     }
