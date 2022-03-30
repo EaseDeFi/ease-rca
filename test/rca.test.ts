@@ -533,8 +533,6 @@ describe("RCAs and Controller", function () {
           .connect(signers.user)
           .redeemRequest(ether("100"), 0, merkleProofs.liqProof2, 0, merkleProofs.resProof1);
 
-        await contracts.rcaController.connect(signers.guardian).setRouterVerified(contracts.router.address, true);
-
         // Check request data
         const timestamp = await getTimestamp();
         const requests = await contracts.rcaShield.withdrawRequests(signers.user.address);
@@ -545,6 +543,8 @@ describe("RCAs and Controller", function () {
 
         // A bit more than 1 day withdrawal
         increase(86500);
+
+        await contracts.rcaController.connect(signers.guardian).setRouterVerified(contracts.router.address, true);
 
         await expect(
           contracts.rcaShield
