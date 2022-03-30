@@ -310,7 +310,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
         bytes32[] calldata _liqForClaimsProof
     ) external payable virtual {
         // If user submits incorrect price, tx will fail here.
-        controller.purchase(_user, _uEthPrice, _priceProof, _newCumLiqForClaims, _liqForClaimsProof);
+        controller.purchase(_user, address(uToken), _uEthPrice, _priceProof, _newCumLiqForClaims, _liqForClaimsProof);
 
         _update();
 
@@ -346,7 +346,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
         bytes32[] calldata _liqForClaimsProof
     ) external payable {
         // If user submits incorrect price, tx will fail here.
-        controller.purchase(_user, _uEthPrice, _priceProof, _newCumLiqForClaims, _liqForClaimsProof);
+        controller.purchase(_user, address(uToken), _uEthPrice, _priceProof, _newCumLiqForClaims, _liqForClaimsProof);
 
         _update();
 

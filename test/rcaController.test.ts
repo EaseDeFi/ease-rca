@@ -85,13 +85,13 @@ describe("RCA controller", function () {
 
     // Set price tree.
     merkleTrees.priceTree1 = new BalanceTree([
-      { account: contracts.rcaShield.address, amount: ether("0.001") },
+      { account: contracts.uToken.address, amount: ether("0.001") },
       { account: contracts.rcaController.address, amount: ether("0.001") },
     ]);
 
     // Set price tree with different rate.
     merkleTrees.priceTree2 = new BalanceTree([
-      { account: contracts.rcaShield.address, amount: ether("0.002") },
+      { account: contracts.uToken.address, amount: ether("0.002") },
       { account: contracts.rcaController.address, amount: ether("0.002") },
     ]);
     // Set reserved tree with 0 reserved.
@@ -106,8 +106,8 @@ describe("RCA controller", function () {
       { account: contracts.rcaController.address, amount: BigNumber.from(1000) },
     ]);
 
-    merkleProofs.priceProof1 = merkleTrees.priceTree1.getProof(contracts.rcaShield.address, ether("0.001"));
-    merkleProofs.priceProof2 = merkleTrees.priceTree2.getProof(contracts.rcaShield.address, ether("0.002"));
+    merkleProofs.priceProof1 = merkleTrees.priceTree1.getProof(contracts.uToken.address, ether("0.001"));
+    merkleProofs.priceProof2 = merkleTrees.priceTree2.getProof(contracts.uToken.address, ether("0.002"));
     merkleProofs.liqProof1 = merkleTrees.liqTree1.getProof(contracts.rcaShield.address, ether("100"));
     merkleProofs.liqProof2 = merkleTrees.liqTree2.getProof(contracts.rcaShield.address, ether("0"));
     merkleProofs.resProof1 = merkleTrees.resTree1.getProof(contracts.rcaShield.address, ether("0"));
@@ -276,7 +276,7 @@ describe("RCA controller", function () {
   describe("verifyPrice()", function () {
     it("should succeed if valid arguments are passed", async function () {
       const ethPrice = ether("0.001");
-      await contracts.rcaController.verifyPrice(contracts.rcaShield.address, ethPrice, merkleProofs.priceProof1);
+      await contracts.rcaController.verifyPrice(contracts.uToken.address, ethPrice, merkleProofs.priceProof1);
     });
     it("should fail if invalid arguments are passed", async function () {
       let ethPrice = ether("0.002");

@@ -91,7 +91,7 @@ describe("RCAs and Controller", function () {
 
     // Set price tree.
     merkleTrees.priceTree1 = new BalanceTree([
-      { account: contracts.rcaShield.address, amount: ether("0.001") },
+      { account: contracts.uToken.address, amount: ether("0.001") },
       { account: contracts.rcaController.address, amount: ether("0.001") },
     ]);
 
@@ -107,7 +107,7 @@ describe("RCAs and Controller", function () {
       { account: contracts.rcaController.address, amount: BigNumber.from(1000) },
     ]);
 
-    merkleProofs.priceProof1 = merkleTrees.priceTree1.getProof(contracts.rcaShield.address, ether("0.001"));
+    merkleProofs.priceProof1 = merkleTrees.priceTree1.getProof(contracts.uToken.address, ether("0.001"));
     merkleProofs.liqProof1 = merkleTrees.liqTree1.getProof(contracts.rcaShield.address, ether("100"));
     merkleProofs.liqProof2 = merkleTrees.liqTree2.getProof(contracts.rcaShield.address, ether("0"));
     merkleProofs.resProof1 = merkleTrees.resTree1.getProof(contracts.rcaShield.address, ether("0"));

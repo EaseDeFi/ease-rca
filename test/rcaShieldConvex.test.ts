@@ -115,7 +115,6 @@ describe("RcaShieldConvex", function () {
     ]);
     // Set price tree.
     merkleTrees.priceTree1 = new BalanceTree([
-      { account: contracts.rcaShieldConvex.address, amount: ether("0.001") },
       { account: contracts.rcaController.address, amount: ether("0.001") },
       { account: crvToken.address, amount: ether("0.001") },
       { account: cvxToken.address, amount: ether("0.001") },
@@ -129,7 +128,7 @@ describe("RcaShieldConvex", function () {
     ]);
 
     merkleProofs.liqProof1 = merkleTrees.liqTree1.getProof(contracts.rcaShieldConvex.address, ether("100"));
-    merkleProofs.priceProof1 = merkleTrees.priceTree1.getProof(contracts.rcaShieldConvex.address, ether("0.001"));
+    merkleProofs.priceProof1 = merkleTrees.priceTree1.getProof(contracts.uToken.address, ether("0.001"));
 
     await contracts.rcaController.connect(signers.priceOracle).setPrices(merkleTrees.priceTree1.getHexRoot());
     // approve underlying tokens to shield

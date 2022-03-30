@@ -23,8 +23,6 @@ contract RcaController is RcaGovernable {
     /// @notice Address => whether or not router is verified.
     mapping(address => bool) public isRouterVerified;
 
-
-
     /// @notice Fees for users per year for using the system. Ideally just 0 but option is here.
     /// In hundredths of %. 1000 == 10%.
     uint256 public apr;
@@ -200,6 +198,7 @@ contract RcaController is RcaGovernable {
     /**
      * @notice Updates contract, emits event for purchase action, verifies price.
      * @param _user The user that is making the purchase.
+     * @param _uToken The user that is making the purchase.
      * @param _ethPrice The price of one token in Ether.
      * @param _priceProof Merkle proof to verify the Ether price of the token.
      * @param _newCumLiqForClaims New cumulative amount of liquidated tokens if an update is needed.
@@ -207,6 +206,7 @@ contract RcaController is RcaGovernable {
      */
     function purchase(
         address _user,
+        address _uToken,
         uint256 _ethPrice,
         bytes32[] calldata _priceProof,
         uint256 _newCumLiqForClaims,
@@ -214,7 +214,7 @@ contract RcaController is RcaGovernable {
     ) external onlyShield {
         _update(_newCumLiqForClaims, _liqForClaimsProof, 0, new bytes32[](0), false);
 
-        verifyPrice(msg.sender, _ethPrice, _priceProof);
+        verifyPrice(_uToken, _ethPrice, _priceProof);
         emit Purchase(msg.sender, _user, block.timestamp);
     }
 

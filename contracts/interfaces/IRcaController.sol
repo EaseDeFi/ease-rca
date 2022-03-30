@@ -31,6 +31,7 @@ interface IRcaController {
 
     function purchase(
         address user,
+        address uToken,
         uint256 uEthPrice,
         bytes32[] calldata priceProof,
         uint256 _newCumLiq,
