@@ -72,10 +72,7 @@ describe("RCAs and Controller", function () {
       contracts.rcaController.address, // rcaController
     );
 
-    //                                                                shield, protocol Id, %
-    await contracts.rcaController
-      .connect(signers.gov)
-      .initializeShield(contracts.rcaShield.address, [1, 2], [10000, 10000]);
+    await contracts.rcaController.connect(signers.gov).initializeShield(contracts.rcaShield.address);
 
     await contracts.uToken.mint(signers.user.address, ether("1000000"));
     await contracts.uToken.mint(signers.referrer.address, ether("1000000"));
@@ -132,12 +129,6 @@ describe("RCAs and Controller", function () {
       expect(await contracts.rcaController.guardian()).to.be.equal(signers.guardian.address);
 
       expect(await contracts.rcaController.shieldMapping(contracts.rcaShield.address)).to.be.equal(true);
-      const protocolPercents0 = await contracts.rcaController.shieldProtocolPercents(contracts.rcaShield.address, 0);
-      const protocolPercents1 = await contracts.rcaController.shieldProtocolPercents(contracts.rcaShield.address, 1);
-      expect(protocolPercents0.protocolId).to.be.equal(1);
-      expect(protocolPercents1.protocolId).to.be.equal(2);
-      expect(protocolPercents0.percent).to.be.equal(10000);
-      expect(protocolPercents1.percent).to.be.equal(10000);
     });
 
     // Approve rcaShield to take 1,000 underlying tokens, mint, should receive back 1,000 RCA tokens.

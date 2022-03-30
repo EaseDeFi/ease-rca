@@ -105,9 +105,7 @@ describe("RcaShieldCompound", function () {
 
     await contracts.rcaShieldCompound.deployed();
 
-    await contracts.rcaController
-      .connect(signers.gov)
-      .initializeShield(contracts.rcaShieldCompound.address, [1, 2], [10000, 10000]);
+    await contracts.rcaController.connect(signers.gov).initializeShield(contracts.rcaShieldCompound.address);
 
     // initialize reward token contracts
     compToken = <MockERC20>await ethers.getContractAt("MockERC20", MAINNET_ADDRESSES.contracts.compound.token);
