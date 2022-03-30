@@ -493,7 +493,6 @@ describe("RcaShieldAave:aWBTC", function () {
 
     // Set price tree.
     merkleTrees.priceTree1 = new BalanceTree([
-      { account: contracts.rcaShieldAave.address, amount: ether("0.001") },
       { account: contracts.rcaController.address, amount: ether("0.001") },
       { account: contracts.uToken.address, amount: ether("0.001") },
       { account: aaveToken.address, amount: ether("0.001") },

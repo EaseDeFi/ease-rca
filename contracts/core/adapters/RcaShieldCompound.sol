@@ -2,8 +2,8 @@
 
 pragma solidity ^0.8.11;
 
-import "./RcaShieldBaseNormalized.sol";
-import "../external/Compound.sol";
+import "../RcaShieldBaseNormalized.sol";
+import "../../external/Compound.sol";
 
 contract RcaShieldCompound is RcaShieldBaseNormalized {
     using SafeERC20 for IERC20Metadata;

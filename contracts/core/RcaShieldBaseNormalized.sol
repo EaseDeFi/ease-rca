@@ -65,7 +65,7 @@ contract RcaShieldBaseNormalized is RcaShieldBase {
         // endTime > 0 ensures request exists.
         require(request.endTime > 0 && uint32(block.timestamp) > request.endTime, "Withdrawal not yet allowed.");
 
-        controller.redeemFinalize(user, _newCumLiqForClaims, _liqForClaimsProof);
+        controller.redeemFinalize(user, _to, _newCumLiqForClaims, _liqForClaimsProof);
 
         _update();
 
@@ -91,7 +91,7 @@ contract RcaShieldBaseNormalized is RcaShieldBase {
         bytes32[] calldata _liqForClaimsProof
     ) external payable override {
         // If user submits incorrect price, tx will fail here.
-        controller.purchase(_user, _uEthPrice, _priceProof, _newCumLiqForClaims, _liqForClaimsProof);
+        controller.purchase(_user, address(uToken), _uEthPrice, _priceProof, _newCumLiqForClaims, _liqForClaimsProof);
 
         _update();
 

@@ -2,13 +2,15 @@
 
 pragma solidity ^0.8.11;
 
-import "./RcaShieldBaseNormalized.sol";
-import "../external/Aave.sol";
+import "../RcaShieldBaseNormalized.sol";
+import { IMasterChefV2 } from "../../external/Sushiswap.sol";
 
-contract RcaShieldAave is RcaShieldBaseNormalized {
+contract RcaShieldOnsen is RcaShieldBaseNormalized {
     using SafeERC20 for IERC20Metadata;
 
-    IIncentivesController public immutable incentivesController;
+    IMasterChefV2 public immutable masterChef;
+
+    uint256 public immutable pid;
 
     constructor(
         string memory _name,
@@ -17,16 +19,15 @@ contract RcaShieldAave is RcaShieldBaseNormalized {
         uint256 _uTokenDecimals,
         address _governance,
         address _controller,
-        IIncentivesController _incentivesController
+        IMasterChefV2 _masterChef,
+        uint256 _pid
     ) RcaShieldBaseNormalized(_name, _symbol, _uToken, _uTokenDecimals, _governance, _controller) {
-        incentivesController = _incentivesController;
+        masterChef = _masterChef;
+        pid = _pid;
     }
 
     function getReward() external {
-        address[] memory assets = new address[](1);
-        assets[0] = address(uToken);
-        uint256 amount = incentivesController.getRewardsBalance(assets, address(this));
-        incentivesController.claimRewards(assets, amount, address(this));
+        masterChef.harvest(pid, address(this));
     }
 
     function purchase(
@@ -51,13 +52,23 @@ contract RcaShieldAave is RcaShieldBaseNormalized {
 
         token.safeTransfer(msg.sender, _amount);
         uToken.safeTransferFrom(msg.sender, address(this), _normalizedUAmount(underlyingAmount));
+
+        uToken.safeApprove(address(masterChef), underlyingAmount);
+        masterChef.deposit(pid, underlyingAmount, address(this));
+    }
+
+    function _uBalance() internal view override returns (uint256) {
+        return
+            ((uToken.balanceOf(address(this)) + masterChef.userInfo(pid, address(this)).amount) * BUFFER) /
+            BUFFER_UTOKEN;
     }
 
     function _afterMint(uint256 _uAmount) internal override {
-        // no-op since we get aToken
+        uToken.safeApprove(address(masterChef), _uAmount);
+        masterChef.deposit(pid, _uAmount, address(this));
     }
 
     function _afterRedeem(uint256 _uAmount) internal override {
-        // no-op since we get aToken
+        masterChef.withdraw(pid, _uAmount, address(this));
     }
 }

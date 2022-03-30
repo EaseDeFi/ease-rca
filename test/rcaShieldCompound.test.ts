@@ -129,7 +129,7 @@ describe("RcaShieldCompound", function () {
     ]);
 
     merkleProofs.liqProof1 = merkleTrees.liqTree1.getProof(contracts.rcaShieldCompound.address, ether("100"));
-    merkleProofs.priceProof1 = merkleTrees.priceTree1.getProof(contracts.rcaShieldCompound.address, ether("0.001"));
+    merkleProofs.priceProof1 = merkleTrees.priceTree1.getProof(contracts.uToken.address, ether("0.001"));
 
     await contracts.rcaController.connect(signers.priceOracle).setPrices(merkleTrees.priceTree1.getHexRoot());
     // approve underlying tokens to shield

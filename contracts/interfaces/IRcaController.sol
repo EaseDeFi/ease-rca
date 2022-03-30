@@ -24,12 +24,14 @@ interface IRcaController {
 
     function redeemFinalize(
         address user,
+        address _to,
         uint256 _newCumLiq,
         bytes32[] calldata cumLiqProof
-    ) external;
+    ) external returns (bool);
 
     function purchase(
         address user,
+        address uToken,
         uint256 uEthPrice,
         bytes32[] calldata priceProof,
         uint256 _newCumLiq,

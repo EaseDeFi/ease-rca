@@ -13,12 +13,17 @@ import "hardhat/console.sol";
  * This contract creates vaults, emits events when anything happens on a vault,
  * keeps track of variables relevant to vault functionality, keeps track of capacities,
  * amounts for sale on each vault, prices of tokens, and updates vaults when needed.
- * @author Robert M.C. Forster, Romke Jonker, Taek Lee
+ * @author Robert M.C. Forster, Romke Jonker, Taek Lee, Chiranjibi Poudyal
  */
 
 contract RcaController is RcaGovernable {
     /// @notice Address => whether or not it's a verified shield.
     mapping(address => bool) public shieldMapping;
+    /// @notice Address => whether or not shield is active.
+    mapping(address => bool) public activeShields;
+
+    /// @notice Address => whether or not router is verified.
+    mapping(address => bool) public isRouterVerified;
 
     /// @notice Fees for users per year for using the system. Ideally just 0 but option is here.
     /// In hundredths of %. 1000 == 10%.
@@ -73,6 +78,7 @@ contract RcaController is RcaGovernable {
         string symbol,
         uint256 timestamp
     );
+    event ShieldCancelled(address indexed rcaShield);
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////// modifiers //////////////////////////////////////////////////
@@ -174,24 +180,28 @@ contract RcaController is RcaGovernable {
     }
 
     /**
-     * @notice Updates contract, emits event for redeem action.
+     * @notice Updates contract, emits event for redeem action, returns if router is verified.
      * @param _user User that is redeeming tokens.
+     * @param _to Router address which should be used for zapping.
      * @param _newCumLiqForClaims New cumulative amount of liquidated tokens if an update is needed.
      * @param _liqForClaimsProof Merkle proof to verify the new cumulative liquidated if needed.
      */
     function redeemFinalize(
         address _user,
+        address _to,
         uint256 _newCumLiqForClaims,
         bytes32[] calldata _liqForClaimsProof
-    ) external onlyShield {
+    ) external onlyShield returns (bool) {
         _update(_newCumLiqForClaims, _liqForClaimsProof, 0, new bytes32[](0), false);
 
         emit RedeemFinalize(msg.sender, _user, block.timestamp);
+        return isRouterVerified[_to];
     }
 
     /**
      * @notice Updates contract, emits event for purchase action, verifies price.
      * @param _user The user that is making the purchase.
+     * @param _uToken The user that is making the purchase.
      * @param _ethPrice The price of one token in Ether.
      * @param _priceProof Merkle proof to verify the Ether price of the token.
      * @param _newCumLiqForClaims New cumulative amount of liquidated tokens if an update is needed.
@@ -199,6 +209,7 @@ contract RcaController is RcaGovernable {
      */
     function purchase(
         address _user,
+        address _uToken,
         uint256 _ethPrice,
         bytes32[] calldata _priceProof,
         uint256 _newCumLiqForClaims,
@@ -206,7 +217,7 @@ contract RcaController is RcaGovernable {
     ) external onlyShield {
         _update(_newCumLiqForClaims, _liqForClaimsProof, 0, new bytes32[](0), false);
 
-        verifyPrice(msg.sender, _ethPrice, _priceProof);
+        verifyPrice(_uToken, _ethPrice, _priceProof);
         emit Purchase(msg.sender, _user, block.timestamp);
     }
 
@@ -405,6 +416,7 @@ contract RcaController is RcaGovernable {
         IRcaShield(_shield).initialize(apr, discount, treasury, withdrawalDelay);
 
         shieldMapping[_shield] = true;
+        activeShields[_shield] = true;
         lastShieldUpdate[_shield] = block.timestamp;
 
         emit ShieldCreated(
@@ -468,6 +480,17 @@ contract RcaController is RcaGovernable {
         systemUpdates.treasuryUpdate = uint32(block.timestamp);
     }
 
+    /**
+     * @notice Governance can cancel the shield support.
+     * @param _shields An array of shield addresses that are being cancelled.
+     */
+    function cancelShield(address[] memory _shields) external onlyGov {
+        for (uint256 i = 0; i < _shields.length; i++) {
+            activeShields[_shields[i]] = false;
+            emit ShieldCancelled(_shields[i]);
+        }
+    }
+
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////// onlyGuardian ///////////////////////////////////////////////
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -481,6 +504,15 @@ contract RcaController is RcaGovernable {
     function setPercentReserved(bytes32 _newReservedRoot) external onlyGuardian {
         reservedRoot = _newReservedRoot;
         systemUpdates.reservedUpdate = uint32(block.timestamp);
+    }
+
+    /**
+     * @notice Admin can set which router is verified and which is not.
+     * @param _routerAddress Address of a router.
+     * @param _verified New verified status of the router.
+     */
+    function setRouterVerified(address _routerAddress, bool _verified) external onlyGuardian {
+        isRouterVerified[_routerAddress] = _verified;
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////

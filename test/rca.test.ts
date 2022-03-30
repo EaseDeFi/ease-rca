@@ -91,7 +91,7 @@ describe("RCAs and Controller", function () {
 
     // Set price tree.
     merkleTrees.priceTree1 = new BalanceTree([
-      { account: contracts.rcaShield.address, amount: ether("0.001") },
+      { account: contracts.uToken.address, amount: ether("0.001") },
       { account: contracts.rcaController.address, amount: ether("0.001") },
     ]);
 
@@ -107,7 +107,7 @@ describe("RCAs and Controller", function () {
       { account: contracts.rcaController.address, amount: BigNumber.from(1000) },
     ]);
 
-    merkleProofs.priceProof1 = merkleTrees.priceTree1.getProof(contracts.rcaShield.address, ether("0.001"));
+    merkleProofs.priceProof1 = merkleTrees.priceTree1.getProof(contracts.uToken.address, ether("0.001"));
     merkleProofs.liqProof1 = merkleTrees.liqTree1.getProof(contracts.rcaShield.address, ether("100"));
     merkleProofs.liqProof2 = merkleTrees.liqTree2.getProof(contracts.rcaShield.address, ether("0"));
     merkleProofs.resProof1 = merkleTrees.resTree1.getProof(contracts.rcaShield.address, ether("0"));
@@ -500,6 +500,28 @@ describe("RCAs and Controller", function () {
         requests = await contracts.rcaShield.withdrawRequests(signers.user.address);
       });
       // check with zapper
+      it("should fail if zapping router is not verified", async function () {
+        await contracts.rcaShield
+          .connect(signers.user)
+          .redeemRequest(ether("100"), 0, merkleProofs.liqProof2, 0, merkleProofs.resProof1);
+
+        // Check request data
+        const timestamp = await getTimestamp();
+        const requests = await contracts.rcaShield.withdrawRequests(signers.user.address);
+        expect(requests[0]).to.be.equal(ether("100"));
+        expect(requests[0]).to.be.equal(ether("100"));
+        const endTime = timestamp.add("86400");
+        expect(requests[2]).to.be.equal(endTime);
+
+        // A bit more than 1 day withdrawal
+        increase(86500);
+
+        await expect(
+          contracts.rcaShield
+            .connect(signers.user)
+            .redeemFinalize(signers.user.address, true, ethers.constants.AddressZero, 0, merkleProofs.liqProof1),
+        ).to.be.revertedWith("router not verified");
+      });
     });
     describe("#events", function () {
       it("should emit RedeemRequest from rcaShield with valid args", async function () {
@@ -585,6 +607,31 @@ describe("RCAs and Controller", function () {
         const shieldPercentReservedAfter = await contracts.rcaShield.percentReserved();
         // after redeem request shield percent reserved should update
         expect(shieldPercentReservedAfter).to.be.equal(percentReserved);
+      });
+      it("should never set percentreserved of a shield more than 33%", async function () {
+        const percentReserved = BigNumber.from(5000);
+        const reserveLimit = BigNumber.from(3300);
+        const resTree = new BalanceTree([
+          { account: contracts.rcaShield.address, amount: percentReserved },
+          { account: contracts.rcaController.address, amount: BigNumber.from(1000) },
+        ]);
+        await contracts.rcaController.connect(signers.guardian).setPercentReserved(resTree.getHexRoot());
+        const rcaAmount = ether("50");
+        const shieldPercentReservedBefore = await contracts.rcaShield.percentReserved();
+        // initial percent reserved which is zero
+        expect(shieldPercentReservedBefore).to.equal(BigNumber.from(0));
+        await contracts.rcaShield
+          .connect(signers.user)
+          .redeemRequest(
+            rcaAmount,
+            0,
+            [],
+            percentReserved,
+            resTree.getProof(contracts.rcaShield.address, percentReserved),
+          );
+        const shieldPercentReservedAfter = await contracts.rcaShield.percentReserved();
+        // after redeem request shield percent reserved should update to 33% even though the root is 34%
+        expect(shieldPercentReservedAfter).to.be.equal(reserveLimit);
       });
     });
   });

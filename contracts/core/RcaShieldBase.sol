@@ -15,7 +15,7 @@ import "hardhat/console.sol";
  * Each underlying token (not protocol) has its own RCA vault. This contract
  * doubles as the vault and the RCA token.
  * @dev This contract assumes uToken decimals of 18.
- * @author Robert M.C. Forster, Romke Jonker, Taek Lee
+ * @author Robert M.C. Forster, Romke Jonker, Taek Lee, Chiranjibi Poudyal
  **/
 abstract contract RcaShieldBase is ERC20, Governable {
     using SafeERC20 for IERC20Metadata;
@@ -274,7 +274,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
         // endTime > 0 ensures request exists.
         require(request.endTime > 0 && uint32(block.timestamp) > request.endTime, "Withdrawal not yet allowed.");
 
-        controller.redeemFinalize(user, _newCumLiqForClaims, _liqForClaimsProof);
+        bool isRouterVerified = controller.redeemFinalize(user, _to, _newCumLiqForClaims, _liqForClaimsProof);
 
         _update();
 
@@ -284,7 +284,10 @@ abstract contract RcaShieldBase is ERC20, Governable {
 
         // The cool part about doing it this way rather than having user send RCAs to zapper contract,
         // then it exchanging and returning Ether is that it's more gas efficient and no approvals are needed.
-        if (_zapper) IZapper(_to).zapTo(user, request.uAmount, _zapperData);
+        if (_zapper) {
+            require(isRouterVerified, "router not verified");
+            IZapper(_to).zapTo(user, uint256(request.uAmount), _zapperData);
+        }
 
         emit RedeemFinalize(user, _to, request.uAmount, uint256(request.rcaAmount), block.timestamp);
     }
@@ -307,7 +310,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
         bytes32[] calldata _liqForClaimsProof
     ) external payable virtual {
         // If user submits incorrect price, tx will fail here.
-        controller.purchase(_user, _uEthPrice, _priceProof, _newCumLiqForClaims, _liqForClaimsProof);
+        controller.purchase(_user, address(uToken), _uEthPrice, _priceProof, _newCumLiqForClaims, _liqForClaimsProof);
 
         _update();
 
@@ -343,7 +346,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
         bytes32[] calldata _liqForClaimsProof
     ) external payable {
         // If user submits incorrect price, tx will fail here.
-        controller.purchase(_user, _uEthPrice, _priceProof, _newCumLiqForClaims, _liqForClaimsProof);
+        controller.purchase(_user, address(uToken), _uEthPrice, _priceProof, _newCumLiqForClaims, _liqForClaimsProof);
 
         _update();
 
@@ -552,8 +555,11 @@ abstract contract RcaShieldBase is ERC20, Governable {
      **/
     function setPercentReserved(uint256 _newPercentReserved) external onlyController {
         // Protection to not have too much reserved from any single vault.
-        require(_newPercentReserved <= 5000, "May not reserve more than 50%.");
-        percentReserved = _newPercentReserved;
+        if (_newPercentReserved > 3300) {
+            percentReserved = 3300;
+        } else {
+            percentReserved = _newPercentReserved;
+        }
     }
 
     /**

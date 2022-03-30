@@ -2,8 +2,8 @@
 
 pragma solidity ^0.8.11;
 
-import "./RcaShieldBase.sol";
-import "../external/Convex.sol";
+import "../RcaShieldBase.sol";
+import "../../external/Convex.sol";
 
 contract RcaShieldConvex is RcaShieldBase {
     using SafeERC20 for IERC20Metadata;

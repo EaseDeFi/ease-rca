@@ -85,13 +85,13 @@ describe("RCA controller", function () {
 
     // Set price tree.
     merkleTrees.priceTree1 = new BalanceTree([
-      { account: contracts.rcaShield.address, amount: ether("0.001") },
+      { account: contracts.uToken.address, amount: ether("0.001") },
       { account: contracts.rcaController.address, amount: ether("0.001") },
     ]);
 
     // Set price tree with different rate.
     merkleTrees.priceTree2 = new BalanceTree([
-      { account: contracts.rcaShield.address, amount: ether("0.002") },
+      { account: contracts.uToken.address, amount: ether("0.002") },
       { account: contracts.rcaController.address, amount: ether("0.002") },
     ]);
     // Set reserved tree with 0 reserved.
@@ -106,8 +106,8 @@ describe("RCA controller", function () {
       { account: contracts.rcaController.address, amount: BigNumber.from(1000) },
     ]);
 
-    merkleProofs.priceProof1 = merkleTrees.priceTree1.getProof(contracts.rcaShield.address, ether("0.001"));
-    merkleProofs.priceProof2 = merkleTrees.priceTree2.getProof(contracts.rcaShield.address, ether("0.002"));
+    merkleProofs.priceProof1 = merkleTrees.priceTree1.getProof(contracts.uToken.address, ether("0.001"));
+    merkleProofs.priceProof2 = merkleTrees.priceTree2.getProof(contracts.uToken.address, ether("0.002"));
     merkleProofs.liqProof1 = merkleTrees.liqTree1.getProof(contracts.rcaShield.address, ether("100"));
     merkleProofs.liqProof2 = merkleTrees.liqTree2.getProof(contracts.rcaShield.address, ether("0"));
     merkleProofs.resProof1 = merkleTrees.resTree1.getProof(contracts.rcaShield.address, ether("0"));
@@ -276,7 +276,7 @@ describe("RCA controller", function () {
   describe("verifyPrice()", function () {
     it("should succeed if valid arguments are passed", async function () {
       const ethPrice = ether("0.001");
-      await contracts.rcaController.verifyPrice(contracts.rcaShield.address, ethPrice, merkleProofs.priceProof1);
+      await contracts.rcaController.verifyPrice(contracts.uToken.address, ethPrice, merkleProofs.priceProof1);
     });
     it("should fail if invalid arguments are passed", async function () {
       let ethPrice = ether("0.002");
@@ -369,6 +369,8 @@ describe("RCA controller", function () {
       await contracts.rcaController.connect(signers.gov).initializeShield(shieldAddress);
       // check shield mapping for shield address
       expect(await contracts.rcaController.shieldMapping(shieldAddress)).to.equal(true);
+      // check if active shields is updated
+      expect(await contracts.rcaController.activeShields(shieldAddress)).to.be.equal(true);
       // check if last shield update is updated
       const blockTimestamp = await getTimestamp();
       expect(await contracts.rcaController.lastShieldUpdate(shieldAddress)).to.equal(blockTimestamp);
@@ -472,6 +474,28 @@ describe("RCA controller", function () {
       expect(systemUpdates.treasuryUpdate).to.equal(blockTimestamp);
     });
   });
+  describe("cancelShield()", function () {
+    it("should cancel shield support", async function () {
+      const shieldAddress = contracts.rcaShield.address;
+      await contracts.rcaController.connect(signers.gov).initializeShield(shieldAddress);
+      expect(await contracts.rcaController.activeShields(shieldAddress)).to.be.equal(true);
+
+      // cancleShield support
+      await contracts.rcaController.connect(signers.gov).cancelShield([shieldAddress]);
+      expect(await contracts.rcaController.activeShields(shieldAddress)).to.be.equal(false);
+    });
+    it("should emit ShieldCancelled event with valid args", async function () {
+      const shieldAddress = contracts.rcaShield.address;
+      await contracts.rcaController.connect(signers.gov).initializeShield(shieldAddress);
+      expect(await contracts.rcaController.activeShields(shieldAddress))
+        .to.emit(contracts.rcaController, "ShieldCancelled")
+        .withArgs([shieldAddress]);
+
+      // cancleShield support
+      await contracts.rcaController.connect(signers.gov).cancelShield([shieldAddress]);
+      expect(await contracts.rcaController.activeShields(shieldAddress)).to.be.equal(false);
+    });
+  });
   describe("setPercentReserved()", function () {
     it("should set precentReserved and update protocol state correctly", async function () {
       const newReservedRoot = merkleTrees.resTree2.getHexRoot();
@@ -490,6 +514,21 @@ describe("RCA controller", function () {
       await contracts.rcaController.connect(signers.priceOracle).setPrices(newPriceRoot);
       // check for new priceRoot root update
       expect(await contracts.rcaController.priceRoot()).to.equal(newPriceRoot);
+    });
+  });
+  describe("setRouterVerified()", function () {
+    it("should whitelist a router", async function () {
+      const newRouter = signers.notGov.address;
+      await contracts.rcaController.connect(signers.guardian).setRouterVerified(newRouter, true);
+      expect(await contracts.rcaController.isRouterVerified(newRouter)).to.be.equal(true);
+    });
+    it("should remove whitelisted router", async function () {
+      const newRouter = signers.notGov.address;
+      // white list router
+      await contracts.rcaController.connect(signers.guardian).setRouterVerified(newRouter, true);
+      // delist router
+      await contracts.rcaController.connect(signers.guardian).setRouterVerified(newRouter, false);
+      expect(await contracts.rcaController.isRouterVerified(newRouter)).to.be.equal(false);
     });
   });
 
@@ -513,6 +552,9 @@ describe("RCA controller", function () {
       await expect(
         contracts.rcaController.connect(signers.gov).setPrices(merkleTrees.priceTree1.getHexRoot()),
       ).to.be.revertedWith("msg.sender is not price oracle");
+      await expect(
+        contracts.rcaController.connect(signers.gov).setRouterVerified(contracts.rcaShield.address, true),
+      ).to.be.revertedWith("msg.sender is not Guardian");
     });
   });
 });
