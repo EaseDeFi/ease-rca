@@ -40,7 +40,6 @@ import "../interfaces/IRcaController.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "hardhat/console.sol";
 
 /**
  * @title RCA Vault
@@ -314,7 +313,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
 
         uToken.safeTransfer(_to, request.uAmount);
 
-        // The cool part about doing it this way rather than having user send RCAs to zapper contract,
+        // The cool part about doing it this way rather than having user send RCAs to router contract,
         // then it exchanging and returning Ether is that it's more gas efficient and no approvals are needed.
         if (isRouterVerified) IRouter(_to).routeTo(user, uint256(request.uAmount), _routerData);
 

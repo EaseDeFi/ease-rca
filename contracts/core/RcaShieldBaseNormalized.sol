@@ -52,8 +52,7 @@ contract RcaShieldBaseNormalized is RcaShieldBase {
 
     function redeemFinalize(
         address _to,
-        bool _zapper,
-        bytes calldata _zapperData,
+        bytes calldata _routerData,
         uint256 _newCumLiqForClaims,
         bytes32[] calldata _liqForClaimsProof
     ) external override {
@@ -65,7 +64,7 @@ contract RcaShieldBaseNormalized is RcaShieldBase {
         // endTime > 0 ensures request exists.
         require(request.endTime > 0 && uint32(block.timestamp) > request.endTime, "Withdrawal not yet allowed.");
 
-        controller.redeemFinalize(user, _to, _newCumLiqForClaims, _liqForClaimsProof);
+        bool isRouterVerified = controller.redeemFinalize(user, _to, _newCumLiqForClaims, _liqForClaimsProof);
 
         _update();
 
@@ -75,9 +74,9 @@ contract RcaShieldBaseNormalized is RcaShieldBase {
         uint256 transferAmount = _normalizedUAmount(request.uAmount);
         uToken.safeTransfer(_to, transferAmount);
 
-        // The cool part about doing it this way rather than having user send RCAs to zapper contract,
+        // The cool part about doing it this way rather than having user send RCAs to router contract,
         // then it exchanging and returning Ether is that it's more gas efficient and no approvals are needed.
-        if (_zapper) IZapper(_to).zapTo(user, transferAmount, _zapperData);
+        if (isRouterVerified) IRouter(_to).routeTo(user, transferAmount, _routerData);
 
         emit RedeemFinalize(user, _to, transferAmount, uint256(request.rcaAmount), block.timestamp);
     }

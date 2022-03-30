@@ -38,7 +38,6 @@ import "../general/RcaGovernable.sol";
 import "../library/MerkleProof.sol";
 import "../interfaces/IRcaShield.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "hardhat/console.sol";
 
 /**
  * @title RCA Controller

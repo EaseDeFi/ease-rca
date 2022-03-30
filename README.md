@@ -1,6 +1,6 @@
 # Reciprocally-Covered Assets
 
-https://armorfi.atlassian.net/wiki/spaces/PROD/pages/3735751/RCAs
+https://ease.org/learn/learn-crypto-defi/
 
 ## Local deployment
 
