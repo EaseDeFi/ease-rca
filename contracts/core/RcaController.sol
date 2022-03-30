@@ -187,7 +187,7 @@ contract RcaController is RcaGovernable {
     }
 
     /**
-     * @notice Updates contract, emits event for redeem action.
+     * @notice Updates contract, emits event for redeem action, returns if router is verified.
      * @param _user User that is redeeming tokens.
      * @param _to Router address which should be used for zapping.
      * @param _newCumLiqForClaims New cumulative amount of liquidated tokens if an update is needed.
@@ -198,7 +198,7 @@ contract RcaController is RcaGovernable {
         address _to,
         uint256 _newCumLiqForClaims,
         bytes32[] calldata _liqForClaimsProof
-    ) external onlyShield returns (bool verificationStatus) {
+    ) external onlyShield returns (bool) {
         _update(_newCumLiqForClaims, _liqForClaimsProof, 0, new bytes32[](0), false);
 
         emit RedeemFinalize(msg.sender, _user, block.timestamp);

@@ -270,7 +270,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
         // endTime > 0 ensures request exists.
         require(request.endTime > 0 && uint32(block.timestamp) > request.endTime, "Withdrawal not yet allowed.");
 
-        controller.redeemFinalize(user, _to, _newCumLiqForClaims, _liqForClaimsProof);
+        bool isRouterVerified = controller.redeemFinalize(user, _to, _newCumLiqForClaims, _liqForClaimsProof);
 
         _update();
 
@@ -280,7 +280,10 @@ abstract contract RcaShieldBase is ERC20, Governable {
 
         // The cool part about doing it this way rather than having user send RCAs to zapper contract,
         // then it exchanging and returning Ether is that it's more gas efficient and no approvals are needed.
-        if (_zapper) IZapper(_to).zapTo(user, uint256(request.uAmount), _zapperData);
+        if (_zapper) {
+            require(isRouterVerified, "router not verified");
+            IZapper(_to).zapTo(user, uint256(request.uAmount), _zapperData);
+        }
 
         emit RedeemFinalize(user, _to, uint256(request.uAmount), uint256(request.rcaAmount), block.timestamp);
     }

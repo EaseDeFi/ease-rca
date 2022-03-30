@@ -27,7 +27,7 @@ interface IRcaController {
         address _to,
         uint256 _newCumLiq,
         bytes32[] calldata cumLiqProof
-    ) external;
+    ) external returns (bool);
 
     function purchase(
         address user,
