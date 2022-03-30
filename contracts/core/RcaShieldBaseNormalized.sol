@@ -65,7 +65,7 @@ contract RcaShieldBaseNormalized is RcaShieldBase {
         // endTime > 0 ensures request exists.
         require(request.endTime > 0 && uint32(block.timestamp) > request.endTime, "Withdrawal not yet allowed.");
 
-        controller.redeemFinalize(user, _newCumLiqForClaims, _liqForClaimsProof);
+        controller.redeemFinalize(user, _to, _newCumLiqForClaims, _liqForClaimsProof);
 
         _update();
 
