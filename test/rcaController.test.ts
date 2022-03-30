@@ -357,7 +357,7 @@ describe("RCA controller", function () {
       const messageHash = ethers.utils.keccak256(
         ethers.utils.solidityPack(
           ["string", "uint256", "address", "address", "address", "uint256", "uint256", "uint256"],
-          ["EASE_RCA_CONTROLLER_0.1", chainId, contracts.rcaController.address, user, shield, amount, nonce, expiry],
+          ["EASE_RCA_CONTROLLER_1.0", chainId, contracts.rcaController.address, user, shield, amount, nonce, expiry],
         ),
       );
       expect(await contracts.rcaController.getMessageHash(user, shield, amount, nonce, expiry)).to.equal(messageHash);

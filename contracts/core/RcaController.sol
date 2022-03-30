@@ -1,11 +1,43 @@
 /// SPDX-License-Identifier: UNLICENSED
 
+/**
+
+                               ................                            
+                          ..',,;;::::::::ccccc:;,'..                       
+                      ..',;;;;::::::::::::cccccllllc;..                    
+                    .';;;;;;;,'..............',:clllolc,.                  
+                  .,;;;;;,..                    .';cooool;.                
+                .';;;;;'.           .....          .,coodoc.               
+               .,;;;;'.       ..',;:::cccc:;,'.      .;odddl'              
+              .,;;;;.       .,:cccclllllllllool:'      ,odddl'             
+             .,:;:;.      .;ccccc:;,''''',;cooooo:.     ,odddc.            
+             ';:::'     .,ccclc,..         .':odddc.    .cdddo,            
+            .;:::,.     ,cccc;.              .:oddd:.    ,dddd:.           
+            '::::'     .ccll:.                .ldddo'    'odddc.           
+            ,::c:.     ,lllc'    .';;;::::::::codddd;    ,dxxxc.           
+           .,ccc:.    .;lllc.    ,oooooddddddddddddd;    :dxxd:            
+            ,cccc.     ;llll'    .;:ccccccccccccccc;.   'oxxxo'            
+            'cccc,     'loooc.                         'lxxxd;             
+            .:lll:.    .;ooooc.                      .;oxxxd:.             
+             ,llll;.    .;ooddo:'.                ..:oxxxxo;.              
+             .:llol,.     'coddddl:;''.........,;codxxxxd:.                
+              .:lool;.     .':odddddddddoooodddxxxxxxdl;.                  
+               .:ooooc'       .';codddddddxxxxxxdol:,.                     
+                .;ldddoc'.        ...'',,;;;,,''..                         
+                  .:oddddl:'.                          .,;:'.              
+                    .:odddddoc;,...              ..',:ldxxxx;              
+                      .,:odddddddoolcc::::::::cllodxxxxxxxd:.              
+                         .';clddxxxxxxxxxxxxxxxxxxxxxxoc;'.                
+                             ..',;:ccllooooooollc:;,'..                    
+                                        ......                             
+                                                                      
+**/
+
 pragma solidity 0.8.11;
 import "../general/RcaGovernable.sol";
 import "../library/MerkleProof.sol";
 import "../interfaces/IRcaShield.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "hardhat/console.sol";
 
 /**
  * @title RCA Controller
@@ -288,7 +320,7 @@ contract RcaController is RcaGovernable {
     ) internal {
         bytes32 digest = keccak256(
             abi.encodePacked(
-                "EASE_RCA_CONTROLLER_0.1",
+                "EASE_RCA_CONTROLLER_1.0",
                 block.chainid,
                 address(this),
                 _user,
@@ -388,7 +420,7 @@ contract RcaController is RcaGovernable {
         return
             keccak256(
                 abi.encodePacked(
-                    "EASE_RCA_CONTROLLER_0.1",
+                    "EASE_RCA_CONTROLLER_1.0",
                     block.chainid,
                     address(this),
                     _user,

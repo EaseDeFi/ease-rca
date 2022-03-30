@@ -1,5 +1,6 @@
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { MockERC20 } from "../src/types/MockERC20";
+import { MockRouter } from "../src/types/MockRouter";
 import { RcaController } from "../src/types/RcaController";
 import { RcaShield } from "../src/types/RcaShield";
 import { RcaShieldAave } from "../src/types/RcaShieldAave";
@@ -37,6 +38,7 @@ export type Contracts = {
   compoundComptroller: IComptroller;
   rcaShieldConvex: RcaShieldConvex;
   cvxCRVPool: IConvexRewardPool;
+  router: MockRouter;
 };
 
 export type MerkleTrees = {

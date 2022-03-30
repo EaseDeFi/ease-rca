@@ -13,6 +13,7 @@ import { BigNumber } from "ethers";
 
 import BalanceTree from "./balance-tree";
 import { MockERC20 } from "../src/types/MockERC20";
+import { MockRouter } from "../src/types/MockRouter";
 import { RcaShield } from "../src/types/RcaShield";
 import { RcaController } from "../src/types/RcaController";
 import { RcaTreasury } from "../src/types/RcaTreasury";
@@ -20,6 +21,7 @@ import { RcaTreasury__factory } from "../src/types/factories/RcaTreasury__factor
 import { RcaController__factory } from "../src/types/factories/RcaController__factory";
 import { RcaShield__factory } from "../src/types/factories/RcaShield__factory";
 import { MockERC20__factory } from "../src/types/factories/MockERC20__factory";
+import { MockRouter__factory } from "../src/types/factories/MockRouter__factory";
 
 import type { Contracts, MerkleProofs, MerkleTrees, Signers } from "./types";
 
@@ -46,6 +48,10 @@ describe("RCAs and Controller", function () {
 
     const TOKEN = <MockERC20__factory>await ethers.getContractFactory("MockERC20");
     contracts.uToken = <MockERC20>await TOKEN.deploy("Test Token", "TEST");
+
+    // Setup as a bad router that will fail when correctly routed.
+    const ROUTER = <MockRouter__factory>await ethers.getContractFactory("MockRouter");
+    contracts.router = <MockRouter>await ROUTER.deploy();
 
     const RCA_TREASURY = <RcaTreasury__factory>await ethers.getContractFactory("RcaTreasury");
     contracts.rcaTreasury = <RcaTreasury>await RCA_TREASURY.connect(signers.gov).deploy(signers.gov.address);
@@ -468,7 +474,7 @@ describe("RCAs and Controller", function () {
 
         await contracts.rcaShield
           .connect(signers.user)
-          .redeemFinalize(signers.user.address, false, ethers.constants.AddressZero, 0, merkleProofs.liqProof1);
+          .redeemFinalize(signers.user.address, ethers.constants.AddressZero, 0, merkleProofs.liqProof1);
         const rcaBal = await contracts.rcaShield.balanceOf(signers.user.address);
         const uBal = await contracts.uToken.balanceOf(signers.user.address);
         expect(rcaBal).to.be.equal(0);
@@ -499,8 +505,8 @@ describe("RCAs and Controller", function () {
 
         requests = await contracts.rcaShield.withdrawRequests(signers.user.address);
       });
-      // check with zapper
-      it("should fail if zapping router is not verified", async function () {
+      // check with router--this works backward with the mock and succeeds if not verified, fails if verified.
+      it("should succeed if zapping router is not verified", async function () {
         await contracts.rcaShield
           .connect(signers.user)
           .redeemRequest(ether("100"), 0, merkleProofs.liqProof2, 0, merkleProofs.resProof1);
@@ -516,11 +522,35 @@ describe("RCAs and Controller", function () {
         // A bit more than 1 day withdrawal
         increase(86500);
 
+        // will fail if it routes
+        contracts.rcaShield
+          .connect(signers.user)
+          .redeemFinalize(contracts.router.address, ethers.constants.AddressZero, 0, merkleProofs.liqProof1);
+      });
+      // check with router
+      it("should fail if zapping router is verified", async function () {
+        await contracts.rcaShield
+          .connect(signers.user)
+          .redeemRequest(ether("100"), 0, merkleProofs.liqProof2, 0, merkleProofs.resProof1);
+
+        // Check request data
+        const timestamp = await getTimestamp();
+        const requests = await contracts.rcaShield.withdrawRequests(signers.user.address);
+        expect(requests[0]).to.be.equal(ether("100"));
+        expect(requests[0]).to.be.equal(ether("100"));
+        const endTime = timestamp.add("86400");
+        expect(requests[2]).to.be.equal(endTime);
+
+        // A bit more than 1 day withdrawal
+        increase(86500);
+
+        await contracts.rcaController.connect(signers.guardian).setRouterVerified(contracts.router.address, true);
+
         await expect(
           contracts.rcaShield
             .connect(signers.user)
-            .redeemFinalize(signers.user.address, true, ethers.constants.AddressZero, 0, merkleProofs.liqProof1),
-        ).to.be.revertedWith("router not verified");
+            .redeemFinalize(contracts.router.address, ethers.constants.AddressZero, 0, merkleProofs.liqProof1),
+        ).to.be.reverted;
       });
     });
     describe("#events", function () {
