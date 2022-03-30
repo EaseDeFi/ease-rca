@@ -492,6 +492,21 @@ describe("RCA controller", function () {
       expect(await contracts.rcaController.priceRoot()).to.equal(newPriceRoot);
     });
   });
+  describe("setRouterVerified()", function () {
+    it("should whitelist a router", async function () {
+      const newRouter = signers.notGov.address;
+      await contracts.rcaController.connect(signers.guardian).setRouterVerified(newRouter, true);
+      expect(await contracts.rcaController.isRouterVerified(newRouter)).to.be.equal(true);
+    });
+    it("should remove whitelisted router", async function () {
+      const newRouter = signers.notGov.address;
+      // white list router
+      await contracts.rcaController.connect(signers.guardian).setRouterVerified(newRouter, true);
+      // delist router
+      await contracts.rcaController.connect(signers.guardian).setRouterVerified(newRouter, false);
+      expect(await contracts.rcaController.isRouterVerified(newRouter)).to.be.equal(false);
+    });
+  });
 
   describe("#previledged", function () {
     it("should block from privileged functions", async function () {
@@ -513,6 +528,9 @@ describe("RCA controller", function () {
       await expect(
         contracts.rcaController.connect(signers.gov).setPrices(merkleTrees.priceTree1.getHexRoot()),
       ).to.be.revertedWith("msg.sender is not price oracle");
+      await expect(
+        contracts.rcaController.connect(signers.gov).setRouterVerified(contracts.rcaShield.address, true),
+      ).to.be.revertedWith("msg.sender is not Guardian");
     });
   });
 });

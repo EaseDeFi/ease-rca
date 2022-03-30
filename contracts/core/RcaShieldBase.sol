@@ -289,7 +289,6 @@ abstract contract RcaShieldBase is ERC20, Governable {
             IZapper(_to).zapTo(user, uint256(request.uAmount), _zapperData);
         }
 
-
         emit RedeemFinalize(user, _to, request.uAmount, uint256(request.rcaAmount), block.timestamp);
     }
 
@@ -556,8 +555,11 @@ abstract contract RcaShieldBase is ERC20, Governable {
      **/
     function setPercentReserved(uint256 _newPercentReserved) external onlyController {
         // Protection to not have too much reserved from any single vault.
-        require(_newPercentReserved <= 5000, "May not reserve more than 50%.");
-        percentReserved = _newPercentReserved;
+        if (_newPercentReserved > 3300) {
+            percentReserved = 3300;
+        } else {
+            percentReserved = _newPercentReserved;
+        }
     }
 
     /**
