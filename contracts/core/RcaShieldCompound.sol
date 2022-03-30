@@ -2,11 +2,11 @@
 
 pragma solidity ^0.8.11;
 
-import "./RcaShieldBase.sol";
+import "./RcaShieldBaseNormalized.sol";
 import "../external/Compound.sol";
 
-contract RcaShieldCompound is RcaShieldBase {
-    using SafeERC20 for IERC20;
+contract RcaShieldCompound is RcaShieldBaseNormalized {
+    using SafeERC20 for IERC20Metadata;
 
     IComptroller public immutable comptroller;
 
@@ -14,18 +14,22 @@ contract RcaShieldCompound is RcaShieldBase {
         string memory _name,
         string memory _symbol,
         address _uToken,
+        uint256 _uTokenDecimals,
         address _governance,
         address _controller,
         IComptroller _comptroller
-    ) RcaShieldBase(_name, _symbol, _uToken, _governance, _controller) {
+    ) RcaShieldBaseNormalized(_name, _symbol, _uToken, _uTokenDecimals, _governance, _controller) {
         comptroller = _comptroller;
         address[] memory markets = new address[](1);
         markets[0] = _uToken;
-        _comptroller.enterMarkets(markets);
+        uint256[] memory entered = _comptroller.enterMarkets(markets);
+        require(entered[0] == 0, "enterMarkets() failed");
     }
 
     function getReward() external {
-        comptroller.claimComp(address(this));
+        address[] memory cTokens = new address[](1);
+        cTokens[0] = address(uToken);
+        comptroller.claimComp(address(this), cTokens);
     }
 
     function purchase(
@@ -38,24 +42,26 @@ contract RcaShieldCompound is RcaShieldBase {
     ) external {
         require(_token != address(uToken), "cannot buy underlyingToken");
         controller.verifyPrice(_token, _tokenPrice, _tokenPriceProof);
-        controller.verifyPrice(address(this), _underlyingPrice, _underlyinPriceProof);
+        controller.verifyPrice(address(uToken), _underlyingPrice, _underlyinPriceProof);
+
         uint256 underlyingAmount = (_amount * _tokenPrice) / _underlyingPrice;
         if (discount > 0) {
             underlyingAmount -= (underlyingAmount * discount) / DENOMINATOR;
         }
-        IERC20(_token).safeTransfer(msg.sender, _amount);
-        uToken.safeTransferFrom(msg.sender, address(this), underlyingAmount);
-    }
 
-    function _uBalance() internal view override returns (uint256) {
-        return uToken.balanceOf(address(this));
+        IERC20Metadata token = IERC20Metadata(_token);
+        // normalize token amount to transfer to the user so that it can handle different decimals
+        _amount = (_amount * 10**token.decimals()) / BUFFER;
+
+        token.safeTransfer(msg.sender, _amount);
+        uToken.safeTransferFrom(msg.sender, address(this), _normalizedUAmount(underlyingAmount));
     }
 
     function _afterMint(uint256 _uAmount) internal override {
-        // no-op since we get aToken
+        // no-op since we get cToken
     }
 
     function _afterRedeem(uint256 _uAmount) internal override {
-        // no-op since we get aToken
+        // no-op since we get cToken
     }
 }

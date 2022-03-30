@@ -18,7 +18,7 @@ import "hardhat/console.sol";
  * @author Robert M.C. Forster, Romke Jonker, Taek Lee
  **/
 abstract contract RcaShieldBase is ERC20, Governable {
-    using SafeERC20 for IERC20;
+    using SafeERC20 for IERC20Metadata;
 
     uint256 constant YEAR_SECS = 31536000;
     uint256 constant DENOMINATOR = 10000;
@@ -27,7 +27,9 @@ abstract contract RcaShieldBase is ERC20, Governable {
     /// @notice Controller of RCA contract that takes care of actions.
     IRcaController public controller;
     /// @notice Underlying token that is protected by the shield.
-    IERC20 public uToken;
+
+    IERC20Metadata public immutable uToken;
+
     /// @notice Percent to pay per year. 1000 == 10%.
     uint256 public apr;
     /// @notice Current sale discount to sell tokens cheaper.
@@ -135,7 +137,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
         address _controller
     ) ERC20(_name, _symbol) {
         initializeGovernable(_governor);
-        uToken = IERC20(_uToken);
+        uToken = IERC20Metadata(_uToken);
         controller = IRcaController(_controller);
     }
 
@@ -190,7 +192,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
         bytes32 _s,
         uint256 _newCumLiqForClaims,
         bytes32[] calldata _liqForClaimsProof
-    ) external {
+    ) external virtual {
         // Call controller to check capacity limits, add to capacity limits, emit events, check for new "for sale".
         controller.mint(_user, _uAmount, _expiry, _v, _r, _s, _newCumLiqForClaims, _liqForClaimsProof);
 
@@ -198,7 +200,9 @@ abstract contract RcaShieldBase is ERC20, Governable {
         _update();
 
         uint256 rcaAmount = _rcaValue(_uAmount, amtForSale);
+
         uToken.safeTransferFrom(msg.sender, address(this), _uAmount);
+
         _mint(_user, rcaAmount);
 
         _afterMint(_uAmount);
@@ -261,7 +265,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
         bytes calldata _zapperData,
         uint256 _newCumLiqForClaims,
         bytes32[] calldata _liqForClaimsProof
-    ) external {
+    ) external virtual {
         address user = msg.sender;
 
         WithdrawRequest memory request = withdrawRequests[user];
@@ -276,7 +280,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
 
         pendingWithdrawal -= uint256(request.uAmount);
 
-        uToken.safeTransfer(_to, uint256(request.uAmount));
+        uToken.safeTransfer(_to, request.uAmount);
 
         // The cool part about doing it this way rather than having user send RCAs to zapper contract,
         // then it exchanging and returning Ether is that it's more gas efficient and no approvals are needed.
@@ -285,7 +289,8 @@ abstract contract RcaShieldBase is ERC20, Governable {
             IZapper(_to).zapTo(user, uint256(request.uAmount), _zapperData);
         }
 
-        emit RedeemFinalize(user, _to, uint256(request.uAmount), uint256(request.rcaAmount), block.timestamp);
+
+        emit RedeemFinalize(user, _to, request.uAmount, uint256(request.rcaAmount), block.timestamp);
     }
 
     /**
@@ -304,7 +309,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
         bytes32[] calldata _priceProof,
         uint256 _newCumLiqForClaims,
         bytes32[] calldata _liqForClaimsProof
-    ) external payable {
+    ) external payable virtual {
         // If user submits incorrect price, tx will fail here.
         controller.purchase(_user, _uEthPrice, _priceProof, _newCumLiqForClaims, _liqForClaimsProof);
 

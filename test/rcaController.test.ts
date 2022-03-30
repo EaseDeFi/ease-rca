@@ -357,7 +357,7 @@ describe("RCA controller", function () {
       const amount = ether("1");
       const nonce = await contracts.rcaController.nonces(user);
       const expiry = BigNumber.from(1000);
-      const chainId = BigNumber.from(31337);
+      const chainId = (await ethers.provider.getNetwork()).chainId;
       const messageHash = ethers.utils.keccak256(
         ethers.utils.solidityPack(
           ["string", "uint256", "address", "address", "address", "uint256", "uint256", "uint256"],

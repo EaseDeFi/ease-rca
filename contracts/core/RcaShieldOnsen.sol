@@ -2,15 +2,13 @@
 
 pragma solidity ^0.8.11;
 
-import "./RcaShieldBase.sol";
+import "./RcaShieldBaseNormalized.sol";
 import { IMasterChefV2 } from "../external/Sushiswap.sol";
 
-contract RcaShieldOnsen is RcaShieldBase {
-    using SafeERC20 for IERC20;
+contract RcaShieldOnsen is RcaShieldBaseNormalized {
+    using SafeERC20 for IERC20Metadata;
 
     IMasterChefV2 public immutable masterChef;
-
-    IERC20 public immutable sushi;
 
     uint256 public immutable pid;
 
@@ -18,14 +16,13 @@ contract RcaShieldOnsen is RcaShieldBase {
         string memory _name,
         string memory _symbol,
         address _uToken,
+        uint256 _uTokenDecimals,
         address _governance,
         address _controller,
         IMasterChefV2 _masterChef,
-        IERC20 _sushi,
         uint256 _pid
-    ) RcaShieldBase(_name, _symbol, _uToken, _governance, _controller) {
+    ) RcaShieldBaseNormalized(_name, _symbol, _uToken, _uTokenDecimals, _governance, _controller) {
         masterChef = _masterChef;
-        sushi = _sushi;
         pid = _pid;
     }
 
@@ -41,21 +38,29 @@ contract RcaShieldOnsen is RcaShieldBase {
         uint256 _underlyingPrice,
         bytes32[] calldata _underlyinPriceProof
     ) external {
-        require(_token == address(sushi), "only sushi on sale");
+        require(_token != address(uToken), "cannot buy underlying token");
         controller.verifyPrice(_token, _tokenPrice, _tokenPriceProof);
-        controller.verifyPrice(address(this), _underlyingPrice, _underlyinPriceProof);
+        controller.verifyPrice(address(uToken), _underlyingPrice, _underlyinPriceProof);
         uint256 underlyingAmount = (_amount * _tokenPrice) / _underlyingPrice;
         if (discount > 0) {
             underlyingAmount -= (underlyingAmount * discount) / DENOMINATOR;
         }
-        IERC20(_token).safeTransfer(msg.sender, _amount);
-        uToken.safeTransferFrom(msg.sender, address(this), underlyingAmount);
+
+        IERC20Metadata token = IERC20Metadata(_token);
+        // normalize token amount to transfer to the user so that it can handle different decimals
+        _amount = (_amount * 10**token.decimals()) / BUFFER;
+
+        token.safeTransfer(msg.sender, _amount);
+        uToken.safeTransferFrom(msg.sender, address(this), _normalizedUAmount(underlyingAmount));
+
         uToken.safeApprove(address(masterChef), underlyingAmount);
         masterChef.deposit(pid, underlyingAmount, address(this));
     }
 
     function _uBalance() internal view override returns (uint256) {
-        return uToken.balanceOf(address(this)) + masterChef.userInfo(pid, address(this)).amount;
+        return
+            ((uToken.balanceOf(address(this)) + masterChef.userInfo(pid, address(this)).amount) * BUFFER) /
+            BUFFER_UTOKEN;
     }
 
     function _afterMint(uint256 _uAmount) internal override {
