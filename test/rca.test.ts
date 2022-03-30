@@ -608,6 +608,31 @@ describe("RCAs and Controller", function () {
         // after redeem request shield percent reserved should update
         expect(shieldPercentReservedAfter).to.be.equal(percentReserved);
       });
+      it("should never set percentreserved of a shield more than 33%", async function () {
+        const percentReserved = BigNumber.from(5000);
+        const reserveLimit = BigNumber.from(3300);
+        const resTree = new BalanceTree([
+          { account: contracts.rcaShield.address, amount: percentReserved },
+          { account: contracts.rcaController.address, amount: BigNumber.from(1000) },
+        ]);
+        await contracts.rcaController.connect(signers.guardian).setPercentReserved(resTree.getHexRoot());
+        const rcaAmount = ether("50");
+        const shieldPercentReservedBefore = await contracts.rcaShield.percentReserved();
+        // initial percent reserved which is zero
+        expect(shieldPercentReservedBefore).to.equal(BigNumber.from(0));
+        await contracts.rcaShield
+          .connect(signers.user)
+          .redeemRequest(
+            rcaAmount,
+            0,
+            [],
+            percentReserved,
+            resTree.getProof(contracts.rcaShield.address, percentReserved),
+          );
+        const shieldPercentReservedAfter = await contracts.rcaShield.percentReserved();
+        // after redeem request shield percent reserved should update to 33% even though the root is 34%
+        expect(shieldPercentReservedAfter).to.be.equal(reserveLimit);
+      });
     });
   });
   describe("Purchase", function () {
