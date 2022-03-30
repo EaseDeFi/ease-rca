@@ -21,6 +21,7 @@ import { RcaTreasury__factory } from "../src/types/factories/RcaTreasury__factor
 import { RcaController__factory } from "../src/types/factories/RcaController__factory";
 import { RcaShield__factory } from "../src/types/factories/RcaShield__factory";
 import { MockERC20__factory } from "../src/types/factories/MockERC20__factory";
+import { MockRouter__factory } from "../src/types/factories/MockRouter__factory";
 
 import type { Contracts, MerkleProofs, MerkleTrees, Signers } from "./types";
 
