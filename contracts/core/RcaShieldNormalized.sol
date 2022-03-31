@@ -4,7 +4,7 @@ pragma solidity ^0.8.11;
 
 import "./RcaShieldBase.sol";
 
-contract RcaShieldBaseNormalized is RcaShieldBase {
+contract RcaShieldNormalized is RcaShieldBase {
     using SafeERC20 for IERC20Metadata;
 
     uint256 immutable BUFFER_UTOKEN;

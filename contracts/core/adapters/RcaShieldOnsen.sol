@@ -2,10 +2,10 @@
 
 pragma solidity ^0.8.11;
 
-import "../RcaShieldBaseNormalized.sol";
+import "../RcaShieldNormalized.sol";
 import { IMasterChefV2 } from "../../external/Sushiswap.sol";
 
-contract RcaShieldOnsen is RcaShieldBaseNormalized {
+contract RcaShieldOnsen is RcaShieldNormalized {
     using SafeERC20 for IERC20Metadata;
 
     IMasterChefV2 public immutable masterChef;
@@ -21,7 +21,7 @@ contract RcaShieldOnsen is RcaShieldBaseNormalized {
         address _controller,
         IMasterChefV2 _masterChef,
         uint256 _pid
-    ) RcaShieldBaseNormalized(_name, _symbol, _uToken, _uTokenDecimals, _governance, _controller) {
+    ) RcaShieldNormalized(_name, _symbol, _uToken, _uTokenDecimals, _governance, _controller) {
         masterChef = _masterChef;
         pid = _pid;
     }
