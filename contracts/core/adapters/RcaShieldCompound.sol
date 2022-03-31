@@ -2,10 +2,10 @@
 
 pragma solidity ^0.8.11;
 
-import "../RcaShieldBaseNormalized.sol";
+import "../RcaShieldNormalized.sol";
 import "../../external/Compound.sol";
 
-contract RcaShieldCompound is RcaShieldBaseNormalized {
+contract RcaShieldCompound is RcaShieldNormalized {
     using SafeERC20 for IERC20Metadata;
 
     IComptroller public immutable comptroller;
@@ -18,7 +18,7 @@ contract RcaShieldCompound is RcaShieldBaseNormalized {
         address _governance,
         address _controller,
         IComptroller _comptroller
-    ) RcaShieldBaseNormalized(_name, _symbol, _uToken, _uTokenDecimals, _governance, _controller) {
+    ) RcaShieldNormalized(_name, _symbol, _uToken, _uTokenDecimals, _governance, _controller) {
         comptroller = _comptroller;
         address[] memory markets = new address[](1);
         markets[0] = _uToken;

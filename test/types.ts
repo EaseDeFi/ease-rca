@@ -3,7 +3,7 @@ import { MockERC20 } from "../src/types/MockERC20";
 import { MockRouter } from "../src/types/MockRouter";
 import { RcaController } from "../src/types/RcaController";
 import { RcaShield } from "../src/types/RcaShield";
-import { RcaShieldBaseNormalized } from "../src/types/RcaShieldBaseNormalized";
+import { RcaShieldNormalized } from "../src/types/RcaShieldNormalized";
 import { RcaShieldAave } from "../src/types/RcaShieldAave";
 import { RcaShieldOnsen } from "../src/types/RcaShieldOnsen";
 import { RcaShieldCompound } from "../src/types/RcaShieldCompound";
@@ -32,7 +32,7 @@ export type Contracts = {
   cvxCRVToken: MockERC20;
   rcaController: RcaController;
   rcaTreasury: RcaTreasury;
-  rcaShield: RcaShield | RcaShieldBaseNormalized;
+  rcaShield: RcaShield | RcaShieldNormalized;
   rcaShieldAave: RcaShieldAave;
   rcaShieldOnsen: RcaShieldOnsen;
   rcaShieldCompound: RcaShieldCompound;

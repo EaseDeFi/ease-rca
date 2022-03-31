@@ -13,12 +13,12 @@ import { BigNumber } from "ethers";
 
 import BalanceTree from "./balance-tree";
 import { MockERC20 } from "../src/types/MockERC20";
-import { RcaShieldBaseNormalized } from "../src/types/RcaShieldBaseNormalized";
+import { RcaShieldNormalized } from "../src/types/RcaShieldNormalized";
 import { RcaController } from "../src/types/RcaController";
 import { RcaTreasury } from "../src/types/RcaTreasury";
 import { RcaTreasury__factory } from "../src/types/factories/RcaTreasury__factory";
 import { RcaController__factory } from "../src/types/factories/RcaController__factory";
-import { RcaShieldBaseNormalized__factory } from "../src/types/factories/RcaShieldBaseNormalized__factory";
+import { RcaShieldNormalized__factory } from "../src/types/factories/RcaShieldNormalized__factory";
 import { MockERC20__factory } from "../src/types/factories/MockERC20__factory";
 
 import type { Contracts, MerkleProofs, MerkleTrees, Signers } from "./types";
@@ -62,9 +62,9 @@ describe("Normalized RCA and Controller", function () {
       contracts.rcaTreasury.address, // treasury address
     );
 
-    const RCA_SHIELD = <RcaShieldBaseNormalized__factory>await ethers.getContractFactory("RcaShieldBaseNormalized");
+    const RCA_SHIELD = <RcaShieldNormalized__factory>await ethers.getContractFactory("RcaShieldNormalized");
 
-    contracts.rcaShield = <RcaShieldBaseNormalized>await RCA_SHIELD.deploy(
+    contracts.rcaShield = <RcaShieldNormalized>await RCA_SHIELD.deploy(
       "Test Token RCA", // token name
       "TEST-RCA", // symbol
       contracts.uToken.address, // underlying token

@@ -11,7 +11,7 @@ import { RcaShieldConvex } from "../src/types/RcaShieldConvex";
 import { RcaShieldCompound } from "../src/types/RcaShieldCompound";
 
 import { getForkingBlockNumber, getMainnetUrl, isMainnetFork } from "../env_helpers";
-import { RcaShieldBaseNormalized } from "../src/types/RcaShieldBaseNormalized";
+import { RcaShieldNormalized } from "../src/types/RcaShieldNormalized";
 
 dotenv.config();
 
@@ -116,13 +116,7 @@ export async function getSignatureDetailsFromCapOracle({
 
   return { vInt, r, s, expiry };
 }
-type Shield =
-  | RcaShield
-  | RcaShieldAave
-  | RcaShieldOnsen
-  | RcaShieldConvex
-  | RcaShieldCompound
-  | RcaShieldBaseNormalized;
+type Shield = RcaShield | RcaShieldAave | RcaShieldOnsen | RcaShieldConvex | RcaShieldCompound | RcaShieldNormalized;
 
 type UValueArgs = {
   newCumLiqForClaims: BigNumber;
