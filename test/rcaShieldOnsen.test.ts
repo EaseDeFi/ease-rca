@@ -258,7 +258,7 @@ describe("RcaShieldOnsen", function () {
     });
   });
   describe("getReward()", function () {
-    it("should shield balance with reward tokens", async function () {
+    it("should update shield balance with reward tokens", async function () {
       const userAddress = signers.user.address;
       const uAmount = ether("100");
       const shieldAddress = contracts.rcaShieldOnsen.address;

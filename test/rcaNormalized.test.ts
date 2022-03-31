@@ -13,20 +13,18 @@ import { BigNumber } from "ethers";
 
 import BalanceTree from "./balance-tree";
 import { MockERC20 } from "../src/types/MockERC20";
-import { MockRouter } from "../src/types/MockRouter";
-import { RcaShield } from "../src/types/RcaShield";
+import { RcaShieldBaseNormalized } from "../src/types/RcaShieldBaseNormalized";
 import { RcaController } from "../src/types/RcaController";
 import { RcaTreasury } from "../src/types/RcaTreasury";
 import { RcaTreasury__factory } from "../src/types/factories/RcaTreasury__factory";
 import { RcaController__factory } from "../src/types/factories/RcaController__factory";
-import { RcaShield__factory } from "../src/types/factories/RcaShield__factory";
+import { RcaShieldBaseNormalized__factory } from "../src/types/factories/RcaShieldBaseNormalized__factory";
 import { MockERC20__factory } from "../src/types/factories/MockERC20__factory";
-import { MockRouter__factory } from "../src/types/factories/MockRouter__factory";
 
 import type { Contracts, MerkleProofs, MerkleTrees, Signers } from "./types";
 
 // Testing base RCA functionalities
-describe("RCAs and Controller", function () {
+describe("Normalized RCA and Controller", function () {
   const contracts = {} as Contracts;
   const signers = {} as Signers;
   const merkleTrees = {} as MerkleTrees;
@@ -47,11 +45,7 @@ describe("RCAs and Controller", function () {
     signers.otherAccounts = accounts.slice(6);
 
     const TOKEN = <MockERC20__factory>await ethers.getContractFactory("MockERC20");
-    contracts.uToken = <MockERC20>await TOKEN.deploy("Test Token", "TEST", BigNumber.from(18));
-
-    // Setup as a bad router that will fail when correctly routed.
-    const ROUTER = <MockRouter__factory>await ethers.getContractFactory("MockRouter");
-    contracts.router = <MockRouter>await ROUTER.deploy();
+    contracts.uToken = <MockERC20>await TOKEN.deploy("Test Token", "TEST", BigNumber.from(8));
 
     const RCA_TREASURY = <RcaTreasury__factory>await ethers.getContractFactory("RcaTreasury");
     contracts.rcaTreasury = <RcaTreasury>await RCA_TREASURY.connect(signers.gov).deploy(signers.gov.address);
@@ -68,16 +62,18 @@ describe("RCAs and Controller", function () {
       contracts.rcaTreasury.address, // treasury address
     );
 
-    const RCA_SHIELD = <RcaShield__factory>await ethers.getContractFactory("RcaShield");
+    const RCA_SHIELD = <RcaShieldBaseNormalized__factory>await ethers.getContractFactory("RcaShieldBaseNormalized");
 
-    contracts.rcaShield = <RcaShield>await RCA_SHIELD.deploy(
+    contracts.rcaShield = <RcaShieldBaseNormalized>await RCA_SHIELD.deploy(
       "Test Token RCA", // token name
       "TEST-RCA", // symbol
       contracts.uToken.address, // underlying token
+      await contracts.uToken.decimals(),
       signers.gov.address, // governor
       contracts.rcaController.address, // rcaController
     );
 
+    //                                                                shield, protocol Id, %
     await contracts.rcaController.connect(signers.gov).initializeShield(contracts.rcaShield.address);
 
     await contracts.uToken.mint(signers.user.address, ether("1000000"));
@@ -481,7 +477,12 @@ describe("RCAs and Controller", function () {
         const userUTokenBalAfter = await contracts.uToken.balanceOf(signers.user.address);
         const userRcaBalAfter = await contracts.rcaShield.balanceOf(signers.user.address);
         expect(userRcaBalBefore.sub(userRcaBalAfter)).to.be.equal(redeemRequest.rcaAmount);
-        expect(userUTokenBalAfter.sub(userUTokenBalanceBefore)).to.be.equal(redeemRequest.uAmount);
+        expect(
+          userUTokenBalAfter
+            .sub(userUTokenBalanceBefore)
+            .mul(BigNumber.from(10).pow(await contracts.rcaShield.decimals()))
+            .div(BigNumber.from(10).pow(await contracts.uToken.decimals())),
+        ).to.be.equal(redeemRequest.uAmount);
       });
 
       // If one request is made after another, the amounts should add to last amounts
@@ -506,53 +507,7 @@ describe("RCAs and Controller", function () {
         expect(redeemRequest.rcaAmount).to.be.equal(ether("100"));
         expect(redeemRequest.endTime).to.be.equal(startTime.add("86400"));
       });
-      // check with router--this works backward with the mock and succeeds if not verified, fails if verified.
-      it("should succeed if zapping router is not verified", async function () {
-        await contracts.rcaShield
-          .connect(signers.user)
-          .redeemRequest(ether("100"), 0, merkleProofs.liqProof2, 0, merkleProofs.resProof1);
-
-        // Check request data
-        const timestamp = await getTimestamp();
-        const requests = await contracts.rcaShield.withdrawRequests(signers.user.address);
-        expect(requests[0]).to.be.equal(ether("100"));
-        expect(requests[0]).to.be.equal(ether("100"));
-        const endTime = timestamp.add("86400");
-        expect(requests[2]).to.be.equal(endTime);
-
-        // A bit more than 1 day withdrawal
-        increase(86500);
-
-        // will fail if it routes
-        contracts.rcaShield
-          .connect(signers.user)
-          .redeemFinalize(contracts.router.address, ethers.constants.AddressZero, 0, merkleProofs.liqProof1);
-      });
-      // check with router
-      it("should fail if zapping router is verified", async function () {
-        await contracts.rcaShield
-          .connect(signers.user)
-          .redeemRequest(ether("100"), 0, merkleProofs.liqProof2, 0, merkleProofs.resProof1);
-
-        // Check request data
-        const timestamp = await getTimestamp();
-        const requests = await contracts.rcaShield.withdrawRequests(signers.user.address);
-        expect(requests[0]).to.be.equal(ether("100"));
-        expect(requests[0]).to.be.equal(ether("100"));
-        const endTime = timestamp.add("86400");
-        expect(requests[2]).to.be.equal(endTime);
-
-        // A bit more than 1 day withdrawal
-        increase(86500);
-
-        await contracts.rcaController.connect(signers.guardian).setRouterVerified(contracts.router.address, true);
-
-        await expect(
-          contracts.rcaShield
-            .connect(signers.user)
-            .redeemFinalize(contracts.router.address, ethers.constants.AddressZero, 0, merkleProofs.liqProof1),
-        ).to.be.reverted;
-      });
+      // check with zapper
     });
     describe("#events", function () {
       it("should emit RedeemRequest from rcaShield with valid args", async function () {
@@ -638,31 +593,6 @@ describe("RCAs and Controller", function () {
         const shieldPercentReservedAfter = await contracts.rcaShield.percentReserved();
         // after redeem request shield percent reserved should update
         expect(shieldPercentReservedAfter).to.be.equal(percentReserved);
-      });
-      it("should never set percentreserved of a shield more than 33%", async function () {
-        const percentReserved = BigNumber.from(5000);
-        const reserveLimit = BigNumber.from(3300);
-        const resTree = new BalanceTree([
-          { account: contracts.rcaShield.address, amount: percentReserved },
-          { account: contracts.rcaController.address, amount: BigNumber.from(1000) },
-        ]);
-        await contracts.rcaController.connect(signers.guardian).setPercentReserved(resTree.getHexRoot());
-        const rcaAmount = ether("50");
-        const shieldPercentReservedBefore = await contracts.rcaShield.percentReserved();
-        // initial percent reserved which is zero
-        expect(shieldPercentReservedBefore).to.equal(BigNumber.from(0));
-        await contracts.rcaShield
-          .connect(signers.user)
-          .redeemRequest(
-            rcaAmount,
-            0,
-            [],
-            percentReserved,
-            resTree.getProof(contracts.rcaShield.address, percentReserved),
-          );
-        const shieldPercentReservedAfter = await contracts.rcaShield.percentReserved();
-        // after redeem request shield percent reserved should update to 33% even though the root is 34%
-        expect(shieldPercentReservedAfter).to.be.equal(reserveLimit);
       });
     });
   });

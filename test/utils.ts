@@ -11,9 +11,9 @@ import { RcaShieldConvex } from "../src/types/RcaShieldConvex";
 import { RcaShieldCompound } from "../src/types/RcaShieldCompound";
 
 import { getForkingBlockNumber, getMainnetUrl, isMainnetFork } from "../env_helpers";
+import { RcaShieldBaseNormalized } from "../src/types/RcaShieldBaseNormalized";
 
 dotenv.config();
-
 
 export function hexSized(str: string, length: number): string {
   const raw = Buffer.from(str).toString("hex");
@@ -78,7 +78,6 @@ export async function resetBlockchain() {
   }
 }
 
-
 export function formatEther(amount: BigNumber): string {
   return ethers.utils.formatEther(amount);
 }
@@ -117,7 +116,13 @@ export async function getSignatureDetailsFromCapOracle({
 
   return { vInt, r, s, expiry };
 }
-type Shield = RcaShield | RcaShieldAave | RcaShieldOnsen | RcaShieldConvex | RcaShieldCompound;
+type Shield =
+  | RcaShield
+  | RcaShieldAave
+  | RcaShieldOnsen
+  | RcaShieldConvex
+  | RcaShieldCompound
+  | RcaShieldBaseNormalized;
 
 type UValueArgs = {
   newCumLiqForClaims: BigNumber;
