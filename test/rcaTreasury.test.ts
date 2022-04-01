@@ -204,6 +204,13 @@ describe("RcaTreasury", function () {
         .withArgs(user, hackId1, claimAmount);
     });
   });
+  describe("transferOwnership", function () {
+    it("should emit PendingOwnershipTransfer event with valid args", async function () {
+      await expect(contracts.rcaTreasury.transferOwnership(signers.pendingGov.address))
+        .to.emit(contracts.rcaTreasury, "PendingOwnershipTransfer")
+        .withArgs(signers.gov.address, signers.pendingGov.address);
+    });
+  });
 
   describe("STATE:claimsRoots", function () {
     it("should return correct corrosponding roots", async function () {
