@@ -10,6 +10,7 @@ contract Governable {
     address payable private _pendingGovernor;
 
     event OwnershipTransferred(address indexed previousGovernor, address indexed newGovernor);
+    event PendingOwnershipTransfer(address indexed from, address indexed to);
 
     /**
      * @dev The Ownable constructor sets the original `owner` of the contract to the sender
@@ -49,6 +50,7 @@ contract Governable {
      */
     function transferOwnership(address payable newGovernor) public onlyGov {
         _pendingGovernor = newGovernor;
+        emit PendingOwnershipTransfer(_governor, newGovernor);
     }
 
     function receiveOwnership() public {
