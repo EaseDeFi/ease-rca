@@ -1,19 +1,4 @@
-type RcaTokens = {
-  yearn: RcaToken[];
-  compound: RcaToken[];
-  aave: RcaToken[];
-  onsen: RcaToken[];
-  convex: RcaToken[];
-};
-type RcaToken = {
-  name: string;
-  symbol: string;
-  address: string;
-  decimals: number;
-  whale: string;
-  shield: string;
-  pid?: number;
-};
+import { RcaTokens } from "./types";
 
 export const rcaTokens: RcaTokens = {} as RcaTokens;
 rcaTokens.yearn = [
