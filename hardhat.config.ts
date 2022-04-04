@@ -29,8 +29,8 @@ if (!infuraApiKey) {
 const accounts: string[] = [];
 function populateAccounts() {
   let i = 1;
-  while (process.env[`RINKEBY_PRIVATE_KEY${i}`] !== undefined) {
-    accounts.push(`0x${process.env[`RINKEBY_PRIVATE_KEY${i}`] as string}`);
+  while (process.env[`PRIVATE_KEY${i}`] !== undefined) {
+    accounts.push(`0x${process.env[`PRIVATE_KEY${i}`] as string}`);
     i++;
   }
 }
