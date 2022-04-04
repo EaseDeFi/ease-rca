@@ -39,7 +39,7 @@ const PRICEORACLE_ADDRESS = "0xEa5EDef10E0a7CB6C8C87C2F35B36f0f8E608eBC";
 const CAPORACLE_ADDRESS = "0xEa5edeF10d62c08c447C5c0e9a9d7523777886a7";
 
 // OTHERS
-const VANITY_TRANSFER_AMOUNT = ether("0.5");
+const VANITY_TRANSFER_AMOUNT = ether("0.02");
 const WITHDRAWAL_DELAY = BigNumber.from(3600);
 const DISCOUNT = BigNumber.from(0); // 0%
 const APR = BigNumber.from(0);
@@ -131,7 +131,7 @@ async function main() {
   for (const privateKey of privateKeys) {
     const signer = new ethers.Wallet(privateKey, ethers.provider);
     accounts.push(signer);
-    //await ethWhaleSigner.sendTransaction({ to: await signer.getAddress(), value: VANITY_TRANSFER_AMOUNT });
+    await ethWhaleSigner.sendTransaction({ to: await signer.getAddress(), value: VANITY_TRANSFER_AMOUNT });
   }
 
   console.log("Accounts funded.");
