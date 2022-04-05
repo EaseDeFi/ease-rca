@@ -70,7 +70,7 @@ rcaTokens.compound = [
   },
   {
     name: "cSUSHI Ease Vault",
-    symbol: "ez-cWBTC",
+    symbol: "ez-cSUSHI",
     address: "0x4B0181102A0112A2ef11AbEE5563bb4a3176c9d7",
     decimals: 8,
     whale: "0x2c21fa2903d4f8839e8fd6b041c2adf19dbf6540",
@@ -139,7 +139,7 @@ rcaTokens.onsen = [
   }, // Cannot send more than 1 of this one
   {
     name: "WETH-USDT SLP Ease Vault",
-    symbol: "ez-SLP-TOKE-WETH",
+    symbol: "ez-SLP-WETH-USDT",
     address: "0x06da0fd433C1A5d7a4faa01111c044910A184553",
     decimals: 18,
     whale: "0xbd445883d29a1631c8a69d1f26537f4f551d7763",
