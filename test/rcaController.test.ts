@@ -337,13 +337,20 @@ describe("RCA controller", function () {
       );
     });
   });
-  describe("balancesOfs()", function () {
+  describe.only("balancesOfs() & requestOfs()", function () {
     it("should return correct uToken balance of a user", async function () {
       const user = signers.user.address;
       const uToken = contracts.uToken.address;
       const userUTokenBalance = await contracts.uToken.balanceOf(user);
       const balances = await contracts.rcaController.balanceOfs(user, [uToken]);
       expect(balances[0]).to.equal(userUTokenBalance);
+    });
+    it("should return correct withdraw request of a user", async function () {
+      const user = signers.user.address;
+      const requests = await contracts.rcaController.requestOfs(user, [contracts.rcaShield.address]);
+      expect(requests[0][0]).to.equal(0);
+      expect(requests[0][1]).to.equal(0);
+      expect(requests[0][2]).to.equal(0);
     });
   });
   describe("getMessageHash()", function () {

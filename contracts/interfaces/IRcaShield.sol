@@ -30,4 +30,12 @@ interface IRcaShield {
     function uToken() external returns (IERC20);
 
     function controllerUpdate(uint256 apr, uint256 aprUpdate) external;
+
+    struct WithdrawRequest {
+        uint112 uAmount;
+        uint112 rcaAmount;
+        uint32 endTime;
+    }
+
+    function withdrawRequests(address user) external view returns (WithdrawRequest memory);
 }

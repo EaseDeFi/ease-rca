@@ -82,7 +82,13 @@ const config: HardhatUserConfig = {
     excludeContracts: [],
     src: "./contracts",
   },
-
+  abiExporter: {
+    path: './data/abi',
+    runOnCompile: true,
+    clear: true,
+    flat: true,
+    spacing: 2,
+  },
   networks: {
     hardhat: {
       forking: {

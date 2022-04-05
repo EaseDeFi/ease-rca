@@ -403,6 +403,23 @@ contract RcaController is RcaGovernable {
     }
 
     /**
+     * @notice Makes it easier for frontend to get the currently withdrawing requests for each shield.
+     * @param _user User to find requests of.
+     * @param _shields The shields to find the request data for.
+     */
+    function requestOfs(
+        address _user, 
+        address[] calldata _shields
+    ) external view returns (IRcaShield.WithdrawRequest[] memory requests) {
+        requests = new IRcaShield.WithdrawRequest[](_shields.length);
+
+        for (uint256 i = 0; i < _shields.length; i++) {
+            IRcaShield.WithdrawRequest memory request = IRcaShield(_shields[i]).withdrawRequests(_user);
+            requests[i] = request;
+        }
+    }
+
+    /**
      * @notice Used by frontend to craft signature for a requested transaction.
      * @param _user User that is being minted to.
      * @param _shield Address of the shield that tokens are being deposited into.
