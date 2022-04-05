@@ -1,14 +1,16 @@
 # folders
 node_modules/
 build/
-package-lock.json
 cache/
 artifacts/
 coverage/
-coverage.json
 src/types
 abi/
+contracts/zapper
 
 # files
 .env
-test/ScratchPad.md
+ScratchPad.md
+ZapperResearch.md
+coverage.json
+package-lock.json
