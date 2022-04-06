@@ -6,7 +6,6 @@ artifacts/
 coverage/
 src/types
 abi/
-contracts/zapper
 
 # files
 .env

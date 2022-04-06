@@ -2,6 +2,13 @@ import { MainnetAddresses, TimeInSecs } from "./types";
 
 export const MAINNET_ADDRESSES: MainnetAddresses = {
   contracts: {
+    tokens: {
+      weth: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+      usdc: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    },
+    uniswap: {
+      routerV2: "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D",
+    },
     aave: {
       incentivesController: "0xd784927Ff2f95ba542BfC824c8a8a98F3495f6b5",
       aAAVEToken: "0xFFC97d72E13E01096502Cb8Eb52dEe56f74DAD7B",
@@ -9,6 +16,8 @@ export const MAINNET_ADDRESSES: MainnetAddresses = {
       aWbtc: "0x9ff58f4fFB29fA2266Ab25e75e2A8b3503311656",
       token: "0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9",
       stkAAVEToken: "0x4da27a545c0c5B758a6BA100e3a049001de870f5",
+      lendingPool: "0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9",
+      aUSDC: "0xBcca60bB61934080951369a648Fb03DF4F96263C",
     },
     compound: {
       token: "0xc00e94cb662c3520282e6f5717214004a7f26888",

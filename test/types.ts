@@ -1,6 +1,7 @@
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { MockERC20 } from "../src/types/MockERC20";
 import { MockRouter } from "../src/types/MockRouter";
+// RCA's
 import { RcaController } from "../src/types/RcaController";
 import { RcaShield } from "../src/types/RcaShield";
 import { RcaShieldNormalized } from "../src/types/RcaShieldNormalized";
@@ -9,6 +10,9 @@ import { RcaShieldOnsen } from "../src/types/RcaShieldOnsen";
 import { RcaShieldCompound } from "../src/types/RcaShieldCompound";
 import { RcaShieldConvex } from "../src/types/RcaShieldConvex";
 import { RcaTreasury } from "../src/types/RcaTreasury";
+// ROUTER's
+import { AaveRouter } from "../src/types/AaveRouter";
+
 import BalanceTree from "./balance-tree";
 import ClaimTree from "./claim-tree";
 import { IConvexRewardPool } from "../src/types/IConvexRewardPool";
@@ -40,6 +44,10 @@ export type Contracts = {
   rcaShieldConvex: RcaShieldConvex;
   cvxCRVPool: IConvexRewardPool;
   router: MockRouter;
+  routers: Routers;
+};
+export type Routers = {
+  aaveRouter: AaveRouter;
 };
 
 export type MerkleTrees = {
@@ -77,6 +85,12 @@ export type AaveContracts = {
   stkAAVEToken: string;
   aWeth: string;
   aWbtc: string;
+  lendingPool: string;
+  aUSDC: string;
+};
+export type MainnetTokens = {
+  weth: string;
+  usdc: string;
 };
 
 export type ConvexContracts = {
@@ -101,6 +115,11 @@ export type MainnetContracts = {
   convex: ConvexContracts;
   onsen: OnsenContracts;
   compound: CompoundContracts;
+  uniswap: UniswapContracts;
+  tokens: MainnetTokens;
+};
+export type UniswapContracts = {
+  routerV2: string;
 };
 
 export type MainnetAccounts = {
