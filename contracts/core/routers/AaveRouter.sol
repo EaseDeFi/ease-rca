@@ -21,8 +21,8 @@ contract AaveRouter is IRouter {
     IRcaShield public immutable shield;
     ILendingPool public immutable lendingPool;
     // TODO: Should I care about packing this struct?
+    address _currentUser;
     struct MintToArgs {
-        address user;
         address referrer;
         uint256 expiry;
         uint8 v;
@@ -74,6 +74,7 @@ contract AaveRouter is IRouter {
     function zapIn(address user, bytes calldata data) external payable {
         // But do we really need this check as function calls in between may fail if we don't send enough eth?
         require(msg.value > 0, "send some eth anon");
+        _currentUser = msg.sender;
         // 1. swap eth to desired token
         // Question: Can we use _expiry for deadline?
         (uint256 amountOut, MintToArgs memory args) = abi.decode(data, (uint256, (MintToArgs)));
@@ -82,6 +83,7 @@ contract AaveRouter is IRouter {
         path[1] = address(baseToken);
 
         // swapping eth for exact tokens so that we don't run into invalid capacity sig error
+        // TODO: Uniswap you liar you never send exact tokens
         router.swapETHForExactTokens{ value: msg.value }(amountOut, path, address(this), args.expiry);
         uint256 _amount = baseToken.balanceOf(address(this));
         // 2. deposit to a desired pool/vault
@@ -89,16 +91,15 @@ contract AaveRouter is IRouter {
         lendingPool.deposit(address(baseToken), _amount, address(this), 0);
         uint256 _uAmount = aToken.balanceOf(address(this));
         // TODO: remove this check after everything works
-        console.log("UAmount: ", _uAmount);
-        console.log("AmountOut: ", amountOut);
-        require(_uAmount == amountOut, "fix me dev, I am stuck");
+        // TODO: uncomment this, commenting now because uniswap returns amountOut+1
+        // require(_uAmount == amountOut, "fix me dev, I am stuck");
         aToken.approve(address(shield), _uAmount);
-
+        amountOut = (amountOut * BUFFER) / 10**aToken.decimals();
         // 3. and mint an rca against it
         shield.mintTo(
             user,
             args.referrer,
-            (amountOut * BUFFER) / aToken.decimals(),
+            amountOut,
             args.expiry,
             args.v,
             args.r,
@@ -106,10 +107,13 @@ contract AaveRouter is IRouter {
             args.newCumLiqForClaims,
             args.liqForClaimsProof
         );
+        _currentUser = address(0);
     }
 
     receive() external payable {
         //TODO: transfer eth to current user
         // Using recieve here because swapEthForExactTokens returns extra eth to the caller
+        require(_currentUser != address(0), "can't recieve ether");
+        payable(_currentUser).transfer(msg.value);
     }
 }
