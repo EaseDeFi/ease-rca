@@ -9,6 +9,7 @@ rcaTokens.yearn = [
     decimals: 18,
     whale: "0x577ebc5de943e35cdf9ecb5bbe1f7d7cb6c7c647",
     shield: "",
+    rewardPool: "0x0A760466E1B4621579a82a39CB56Dda2F4E70f03",
   },
   {
     name: "yvWETH Ease Vault",
@@ -17,6 +18,7 @@ rcaTokens.yearn = [
     decimals: 18,
     whale: "0x53a393fbc352fad69baedefa46c4c1085bb6d707",
     shield: "",
+    rewardPool: "0x0A760466E1B4621579a82a39CB56Dda2F4E70f03",
   },
   {
     name: "yvUSDC Ease Vault",
@@ -25,6 +27,7 @@ rcaTokens.yearn = [
     decimals: 6,
     whale: "0xdb91f52eefe537e5256b8043e5f7c7f44d81f5aa",
     shield: "",
+    rewardPool: "0x0A760466E1B4621579a82a39CB56Dda2F4E70f03",
   },
   {
     name: "yvDAI Ease Vault",
@@ -33,6 +36,7 @@ rcaTokens.yearn = [
     decimals: 18,
     whale: "0x98aa6b78ed23f4ce2650da85604ced5653129a21",
     shield: "",
+    rewardPool: "0x0A760466E1B4621579a82a39CB56Dda2F4E70f03",
   },
   {
     name: "yvCurve-IronBank Ease Vault",
@@ -41,6 +45,7 @@ rcaTokens.yearn = [
     decimals: 18,
     whale: "0xd6d16b110ea9173d7ceb6cfe8ca4060749a75f5c",
     shield: "",
+    rewardPool: "0x0A760466E1B4621579a82a39CB56Dda2F4E70f03",
   },
 ];
 rcaTokens.compound = [
@@ -51,6 +56,7 @@ rcaTokens.compound = [
     decimals: 8,
     whale: "0x716034c25d9fb4b38c837afe417b7f2b9af3e9ae",
     shield: "",
+    rewardPool: "0x0A760466E1B4621579a82a39CB56Dda2F4E70f03",
   },
   {
     name: "cDAI Ease Vault",
@@ -59,6 +65,7 @@ rcaTokens.compound = [
     decimals: 8,
     whale: "0x30030383d959675ec884e7ec88f05ee0f186cc06",
     shield: "",
+    rewardPool: "0x0A760466E1B4621579a82a39CB56Dda2F4E70f03",
   },
   {
     name: "cUSDC Ease Vault",
@@ -67,6 +74,7 @@ rcaTokens.compound = [
     decimals: 8,
     whale: "0x3ddfa8ec3052539b6c9549f12cea2c295cff5296",
     shield: "",
+    rewardPool: "0x0A760466E1B4621579a82a39CB56Dda2F4E70f03",
   },
   {
     name: "cSUSHI Ease Vault",
@@ -75,6 +83,7 @@ rcaTokens.compound = [
     decimals: 8,
     whale: "0x2c21fa2903d4f8839e8fd6b041c2adf19dbf6540",
     shield: "",
+    rewardPool: "0x0A760466E1B4621579a82a39CB56Dda2F4E70f03",
   },
   {
     name: "cUSDT Ease Vault",
@@ -83,6 +92,7 @@ rcaTokens.compound = [
     decimals: 8,
     whale: "0x3ddfa8ec3052539b6c9549f12cea2c295cff5296",
     shield: "",
+    rewardPool: "0x0A760466E1B4621579a82a39CB56Dda2F4E70f03",
   },
 ];
 rcaTokens.aave = [
@@ -93,6 +103,7 @@ rcaTokens.aave = [
     decimals: 18,
     whale: "0x3ddfa8ec3052539b6c9549f12cea2c295cff5296",
     shield: "",
+    rewardPool: "0x0A760466E1B4621579a82a39CB56Dda2F4E70f03",
   },
   {
     name: "aUSDC Ease Vault",
@@ -101,6 +112,7 @@ rcaTokens.aave = [
     decimals: 6,
     whale: "0x3ddfa8ec3052539b6c9549f12cea2c295cff5296",
     shield: "",
+    rewardPool: "0x0A760466E1B4621579a82a39CB56Dda2F4E70f03",
   },
   {
     name: "aDAI Ease Vault",
@@ -109,6 +121,7 @@ rcaTokens.aave = [
     decimals: 18,
     whale: "0x2e0929bd71c21cfc66dce799b132f979ff8db7a0",
     shield: "",
+    rewardPool: "0x0A760466E1B4621579a82a39CB56Dda2F4E70f03",
   },
   {
     name: "aCRV Ease Vault",
@@ -117,6 +130,7 @@ rcaTokens.aave = [
     decimals: 8,
     whale: "0x602d9abd5671d24026e2ca473903ff2a9a957407",
     shield: "",
+    rewardPool: "0x0A760466E1B4621579a82a39CB56Dda2F4E70f03",
   },
   {
     name: "aUSDT Ease Vault",
@@ -125,6 +139,7 @@ rcaTokens.aave = [
     decimals: 6,
     whale: "0x3ddfa8ec3052539b6c9549f12cea2c295cff5296",
     shield: "",
+    rewardPool: "0x0A760466E1B4621579a82a39CB56Dda2F4E70f03",
   },
 ];
 rcaTokens.onsen = [
@@ -136,6 +151,7 @@ rcaTokens.onsen = [
     whale: "0x5c00977a2002a3C9925dFDfb6815765F578a804f",
     shield: "",
     pid: 1,
+    rewardPool: "0x0A760466E1B4621579a82a39CB56Dda2F4E70f03",
   }, // Cannot send more than 1 of this one
   {
     name: "WETH-USDT SLP Ease Vault",
@@ -144,6 +160,7 @@ rcaTokens.onsen = [
     decimals: 18,
     whale: "0xbd445883d29a1631c8a69d1f26537f4f551d7763",
     shield: "",
+    rewardPool: "0x0A760466E1B4621579a82a39CB56Dda2F4E70f03",
   },
   {
     name: "WBTC-WETH SLP Ease Vault",
@@ -153,6 +170,7 @@ rcaTokens.onsen = [
     whale: "0x0489076A0D17394835aF93cd62ACFf703B6814a9",
     shield: "",
     pid: 21,
+    rewardPool: "0x0A760466E1B4621579a82a39CB56Dda2F4E70f03",
   }, // Can't send more than 0.001
   {
     name: "BIT-WETH SLP Ease Vault",
@@ -162,6 +180,7 @@ rcaTokens.onsen = [
     whale: "0x54b55662901aF57B31fb6B52AF8175b652A5816e",
     shield: "",
     pid: 17,
+    rewardPool: "0x0A760466E1B4621579a82a39CB56Dda2F4E70f03",
   },
   {
     name: "DAI-WETH SLP Ease Vault",
@@ -171,6 +190,7 @@ rcaTokens.onsen = [
     whale: "0x647481c033a4a2e816175ce115a0804adf793891",
     shield: "",
     pid: 2,
+    rewardPool: "0x0A760466E1B4621579a82a39CB56Dda2F4E70f03",
   },
 ];
 
@@ -182,6 +202,7 @@ rcaTokens.convex = [
     decimals: 18,
     whale: "0x5028D77B91a3754fb38B2FBB726AF02d1FE44Db6",
     shield: "",
+    rewardPool: "0xB900EF131301B307dB5eFcbed9DBb50A3e209B2e",
   },
   {
     name: "cvxsteCRV Ease Vault",
@@ -190,6 +211,7 @@ rcaTokens.convex = [
     decimals: 18,
     whale: "0x0a760466e1b4621579a82a39cb56dda2f4e70f03",
     shield: "",
+    rewardPool: "0x0A760466E1B4621579a82a39CB56Dda2F4E70f03",
   },
   {
     name: "cvxcrvRenWBTC Ease Vault",
@@ -198,6 +220,7 @@ rcaTokens.convex = [
     decimals: 18,
     whale: "0x7e2b9b5244bcfa5108a76d5e7b507cfd5581ad4a",
     shield: "",
+    rewardPool: "0x74b79021Ea6De3f0D1731fb8BdfF6eE7DF10b8Ae",
   },
   {
     name: "cvxMIM-3LP3CRV-f Ease Vault",
@@ -206,6 +229,7 @@ rcaTokens.convex = [
     decimals: 18,
     whale: "0xfd5abf66b003881b88567eb9ed9c651f14dc4771",
     shield: "",
+    rewardPool: "0xabB54222c2b77158CC975a2b715a3d703c256F05",
   },
   {
     name: "cvxcrv3crypto Ease Vault",
@@ -214,5 +238,6 @@ rcaTokens.convex = [
     decimals: 18,
     whale: "0x9d5c5e364d81dab193b72db9e9be9d8ee669b652",
     shield: "",
+    rewardPool: "0x9D5C5E364D81DaB193b72db9E9BE9D8ee669B652",
   },
 ];

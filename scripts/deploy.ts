@@ -314,7 +314,6 @@ async function main() {
   }
   // deploy rca against convex vaults
   async function initializeConvexVaults() {
-    const rewardPool = "0x3Fe65692bfCD0e6CF84cB1E7d24108E434A7587e";
     const RCA_SHIELD = <RcaShieldConvex__factory>await ethers.getContractFactory("RcaShieldConvex");
     for (let i = 0; i < rcaTokens.convex.length; i++) {
       const details = rcaTokens.convex[i];
@@ -324,7 +323,7 @@ async function main() {
         details.address, // underlying token
         signers.gov.address, // governor
         contracts.rcaController.address, // rcaController
-        rewardPool,
+        details.rewardPool,
       );
 
       console.log(details.name, shield.address);
