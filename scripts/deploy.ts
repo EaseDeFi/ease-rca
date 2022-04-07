@@ -323,7 +323,7 @@ async function main() {
         details.address, // underlying token
         signers.gov.address, // governor
         contracts.rcaController.address, // rcaController
-        details.rewardPool,
+        details.rewardPool || "",
       );
 
       console.log(details.name, shield.address);

@@ -15,7 +15,7 @@ export type RcaToken = {
   whale: string;
   shield: string;
   pid?: number;
-  rewardPool: string;
+  rewardPool?: string;
 };
 export type FundMeTokenArgs = {
   details: RcaToken;
