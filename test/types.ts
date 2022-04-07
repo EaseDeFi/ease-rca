@@ -127,6 +127,7 @@ export type MainnetAccounts = {
   aaveWhale: string;
   aWethWhale: string;
   aWbtcWhale: string;
+  aUSDCWhale: string;
   cvxWhale: string;
   cvxCRVWhale: string;
   cCompWhale: string;

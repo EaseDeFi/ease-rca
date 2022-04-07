@@ -47,6 +47,7 @@ export const MAINNET_ADDRESSES: MainnetAddresses = {
     aaveWhale: "0x26a78D5b6d7a7acEEDD1e6eE3229b372A624d8b7",
     aWethWhale: "0x8aceab8167c80cb8b3de7fa6228b889bb1130ee8",
     aWbtcWhale: "0x602d9abd5671d24026e2ca473903ff2a9a957407",
+    aUSDCWhale: "0x3ddfa8ec3052539b6c9549f12cea2c295cff5296",
     cvxWhale: "0x0aCA67Fa70B142A3b9bF2eD89A81B40ff85dACdC",
     cvxCRVWhale: "0xE4360E6e45F5b122586BCA3b9d7b222EA69C5568",
     cCompWhale: "0xa23CB68780be74b254a5f7210Ec6cF1c76289953",

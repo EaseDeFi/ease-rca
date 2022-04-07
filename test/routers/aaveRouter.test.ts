@@ -3,9 +3,10 @@ import "@nomiclabs/hardhat-ethers";
 import hre, { ethers } from "hardhat";
 import { BigNumber } from "ethers";
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
+import { parseUnits } from "ethers/lib/utils";
 
 import BalanceTree from "../balance-tree";
-import { ether, getExpectedRcaValue, getSignatureDetailsFromCapOracle, resetBlockchain } from "../utils";
+import { ether, getExpectedRcaValue, getSignatureDetailsFromCapOracle, getTimestamp, resetBlockchain } from "../utils";
 import { MAINNET_ADDRESSES, TIME_IN_SECS } from "../constants";
 import type { Contracts, MerkleProofs, MerkleTrees, Routers, Signers } from "../types";
 
@@ -20,7 +21,7 @@ import type { RcaShieldAave__factory } from "../../src/types/factories/RcaShield
 import type { RcaController__factory } from "../../src/types/factories/RcaController__factory";
 import type { RcaTreasury__factory } from "../../src/types/factories/RcaTreasury__factory";
 import type { AaveRouter__factory } from "../../src/types/factories/AaveRouter__factory";
-import { parseUnits } from "ethers/lib/utils";
+
 describe("AaveRouter:aUSDC", function () {
   const signers = {} as Signers;
   const contracts = {} as Contracts;
@@ -28,12 +29,8 @@ describe("AaveRouter:aUSDC", function () {
   const merkleProofs = {} as MerkleProofs;
   // make routers empty objects so that they won't be undefined
   contracts.routers = {} as Routers;
-  // local whales
-  let aaveWhale: SignerWithAddress;
-  let stkAAVEWhale: SignerWithAddress;
   //  local tokens
-  let aaveToken: MockERC20;
-  let stkAAVEToken: MockERC20;
+  let usdcToken: MockERC20;
   before(async function () {
     await resetBlockchain();
   });
@@ -48,12 +45,16 @@ describe("AaveRouter:aUSDC", function () {
     signers.capOracle = _signers[5];
     signers.referrer = _signers[6];
     signers.otherAccounts = _signers.slice(7);
+    await hre.network.provider.send("hardhat_impersonateAccount", [MAINNET_ADDRESSES.accounts.aUSDCWhale]);
+    signers.user = await ethers.getSigner(MAINNET_ADDRESSES.accounts.aUSDCWhale);
+
+    // transfer eth to impersonated accounts for enough eth to cover gas
+    await signers.otherAccounts[0].sendTransaction({ to: signers.user.address, value: ether("1000") });
 
     // load mainnet contracts
     contracts.uToken = <MockERC20>await ethers.getContractAt("MockERC20", MAINNET_ADDRESSES.contracts.aave.aUSDC);
-    aaveToken = <MockERC20>await ethers.getContractAt("MockERC20", MAINNET_ADDRESSES.contracts.aave.token);
-    stkAAVEToken = <MockERC20>await ethers.getContractAt("MockERC20", MAINNET_ADDRESSES.contracts.aave.stkAAVEToken);
 
+    usdcToken = <MockERC20>await ethers.getContractAt("MockERC20", MAINNET_ADDRESSES.contracts.tokens.usdc);
     const rcaShieldAaveFactory = <RcaShieldAave__factory>await ethers.getContractFactory("RcaShieldAave");
     const rcaControllerFactory = <RcaController__factory>await ethers.getContractFactory("RcaController");
     const rcaTreasuryFactory = <RcaTreasury__factory>await ethers.getContractFactory("RcaTreasury");
@@ -113,19 +114,11 @@ describe("AaveRouter:aUSDC", function () {
       { account: contracts.rcaController.address, amount: ether("100") },
     ]);
 
-    // Set liquidation tree.
-    merkleTrees.liqTree2 = new BalanceTree([
-      { account: contracts.rcaShieldAave.address, amount: ether("0") },
-      { account: contracts.rcaController.address, amount: ether("0") },
-    ]);
-
     // Set price tree.
     merkleTrees.priceTree1 = new BalanceTree([
       { account: contracts.rcaShieldAave.address, amount: ether("0.001") },
       { account: contracts.rcaController.address, amount: ether("0.001") },
       { account: contracts.uToken.address, amount: ether("0.001") },
-      { account: aaveToken.address, amount: ether("0.001") },
-      { account: stkAAVEToken.address, amount: ether("0.001") },
     ]);
     // merkleProofs
     merkleProofs.liqProof1 = merkleTrees.liqTree1.getProof(contracts.rcaShieldAave.address, ether("100"));
@@ -136,34 +129,6 @@ describe("AaveRouter:aUSDC", function () {
     await contracts.uToken.connect(signers.referrer).approve(contracts.rcaShieldAave.address, ether("100000"));
   });
 
-  async function mintTokenForUser() {
-    //   mint RCA and check for shields uToken balance
-    const userAddress = signers.user.address;
-    const uAmount = ether("100");
-    // returns: expiry, vInt, r, s
-    const sigValues = await getSignatureDetailsFromCapOracle({
-      amount: uAmount,
-      capOracle: signers.capOracle,
-      controller: contracts.rcaController,
-      userAddress,
-      shieldAddress: contracts.rcaShieldAave.address,
-    });
-    await contracts.rcaShieldAave
-      .connect(signers.user)
-      .mintTo(
-        signers.user.address,
-        signers.referrer.address,
-        uAmount,
-        sigValues.expiry,
-        sigValues.vInt,
-        sigValues.r,
-        sigValues.s,
-        0,
-        merkleProofs.liqProof1,
-      );
-  }
-
-  // send funds to Treasury
   describe("Initialize", function () {
     it("should intialize the shield with valid state", async function () {
       expect(await contracts.routers.aaveRouter.aToken()).to.equal(contracts.uToken.address);
@@ -215,6 +180,31 @@ describe("AaveRouter:aUSDC", function () {
       const userRcaBalAfter = await contracts.rcaShieldAave.balanceOf(userAddress);
 
       expect(userRcaBalAfter.sub(userRcaBalBefore)).to.be.equal(expectedRcaValue);
+    });
+  });
+  describe("routeTo()", function () {
+    it("should allow user to route and recieve exact usdc", async function () {
+      const uAmount = parseUnits("100", 6);
+      const routerAddress = contracts.routers.aaveRouter.address;
+      const userAddress = signers.user.address;
+      // transfer token to the zapper
+      await contracts.uToken.connect(signers.user).transfer(routerAddress, uAmount);
+
+      const userUSDCBalBefore = await usdcToken.balanceOf(userAddress);
+      const deadline = (await getTimestamp()).add(100);
+      // TODO: update this later *fetch using uniswap*
+      const amountOutMin = uAmount;
+      const zapArgs = ethers.utils.AbiCoder.prototype.encode(
+        ["address", "uint256", "uint256"],
+        [MAINNET_ADDRESSES.contracts.tokens.usdc, amountOutMin, deadline],
+      );
+      await contracts.routers.aaveRouter.routeTo(userAddress, uAmount, zapArgs);
+      //check usdc balances
+      const userUSDCBalAfter = await usdcToken.balanceOf(userAddress);
+      expect(userUSDCBalAfter.sub(userUSDCBalBefore)).to.be.gte(amountOutMin);
+    });
+    xit("should allow user to route and recieve exact eth or wrapped eth", async function () {
+      // TODO: complete this
     });
   });
 });
