@@ -87,6 +87,7 @@ Non-privileged griefing (e.g. no profit motive for an attacker, but damage to th
 Adapters lacking the ability to get full normal rewards that the protocol returns (i.e. if the protocol gives 2 rewards tokens but the vault can only withdraw 1).
 
 <b>Low</b>
+
 Smart contract fails to deliver promised returns, but doesn’t lose more than a negligible amount of funds.
 
 <b>In case of discrepancy between Immunefi Vulnerability Severity Classification System V2 and Ease’s classification above, Ease’s classification will be followed.</b>
