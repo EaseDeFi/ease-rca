@@ -15,10 +15,10 @@ Rewards are distributed according to the impact of the vulnerability based on th
 
 <h2>Smart Contracts</h2> 
 
-Critical               USD 100 000
-High                   USD 15 000
-Medium                 USD 5 000
-Low                    USD 1 000
+Critical               USD 100 000</br>
+High                   USD 15 000</br>
+Medium                 USD 5 000</br>
+Low                    USD 1 000</br>
 
 
 All High and Critical Smart Contract bug reports require a PoC to be eligible for a reward. Explanations and statements are not accepted as PoC and code is required.
@@ -35,61 +35,40 @@ Payouts are handled by the Ease team directly and are denominated in USD. Howeve
 <h2>Assets in Scope</h2> 
 
 
-Target
-Type
-https://github.com/EaseDeFi/ease-rca/blob/master/contracts/core/adapters/RcaShieldAave.sol 
-Smart Contract - RcaShieldAave
-https://github.com/EaseDeFi/ease-rca/blob/master/contracts/core/adapters/RcaShieldCompound.sol 
-Smart Contract - RcaShieldCompound
-https://github.com/EaseDeFi/ease-rca/blob/master/contracts/core/adapters/RcaShieldConvex.sol 
-Smart Contract - RcaShieldConvex
-https://github.com/EaseDeFi/ease-rca/blob/master/contracts/core/adapters/RcaShieldOnsen.sol 
-Smart Contract - RcaShieldOnsen
-https://github.com/EaseDeFi/ease-rca/blob/master/contracts/core/RcaController.sol 
-Smart Contract - RcaController
-https://github.com/EaseDeFi/ease-rca/blob/master/contracts/core/RcaShield.sol 
-Smart Contract - RcaShield
-https://github.com/EaseDeFi/ease-rca/blob/master/contracts/core/RcaShieldBase.sol 
-Smart Contract - RcaShieldBase
-https://github.com/EaseDeFi/ease-rca/blob/master/contracts/core/RcaShieldNormalized.sol 
-Smart Contract - RcaShieldNormalized
-https://github.com/EaseDeFi/ease-rca/blob/master/contracts/core/RcaTreasury.sol 
-Smart Contract - RcaTreasury
-https://github.com/EaseDeFi/ease-rca/blob/master/contracts/external/Aave.sol 
-Smart Contract - Aave
-https://github.com/EaseDeFi/ease-rca/blob/master/contracts/external/Compound.sol 
-Smart Contract - Compound
-https://github.com/EaseDeFi/ease-rca/blob/master/contracts/external/Convex.sol 
-Smart Contract - Convex
-https://github.com/EaseDeFi/ease-rca/blob/master/contracts/external/NexusMutual.sol 
-Smart Contract - NexusMutual
-https://github.com/EaseDeFi/ease-rca/blob/master/contracts/external/Sushiswap.sol 
-Smart Contract - Sushiswap
-https://github.com/EaseDeFi/ease-rca/blob/master/contracts/general/Governable.sol 
-Smart Contract - Governable
-https://github.com/EaseDeFi/ease-rca/blob/master/contracts/general/RcaGovernable.sol 
-Smart Contract - RcaGovernable
-https://github.com/EaseDeFi/ease-rca/blob/master/contracts/interfaces/IRcaController.sol 
-Smart Contract - RcaController
-https://github.com/EaseDeFi/ease-rca/blob/master/contracts/interfaces/IRcaShield.sol 
-Smart Contract - RcaShield
-https://github.com/EaseDeFi/ease-rca/blob/master/contracts/interfaces/IRouter.sol 
-Smart Contract - IRouter
-https://github.com/EaseDeFi/ease-rca/blob/master/contracts/library/MerkleProof.sol 
-Smart Contract - MerkleProof
+Target | Type
+https://github.com/EaseDeFi/ease-rca/blob/master/contracts/core/adapters/RcaShieldAave.sol     | Smart Contract - RcaShieldAave</br>
+https://github.com/EaseDeFi/ease-rca/blob/master/contracts/core/adapters/RcaShieldCompound.sol | Smart Contract - RcaShieldCompound</br>
+https://github.com/EaseDeFi/ease-rca/blob/master/contracts/core/adapters/RcaShieldConvex.sol   | Smart Contract - RcaShieldConvex</br>
+https://github.com/EaseDeFi/ease-rca/blob/master/contracts/core/adapters/RcaShieldOnsen.sol    | Smart Contract - RcaShieldOnsen</br>
+https://github.com/EaseDeFi/ease-rca/blob/master/contracts/core/RcaController.sol              | Smart Contract - RcaController</br>
+https://github.com/EaseDeFi/ease-rca/blob/master/contracts/core/RcaShield.sol                  | Smart Contract - RcaShield</br>
+https://github.com/EaseDeFi/ease-rca/blob/master/contracts/core/RcaShieldBase.sol              | Smart Contract - RcaShieldBase</br>
+https://github.com/EaseDeFi/ease-rca/blob/master/contracts/core/RcaShieldNormalized.sol        | Smart Contract - RcaShieldNormalized</br>
+https://github.com/EaseDeFi/ease-rca/blob/master/contracts/core/RcaTreasury.sol                | Smart Contract - RcaTreasury</br>
+https://github.com/EaseDeFi/ease-rca/blob/master/contracts/external/Aave.sol                   | Smart Contract - Aave</br>
+https://github.com/EaseDeFi/ease-rca/blob/master/contracts/external/Compound.sol               | Smart Contract - Compound</br>
+https://github.com/EaseDeFi/ease-rca/blob/master/contracts/external/Convex.sol                 | Smart Contract - Convex</br>
+https://github.com/EaseDeFi/ease-rca/blob/master/contracts/external/NexusMutual.sol            | Smart Contract - NexusMutual</br>
+https://github.com/EaseDeFi/ease-rca/blob/master/contracts/external/Sushiswap.sol              | Smart Contract - Sushiswap</br>
+https://github.com/EaseDeFi/ease-rca/blob/master/contracts/general/Governable.sol              | Smart Contract - Governable</br>
+https://github.com/EaseDeFi/ease-rca/blob/master/contracts/general/RcaGovernable.sol           | Smart Contract - RcaGovernable</br>
+https://github.com/EaseDeFi/ease-rca/blob/master/contracts/interfaces/IRcaController.sol       | Smart Contract - RcaController</br>
+https://github.com/EaseDeFi/ease-rca/blob/master/contracts/interfaces/IRcaShield.sol           | Smart Contract - RcaShield</br>
+https://github.com/EaseDeFi/ease-rca/blob/master/contracts/interfaces/IRouter.sol              | Smart Contract - IRouter</br>
+https://github.com/EaseDeFi/ease-rca/blob/master/contracts/library/MerkleProof.sol             | Smart Contract - MerkleProof</br>
 
 
 
 If an impact can be caused to any other asset managed by Ease that isn’t on this table but for which the impact is in the Impacts in Scope section below, you are encouraged to submit it for the consideration by the project. This only applies to Critical impacts. 
 
 
-Impacts in Scope
+<h2>Impacts in Scope</h2>
 
 Only the following impacts are accepted within this bug bounty program. All other impacts are not considered as in-scope, even if they affect something in the assets in scope table.
 
 
 
-Smart Contracts 
+<h2>Smart Contracts</h2> 
 
 <b>Critical</b>
 
@@ -111,7 +90,7 @@ Adapters lacking the ability to get full normal rewards that the protocol return
 Smart contract fails to deliver promised returns, but doesn’t lose more than a negligible amount of funds.
 
 
-Particularly Vulnerable Areas:
+<h2>Particularly Vulnerable Areas:</h2>
 
 - Decimal problems. We’re starting with Compound and a few USDC contracts that require normalization so we must prevent any problems as this would likely lead to a critical.
 - Protocol composability problems. Each shield adapter functions differently and there could be high or critical severity problems here.
@@ -120,7 +99,7 @@ Particularly Vulnerable Areas:
 
 In case of discrepancy between Immunefi Vulnerability Severity Classification System V2 and Ease’s classification above, Ease’s classification will be followed.
 
-Out of Scope & Rules 
+<h2>Out of Scope & Rules<h2>
 
 The following vulnerabilities are excluded from the rewards for this bug bounty program:
 
