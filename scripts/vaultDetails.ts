@@ -73,7 +73,7 @@ rcaTokens.compound = [
     whale: "0x30030383d959675ec884e7ec88f05ee0f186cc06",
     shield: "",
     rewardPool: "0x0A760466E1B4621579a82a39CB56Dda2F4E70f03",
-    coingeckoId: "compound-dai",
+    coingeckoId: "cdai",
   },
   {
     name: "cUSDC Ease Vault",

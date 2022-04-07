@@ -1,5 +1,9 @@
 import { CoinGeckoClient } from "coingecko-api-v3";
+import { ethers } from "ethers";
 import { rcaTokens } from "../vaultDetails";
+import { config } from "dotenv";
+
+config();
 
 type Balance = {
   name: string;
@@ -22,6 +26,7 @@ export async function getCoingeckoPrice(id: string): Promise<{ inETH: number; in
 }
 
 async function fetchPrices() {
+  const provider = new ethers.providers.JsonRpcProvider(process.env.MAINNET_URL_ALCHEMY);
   /*//////////////////////////////////////////////////////////////
                             aTOKEN PRICE
   //////////////////////////////////////////////////////////////*/
@@ -53,8 +58,15 @@ async function fetchPrices() {
         name: token.name,
       });
     } catch (err) {
-      console.log(err);
-      console.log(`Couldn't fetch price of ${token.name}`);
+      console.log(`Couldn't fetch price of ${token.coingeckoId} from coingecko. Fetching from contract.`);
+      const cToken = new ethers.Contract(
+        token.address,
+        ["function exchangeRateStored() external view returns (uint256)"],
+        provider,
+      );
+      const exchangeRateStored = await cToken.exchangeRateStored();
+      console.log(exchangeRateStored);
+      // TODO: now calculate price using the exchangeRate
     }
   }
 
