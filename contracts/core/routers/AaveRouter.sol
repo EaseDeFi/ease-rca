@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../../interfaces/IRouter.sol";
 import "../../interfaces/IUniswap.sol";
 import "../../interfaces/IRcaShield.sol";
+import "../../interfaces/IWeth.sol";
 import "../../external/Aave.sol";
 
 // TODO: remove this on prod
@@ -20,6 +21,7 @@ contract AaveRouter is IRouter {
     IUniswapV2Router02 public immutable router;
     IRcaShield public immutable shield;
     ILendingPool public immutable lendingPool;
+    IWETH public immutable weth = IWETH(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
     // TODO: Should I care about packing this struct?
     address _currentUser;
     struct MintToArgs {
@@ -51,21 +53,16 @@ contract AaveRouter is IRouter {
         uint256 uAmount,
         bytes calldata data
     ) external override {
-        // TODO: do I need this check at all?
-        require(aToken.balanceOf(address(this)) > uAmount, "did you transfer enough aToken anon?");
         (address tokenOut, uint256 amountOutMin, uint256 deadline) = abi.decode(data, (address, uint256, uint256));
 
         if (tokenOut == address(baseToken)) {
-            // TODO: check if baseToken is correct / should we use uToken?
             lendingPool.withdraw(address(baseToken), uAmount, user);
         } else {
-            address tokenIn = address(baseToken);
-            lendingPool.withdraw(tokenIn, uAmount, address(this));
+            lendingPool.withdraw(address(baseToken), uAmount, address(this));
             uint256 amountIn = baseToken.balanceOf(address(this));
             address[] memory path = new address[](2);
-            path[0] = tokenIn;
-            path[1] = tokenIn;
-            // Assuming that pair always exist
+            path[0] = address(baseToken);
+            path[1] = tokenOut;
             router.swapExactTokensForTokens(amountIn, amountOutMin, path, user, deadline);
         }
     }
@@ -74,32 +71,38 @@ contract AaveRouter is IRouter {
     function zapIn(address user, bytes calldata data) external payable {
         // But do we really need this check as function calls in between may fail if we don't send enough eth?
         require(msg.value > 0, "send some eth anon");
-        _currentUser = msg.sender;
         // 1. swap eth to desired token
         // Question: Can we use _expiry for deadline?
         (uint256 amountOut, MintToArgs memory args) = abi.decode(data, (uint256, (MintToArgs)));
-        address[] memory path = new address[](2);
-        path[0] = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
-        path[1] = address(baseToken);
+        if (address(baseToken) == address(weth)) {
+            // don't need token swaps just wrap eth
+            weth.deposit{ value: msg.value }();
+        } else {
+            // do a tokenSwap to desired currency
+            address[] memory path = new address[](2);
+            path[0] = address(weth);
+            path[1] = address(baseToken);
 
-        // swapping eth for exact tokens so that we don't run into invalid capacity sig error
-        // TODO: Uniswap you liar you never send exact tokens
-        router.swapETHForExactTokens{ value: msg.value }(amountOut, path, address(this), args.expiry);
-        uint256 _amount = baseToken.balanceOf(address(this));
-        // 2. deposit to a desired pool/vault
-        baseToken.approve(address(lendingPool), _amount);
-        lendingPool.deposit(address(baseToken), _amount, address(this), 0);
-        uint256 _uAmount = aToken.balanceOf(address(this));
-        // TODO: remove this check after everything works
-        // TODO: uncomment this, commenting now because uniswap returns amountOut+1
-        // require(_uAmount == amountOut, "fix me dev, I am stuck");
-        aToken.approve(address(shield), _uAmount);
-        amountOut = (amountOut * BUFFER) / 10**aToken.decimals();
-        // 3. and mint an rca against it
+            // swapping eth for exact tokens so that we don't run into invalid capacity sig error
+            _currentUser = msg.sender;
+            // uniswap sends 1 or 2 units more token on swap which stays in our zapper contract
+            // TODO: do we need sweep function to cleanup the token balances?
+            router.swapETHForExactTokens{ value: msg.value }(amountOut, path, address(this), args.expiry);
+            _currentUser = address(0);
+        }
+        // deposit to a desired pool/vault
+        baseToken.approve(address(lendingPool), amountOut);
+        lendingPool.deposit(address(baseToken), amountOut, address(this), 0);
+
+        // mint an rca
+        aToken.approve(address(shield), amountOut);
+        // TODO: store a token decimals as immutable variable?
+        // normalizing amountOut because RCA's assume all tokens as 18 decimals
+        uint256 uAmount = (amountOut * BUFFER) / 10**aToken.decimals();
         shield.mintTo(
             user,
             args.referrer,
-            amountOut,
+            uAmount,
             args.expiry,
             args.v,
             args.r,
@@ -107,7 +110,6 @@ contract AaveRouter is IRouter {
             args.newCumLiqForClaims,
             args.liqForClaimsProof
         );
-        _currentUser = address(0);
     }
 
     receive() external payable {
