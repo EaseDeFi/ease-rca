@@ -11,3 +11,7 @@ interface IComptroller {
 
     function getAssetsIn(address account) external view returns (address[] memory);
 }
+
+interface CToken {
+    function exchangeRateStored() external view returns (uint256);
+}

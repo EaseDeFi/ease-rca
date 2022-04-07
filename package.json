@@ -24,7 +24,9 @@
     "@nomiclabs/hardhat-etherscan": "^3.0.1",
     "@openzeppelin/contract-loader": "^0.6.3",
     "@umb-network/toolbox": "^5.4.0",
+    "axios": "^0.26.1",
     "bignumber.js": "9.0.1",
+    "coingecko-api-v3": "^0.0.13",
     "dotenv": "^16.0.0",
     "hardhat": "^2.9.2"
   },

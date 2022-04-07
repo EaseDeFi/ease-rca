@@ -16,6 +16,7 @@ export type RcaToken = {
   shield: string;
   pid?: number;
   rewardPool: string;
+  coingeckoId: string;
 };
 export type FundMeTokenArgs = {
   details: RcaToken;
