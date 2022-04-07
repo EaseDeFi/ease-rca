@@ -4,11 +4,13 @@ import { ether } from "../test/utils";
 import { BigNumber, Signer } from "ethers";
 
 import { RcaShield } from "../src/types/RcaShield";
+import { RcaShieldNormalized } from "../src/types/RcaShieldNormalized";
 import { RcaController } from "../src/types/RcaController";
 import { RcaTreasury } from "../src/types/RcaTreasury";
 import { RcaTreasury__factory } from "../src/types/factories/RcaTreasury__factory";
 import { RcaController__factory } from "../src/types/factories/RcaController__factory";
 import { RcaShield__factory } from "../src/types/factories/RcaShield__factory";
+import { RcaShieldNormalized__factory } from "../src/types/factories/RcaShieldNormalized__factory";
 import { RcaShieldAave__factory } from "../src/types/factories/RcaShieldAave__factory";
 import { RcaShieldCompound__factory } from "../src/types/factories/RcaShieldCompound__factory";
 import { RcaShieldConvex__factory } from "../src/types/factories/RcaShieldConvex__factory";
@@ -37,10 +39,14 @@ const PRICEORACLE_ADDRESS = "0xEa5EDef10E0a7CB6C8C87C2F35B36f0f8E608eBC";
 const CAPORACLE_ADDRESS = "0xEa5edeF10d62c08c447C5c0e9a9d7523777886a7";
 
 // OTHERS
-const VANITY_TRANSFER_AMOUNT = ether("1");
+const VANITY_TRANSFER_AMOUNT = ether("0.02");
 const WITHDRAWAL_DELAY = BigNumber.from(3600);
 const DISCOUNT = BigNumber.from(0); // 0%
 const APR = BigNumber.from(0);
+
+// switch cETH for cSUSHI
+// switch cWBTC for cTrueUSD
+// switch convex wormhole for whatever
 
 async function fundMeToken({ details, ethWhaleSigner, me }: FundMeTokenArgs) {
   try {
@@ -82,8 +88,13 @@ async function main() {
       i++;
     }
   }
+
+  console.log("Attempting to populate.");
+
   // fill with private keys
   populateWithPrivateKeys();
+
+  console.log("Populated.");
 
   if (privateKeys.length < 30) {
     throw new Error("Provide at least 30 private keys in your .env");
@@ -111,15 +122,19 @@ async function main() {
     ethWhaleSigner = await ethers.getSigner(ETH_WHALE);
   } else {
     // assuming PRIVATE_KEY1 as funder
-    ethWhaleSigner = new ethers.Wallet(privateKeys[0]);
+    ethWhaleSigner = new ethers.Wallet(privateKeys[0], ethers.provider);
   }
+
+  console.log("Funding accounts.");
 
   // fund rca vault deployer accounts
   for (const privateKey of privateKeys) {
     const signer = new ethers.Wallet(privateKey, ethers.provider);
     accounts.push(signer);
-    ethWhaleSigner.sendTransaction({ to: await signer.getAddress(), value: VANITY_TRANSFER_AMOUNT });
+    await ethWhaleSigner.sendTransaction({ to: await signer.getAddress(), value: VANITY_TRANSFER_AMOUNT });
   }
+
+  console.log("Accounts funded.");
 
   // me should be PRIVATE_KEY1
   const me = await accounts[0].getAddress();
@@ -132,7 +147,7 @@ async function main() {
     });
     signers.gov = await ethers.getSigner(GOV_ADDRESS);
   } else {
-    signers.gov = new ethers.Wallet(privateKeys[1]) as unknown as SignerWithAddress;
+    signers.gov = new ethers.Wallet(privateKeys[1], ethers.provider) as unknown as SignerWithAddress;
   }
   // Whale Fund other accounts
   if (canImpersonate) {
@@ -140,14 +155,14 @@ async function main() {
     await ethWhaleSigner.sendTransaction({ to: signers.gov.address, value: ether("10") });
   }
 
-  console.log("Governance:", GOV_ADDRESS);
+  console.log("Governance:", signers.gov.address);
   console.log("User/guardian:", GUARDIAN_ADDRESS);
   console.log("Price oracle:", PRICEORACLE_ADDRESS);
   console.log("Capacity oracle:", CAPORACLE_ADDRESS);
 
   const RCA_TREASURY = <RcaTreasury__factory>await ethers.getContractFactory("RcaTreasury");
   // deploy treasury with PRIVATE_KEY4
-  contracts.rcaTreasury = <RcaTreasury>await RCA_TREASURY.connect(accounts[3]).deploy(GOV_ADDRESS);
+  contracts.rcaTreasury = <RcaTreasury>await RCA_TREASURY.connect(accounts[3]).deploy(signers.gov.address);
 
   console.log("Treasury:", contracts.rcaTreasury.address);
 
@@ -155,7 +170,7 @@ async function main() {
 
   // deploy controller with PRIVATE_KEY5
   contracts.rcaController = <RcaController>await RCA_CONTROLLER.connect(accounts[4]).deploy(
-    GOV_ADDRESS, // governor
+    signers.gov.address, // governor
     GUARDIAN_ADDRESS, // guardian
     PRICEORACLE_ADDRESS, // price oracle
     CAPORACLE_ADDRESS, // capacity oracle
@@ -170,15 +185,28 @@ async function main() {
   // deploy and initialize rca against yearn vaults
   async function initializeYearnVaults() {
     const RCA_SHIELD = <RcaShield__factory>await ethers.getContractFactory("RcaShield");
+    const RCA_SHIELD_NORMALIZED = <RcaShieldNormalized__factory>await ethers.getContractFactory("RcaShieldNormalized");
     for (let i = 0; i < rcaTokens.yearn.length; i++) {
       const details = rcaTokens.yearn[i];
-      const shield = <RcaShield>await RCA_SHIELD.connect(accounts[vaultDeployerIndex++]).deploy(
-        details.name, // token name
-        details.symbol, // symbol
-        details.address, // underlying token
-        GOV_ADDRESS, // governor
-        contracts.rcaController.address, // rcaController
-      );
+      var shield;
+      if (details.decimals == 18) {
+        shield = <RcaShield>await RCA_SHIELD.connect(accounts[vaultDeployerIndex++]).deploy(
+          details.name, // token name
+          details.symbol, // symbol
+          details.address, // underlying token
+          signers.gov.address, // governor
+          contracts.rcaController.address, // rcaController
+        );
+      } else {
+        shield = <RcaShieldNormalized>await RCA_SHIELD_NORMALIZED.connect(accounts[vaultDeployerIndex++]).deploy(
+          details.name, // token name
+          details.symbol, // symbol
+          details.address, // underlying token
+          details.decimals,
+          signers.gov.address, // governor
+          contracts.rcaController.address, // rcaController
+        );
+      }
       console.log(details.name, shield.address);
 
       details.shield = shield.address;
@@ -200,7 +228,7 @@ async function main() {
         details.symbol, // symbol
         details.address, // underlying token
         details.decimals,
-        GOV_ADDRESS, // governor
+        signers.gov.address, // governor
         contracts.rcaController.address, // rcaController
         compoundComptroller,
       );
@@ -226,7 +254,7 @@ async function main() {
         details.symbol, // symbol
         details.address, // underlying token
         details.decimals,
-        GOV_ADDRESS, // governor
+        signers.gov.address, // governor
         contracts.rcaController.address, // rcaController
         aaveIncentivesController,
       );
@@ -268,7 +296,7 @@ async function main() {
         details.symbol, // symbol
         details.address, // underlying token
         details.decimals,
-        GOV_ADDRESS, // governor
+        signers.gov.address, // governor
         contracts.rcaController.address, // rcaController
         masterChefV2,
         details.pid || 0,
@@ -286,7 +314,6 @@ async function main() {
   }
   // deploy rca against convex vaults
   async function initializeConvexVaults() {
-    const rewardPool = "0x3Fe65692bfCD0e6CF84cB1E7d24108E434A7587e";
     const RCA_SHIELD = <RcaShieldConvex__factory>await ethers.getContractFactory("RcaShieldConvex");
     for (let i = 0; i < rcaTokens.convex.length; i++) {
       const details = rcaTokens.convex[i];
@@ -294,9 +321,9 @@ async function main() {
         details.name, // token name
         details.symbol, // symbol
         details.address, // underlying token
-        GOV_ADDRESS, // governor
+        signers.gov.address, // governor
         contracts.rcaController.address, // rcaController
-        rewardPool,
+        details.rewardPool || "",
       );
 
       console.log(details.name, shield.address);

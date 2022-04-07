@@ -1,4 +1,3 @@
-/// SPDX-License-Identifier: UNLICENSED
 
 /**
 
@@ -59,7 +58,6 @@ abstract contract RcaShieldBase is ERC20, Governable {
     /// @notice Controller of RCA contract that takes care of actions.
     IRcaController public controller;
     /// @notice Underlying token that is protected by the shield.
-
     IERC20Metadata public immutable uToken;
 
     /// @notice Percent to pay per year. 1000 == 10%.
