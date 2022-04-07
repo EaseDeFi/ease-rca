@@ -1,8 +1,8 @@
 <h1>Ease</h1>
 
-07.04.2022               No                          USD 100 000
-Live since               KYC Required                Max Bounty            
-
+Live since: 07.04.2022</br>
+KYC Required: No</br>
+Max Bounty: USD 100 000</br>
 
 <h2>Program overview</h2>
 
@@ -15,10 +15,10 @@ Rewards are distributed according to the impact of the vulnerability based on th
 
 <h2>Smart Contracts</h2> 
 
-Critical               USD 100 000</br>
-High                   USD 15 000</br>
-Medium                 USD 5 000</br>
-Low                    USD 1 000</br>
+Critical: USD 100 000</br>
+High: USD 15 000</br>
+Medium: USD 5 000</br>
+Low: USD 1 000</br>
 
 
 All High and Critical Smart Contract bug reports require a PoC to be eligible for a reward. Explanations and statements are not accepted as PoC and code is required.
@@ -35,7 +35,7 @@ Payouts are handled by the Ease team directly and are denominated in USD. Howeve
 <h2>Assets in Scope</h2> 
 
 
-Target | Type
+Target | Type</br></br>
 https://github.com/EaseDeFi/ease-rca/blob/master/contracts/core/adapters/RcaShieldAave.sol     | Smart Contract - RcaShieldAave</br>
 https://github.com/EaseDeFi/ease-rca/blob/master/contracts/core/adapters/RcaShieldCompound.sol | Smart Contract - RcaShieldCompound</br>
 https://github.com/EaseDeFi/ease-rca/blob/master/contracts/core/adapters/RcaShieldConvex.sol   | Smart Contract - RcaShieldConvex</br>
@@ -89,6 +89,7 @@ Adapters lacking the ability to get full normal rewards that the protocol return
 <b>Low</b>
 Smart contract fails to deliver promised returns, but doesn’t lose more than a negligible amount of funds.
 
+<b>In case of discrepancy between Immunefi Vulnerability Severity Classification System V2 and Ease’s classification above, Ease’s classification will be followed.</b>
 
 <h2>Particularly Vulnerable Areas:</h2>
 
@@ -97,9 +98,7 @@ Smart contract fails to deliver promised returns, but doesn’t lose more than a
 - Conversion rates. On mint/redeem if our calculations are off this could easily lead to criticals.
 - Merkle trees for pricing or liquidation amounts being able to be manipulated in some way.
 
-In case of discrepancy between Immunefi Vulnerability Severity Classification System V2 and Ease’s classification above, Ease’s classification will be followed.
-
-<h2>Out of Scope & Rules<h2>
+<h2>Out of Scope & Rules</h2>
 
 The following vulnerabilities are excluded from the rewards for this bug bounty program:
 
