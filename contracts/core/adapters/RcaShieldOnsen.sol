@@ -24,6 +24,7 @@ contract RcaShieldOnsen is RcaShieldNormalized {
     ) RcaShieldNormalized(_name, _symbol, _uToken, _uTokenDecimals, _governance, _controller) {
         masterChef = _masterChef;
         pid = _pid;
+        uToken.safeApprove(address(masterChef), uint256(-1));
     }
 
     function getReward() external {
@@ -64,7 +65,6 @@ contract RcaShieldOnsen is RcaShieldNormalized {
     }
 
     function _afterMint(uint256 _uAmount) internal override {
-        uToken.safeApprove(address(masterChef), _uAmount);
         masterChef.deposit(pid, _uAmount, address(this));
     }
 

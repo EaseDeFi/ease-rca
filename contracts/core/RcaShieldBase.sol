@@ -288,12 +288,17 @@ abstract contract RcaShieldBase is ERC20, Governable {
      * @param _to The destination of the tokens.
      * @param _newCumLiqForClaims New cumulative liquidated if this must be updated.
      * @param _liqForClaimsProof Merkle proof to verify new cumulative liquidation.
+     * @param _liqForClaimsProof Merkle proof to verify the new cumulative liquidated.
+     * @param _newPercentReserved New percent of funds in shield that are reserved.
+     * @param _percentReservedProof Merkle proof for the new percent reserved.
      */
     function redeemFinalize(
         address _to,
         bytes calldata _routerData,
         uint256 _newCumLiqForClaims,
-        bytes32[] calldata _liqForClaimsProof
+        bytes32[] calldata _liqForClaimsProof,
+        uint256 _newPercentReserved,
+        bytes32[] calldata _percentReservedProof
     ) external virtual {
         address user = msg.sender;
 
@@ -303,19 +308,26 @@ abstract contract RcaShieldBase is ERC20, Governable {
         // endTime > 0 ensures request exists.
         require(request.endTime > 0 && uint32(block.timestamp) > request.endTime, "Withdrawal not yet allowed.");
 
-        bool isRouterVerified = controller.redeemFinalize(user, _to, _newCumLiqForClaims, _liqForClaimsProof);
+        bool isRouterVerified = controller.redeemFinalize(user, _to, _newCumLiqForClaims, _liqForClaimsProof, _newPercentReserved, _percentReservedProof);
 
         _update();
 
+        // We're going to calculate uAmount a second time here then send the lesser of the two.
+        // If we only calculate once, users can either get their full uAmount after a hack if percentReserved
+        // hasn't been sent in, or users can earn yield after requesting redeem (with the same consequence).
+        uint256 uAmount = uValue(request.rcaAmount);
+        if (request.uAmount < uAmount) uAmount = uint256(request.uAmount);
+
         pendingWithdrawal -= uint256(request.uAmount);
 
-        uToken.safeTransfer(_to, request.uAmount);
+        uToken.safeTransfer(_to, uAmount);
 
         // The cool part about doing it this way rather than having user send RCAs to router contract,
         // then it exchanging and returning Ether is that it's more gas efficient and no approvals are needed.
-        if (isRouterVerified) IRouter(_to).routeTo(user, uint256(request.uAmount), _routerData);
+        // (and no nonsense with the withdrawal delay making routers wonky)
+        if (isRouterVerified) IRouter(_to).routeTo(user, uAmount, _routerData);
 
-        emit RedeemFinalize(user, _to, request.uAmount, uint256(request.rcaAmount), block.timestamp);
+        emit RedeemFinalize(user, _to, uAmount, uint256(request.rcaAmount), block.timestamp);
     }
 
     /**
@@ -563,6 +575,8 @@ abstract contract RcaShieldBase is ERC20, Governable {
             uint256 subtrahend = cumLiqForClaims - _newCumLiqForClaims;
             amtForSale = amtForSale > subtrahend ? amtForSale - subtrahend : 0;
         }
+
+        require(_uBalance() > amtForSale + pendingWithdrawal, "amtForSale is too high.");
 
         cumLiqForClaims = _newCumLiqForClaims;
     }

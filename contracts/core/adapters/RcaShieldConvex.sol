@@ -19,6 +19,7 @@ contract RcaShieldConvex is RcaShieldBase {
         IConvexRewardPool _rewardPool
     ) RcaShieldBase(_name, _symbol, _uToken, _governance, _controller) {
         rewardPool = _rewardPool;
+        uToken.safeApprove(address(rewardPool), uint256(-1));
     }
 
     function getReward() external {
@@ -51,7 +52,6 @@ contract RcaShieldConvex is RcaShieldBase {
     }
 
     function _afterMint(uint256 _uAmount) internal override {
-        uToken.safeApprove(address(rewardPool), _uAmount);
         rewardPool.stake(_uAmount);
     }
 
