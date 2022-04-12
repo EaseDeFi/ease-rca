@@ -512,8 +512,8 @@ abstract contract RcaShieldBase is ERC20, Governable {
         if (uBalance < _uPending() + amtForSale) return 0;
 
         // Calculate fees based on average active amount.
-        uint256 activeExclReserved = uBalance - _uPending() - amtForSale;
-        fees = (activeExclReserved * aprAvg * totalTimeElapsed) / YEAR_SECS / DENOMINATOR / BUFFER;
+        uint256 activeInclReserved = uBalance - _uPending() - amtForSale;
+        fees = (activeInclReserved * aprAvg * totalTimeElapsed) / YEAR_SECS / DENOMINATOR / BUFFER;
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////
