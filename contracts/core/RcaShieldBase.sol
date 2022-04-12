@@ -309,7 +309,14 @@ abstract contract RcaShieldBase is ERC20, Governable {
         // endTime > 0 ensures request exists.
         require(request.endTime > 0 && uint32(block.timestamp) > request.endTime, "Withdrawal not yet allowed.");
 
-        bool isRouterVerified = controller.redeemFinalize(user, _to, _newCumLiqForClaims, _liqForClaimsProof, _newPercentReserved, _percentReservedProof);
+        bool isRouterVerified = controller.redeemFinalize(
+            user,
+            _to,
+            _newCumLiqForClaims,
+            _liqForClaimsProof,
+            _newPercentReserved,
+            _percentReservedProof
+        );
 
         _update();
 
