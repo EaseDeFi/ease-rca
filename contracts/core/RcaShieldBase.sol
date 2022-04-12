@@ -582,7 +582,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
             amtForSale = amtForSale > subtrahend ? amtForSale - subtrahend : 0;
         }
 
-        require(_uBalance() > amtForSale + _uPending(), "amtForSale is too high.");
+        require(_uBalance() >= amtForSale + _uPending(), "amtForSale is too high.");
 
         cumLiqForClaims = _newCumLiqForClaims;
     }
