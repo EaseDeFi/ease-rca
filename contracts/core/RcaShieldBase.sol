@@ -471,13 +471,6 @@ abstract contract RcaShieldBase is ERC20, Governable {
     }
 
     /**
-     * @notice Internal function to get the current amount of underlying tokens pending.
-     */
-    function _uPending() internal view returns (uint256 uAmount) {
-        uAmount = _uValue(pendingWithdrawal, amtForSale, percentReserved);
-    }
-
-    /**
      * @notice For frontend calls. Doesn't need to verify info because it's not changing state.
      */
     function getExtraForSale(uint256 _newCumLiqForClaims) public view returns (uint256 extraForSale) {
@@ -509,10 +502,10 @@ abstract contract RcaShieldBase is ERC20, Governable {
         }
 
         // Will probably never occur, but just in case.
-        if (uBalance < _uPending() + amtForSale) return 0;
+        if (uBalance < amtForSale) return 0;
 
         // Calculate fees based on average active amount.
-        uint256 activeInclReserved = uBalance - _uPending() - amtForSale;
+        uint256 activeInclReserved = uBalance - amtForSale;
         fees = (activeInclReserved * aprAvg * totalTimeElapsed) / YEAR_SECS / DENOMINATOR / BUFFER;
     }
 
@@ -526,13 +519,12 @@ abstract contract RcaShieldBase is ERC20, Governable {
     function _update() internal {
         if (apr > 0) {
             uint256 balance = _uBalance();
-            uint256 uPending = _uPending();
 
             // If liquidation for claims is set incorrectly this could occur and break the contract.
-            if (balance < amtForSale + uPending) return;
+            if (balance < amtForSale) return;
 
             uint256 secsElapsed = block.timestamp - lastUpdate;
-            uint256 active = balance - amtForSale - uPending;
+            uint256 active = balance - amtForSale;
             uint256 activeExclReserved = active - ((active * percentReserved) / DENOMINATOR);
 
             amtForSale += (activeExclReserved * secsElapsed * apr) / YEAR_SECS / DENOMINATOR;
@@ -582,7 +574,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
             amtForSale = amtForSale > subtrahend ? amtForSale - subtrahend : 0;
         }
 
-        require(_uBalance() >= amtForSale + _uPending(), "amtForSale is too high.");
+        require(_uBalance() >= amtForSale, "amtForSale is too high.");
 
         cumLiqForClaims = _newCumLiqForClaims;
     }
