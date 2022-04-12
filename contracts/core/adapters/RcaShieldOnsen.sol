@@ -24,7 +24,7 @@ contract RcaShieldOnsen is RcaShieldNormalized {
     ) RcaShieldNormalized(_name, _symbol, _uToken, _uTokenDecimals, _governance, _controller) {
         masterChef = _masterChef;
         pid = _pid;
-        uToken.safeApprove(address(masterChef), uint256(-1));
+        uToken.safeApprove(address(masterChef), 2**256 - 1);
     }
 
     function getReward() external {

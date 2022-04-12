@@ -54,31 +54,36 @@ contract RcaShieldNormalized is RcaShieldBase {
         address _to,
         bytes calldata _routerData,
         uint256 _newCumLiqForClaims,
-        bytes32[] calldata _liqForClaimsProof
+        bytes32[] calldata _liqForClaimsProof,
+        uint256 _newPercentReserved,
+        bytes32[] calldata _percentReservedProof
     ) external override {
-        address user = msg.sender;
+        // Removed address user = msg.sender because of stack too deep.
 
-        WithdrawRequest memory request = withdrawRequests[user];
-        delete withdrawRequests[user];
+        WithdrawRequest memory request = withdrawRequests[msg.sender];
+        delete withdrawRequests[msg.sender];
 
         // endTime > 0 ensures request exists.
         require(request.endTime > 0 && uint32(block.timestamp) > request.endTime, "Withdrawal not yet allowed.");
 
-        bool isRouterVerified = controller.redeemFinalize(user, _to, _newCumLiqForClaims, _liqForClaimsProof);
+        bool isRouterVerified = controller.redeemFinalize(msg.sender, _to, _newCumLiqForClaims, _liqForClaimsProof, _newPercentReserved, _percentReservedProof);
 
         _update();
 
-        pendingWithdrawal -= uint256(request.uAmount);
+        pendingWithdrawal -= uint256(request.rcaAmount);
 
         // handles decimals diff of underlying tokens
-        uint256 transferAmount = _normalizedUAmount(request.uAmount);
+        uint256 uAmount = _uValue(request.rcaAmount, amtForSale, percentReserved);
+        if (uAmount > request.uAmount) uAmount = request.uAmount;
+
+        uint256 transferAmount = _normalizedUAmount(uAmount);
         uToken.safeTransfer(_to, transferAmount);
 
         // The cool part about doing it this way rather than having user send RCAs to router contract,
         // then it exchanging and returning Ether is that it's more gas efficient and no approvals are needed.
-        if (isRouterVerified) IRouter(_to).routeTo(user, transferAmount, _routerData);
+        if (isRouterVerified) IRouter(_to).routeTo(msg.sender, transferAmount, _routerData);
 
-        emit RedeemFinalize(user, _to, transferAmount, uint256(request.rcaAmount), block.timestamp);
+        emit RedeemFinalize(msg.sender, _to, transferAmount, uint256(request.rcaAmount), block.timestamp);
     }
 
     function purchaseU(
