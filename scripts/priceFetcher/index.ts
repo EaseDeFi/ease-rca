@@ -1,4 +1,3 @@
-import { config } from "dotenv";
 // local imports
 import { rcaTokens } from "../vaultDetails";
 import {
@@ -13,15 +12,6 @@ import {
 // TYPES
 import { Balance } from "./types";
 
-config();
-
-// 1. get eth vs usd = eth to usd =
-// 2. get usd price of uTokens = uTokenPriceUSD = x
-// 3. check uToken balance of rca vault = y
-// 4. multiply the price to token balance = y * x = calc
-// 5. total valut value will be twice uToken balance (calc = 2 * calc)
-// 6. divide calc by total supply of rca's (calc = calc/totalSupplyRcaVault())
-
 const balances: Balance[] = [];
 
 async function fetchPrices() {
@@ -29,23 +19,26 @@ async function fetchPrices() {
                             aTOKEN PRICE
   //////////////////////////////////////////////////////////////*/
   for (const token of rcaTokens.aave) {
-    // TODO: get price of aToken in usd
-    const uTokenPriceInUSD = await getATokenPriceInUSD({ coingeckoId: token.coingeckoId });
+    // get price of aToken in usd
+    const uTokenPriceInUSD = await getATokenPriceInUSD(token);
     // calculate price of rcaToken in usd
+    console.log(token.name);
+    console.log(uTokenPriceInUSD);
     const rcaTokenPriceInUSD = await getRcaPriceInUSD({
       uTokenAddress: token.address,
       shieldAddress: token.shield,
       uTokenPriceInUSD,
     });
     // do something with this data
-    const rcaTokenPriceInETH = getPriceInEth({ priceInUSD: rcaTokenPriceInUSD });
+    const rcaTokenPriceInETH = await getPriceInEth({ priceInUSD: rcaTokenPriceInUSD });
+    console.log("Price in eth", rcaTokenPriceInETH);
   }
   /*//////////////////////////////////////////////////////////////
                         cTOKEN PRICE
   //////////////////////////////////////////////////////////////*/
   for (const token of rcaTokens.compound) {
     // TODO: get price of cToken in usd
-    const uTokenPriceInUSD = await getCTokenPriceInUSD({ coingeckoId: token.coingeckoId, tokenAddress: token.address });
+    const uTokenPriceInUSD = await getCTokenPriceInUSD(token);
     // calculate price of rcaToken in usd
     const rcaTokenPriceInUSD = await getRcaPriceInUSD({
       uTokenAddress: token.address,
@@ -62,10 +55,7 @@ async function fetchPrices() {
   // ONE SIDED CALCULATION
   for (const token of rcaTokens.onsen) {
     // TODO: get price of lpToken in usd
-    const uTokenPriceInUSD = await getOnsenLpTokenPriceInUSD({
-      coingeckoId: token.coingeckoId,
-      tokenAddress: token.address,
-    });
+    const uTokenPriceInUSD = await getOnsenLpTokenPriceInUSD(token);
     // calculate price of rcaToken in usd
     const rcaTokenPriceInUSD = await getRcaPriceInUSD({
       uTokenAddress: token.address,
@@ -80,7 +70,7 @@ async function fetchPrices() {
   //////////////////////////////////////////////////////////////*/
   for (const token of rcaTokens.yearn) {
     // TODO: get price of yvToken in usd
-    const uTokenPriceInUSD = await getyvTokenPriceInUSD({ tokenAddress: token.address });
+    const uTokenPriceInUSD = await getyvTokenPriceInUSD(token);
     // calculate price of rcaToken in usd
     const rcaTokenPriceInUSD = await getRcaPriceInUSD({
       uTokenAddress: token.address,
@@ -95,7 +85,7 @@ async function fetchPrices() {
   //////////////////////////////////////////////////////////////*/
   for (const token of rcaTokens.convex) {
     // TODO: get cvxToken prices
-    const uTokenPriceInUSD = await getcvxPoolTokenPriceinUSD({ coingeckoId: token.coingeckoId });
+    const uTokenPriceInUSD = await getcvxPoolTokenPriceinUSD(token);
     // calculate price of rcaToken in usd
     const rcaTokenPriceInUSD = await getRcaPriceInUSD({
       uTokenAddress: token.address,

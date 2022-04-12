@@ -1,7 +1,8 @@
 import axios from "axios";
+import { config } from "dotenv";
 import { CoinGeckoClient } from "coingecko-api-v3";
 import { BigNumber, ethers } from "ethers";
-import { formatUnits } from "ethers/lib/utils";
+import { formatUnits, parseEther } from "ethers/lib/utils";
 
 import type { SymbolToId, YearnVaultDetails } from "./types";
 
@@ -16,9 +17,14 @@ import { IUniswapV2Pair } from "../../src/types/IUniswapV2Pair";
 import { MockERC20 } from "../../src/types/MockERC20";
 import { CToken } from "../../src/types/CToken";
 import { RcaShield } from "../../src/types/RcaShield";
+import { RcaToken } from "../types";
+
+config();
 
 export const USD_BUFFER_DECIMALS = 6;
+export const ROUNDING_DECIMALS = 18;
 export const USD_BUFFER = 10 ** USD_BUFFER_DECIMALS;
+const RPC = process.env.TENDERLY_FORK;
 
 export const coingeckoSymbolToId: SymbolToId = {
   weth: "weth",
@@ -70,48 +76,49 @@ export async function getRcaPriceInUSD({
   shieldAddress: string;
   uTokenAddress: string;
 }): Promise<number> {
-  const provider = new ethers.providers.JsonRpcProvider(process.env.MAINNET_URL_ALCHEMY);
+  const provider = new ethers.providers.JsonRpcProvider(RPC);
   const uToken = <MockERC20>new ethers.Contract(uTokenAddress, erc20Abi, provider);
   const uTokenBalOfRcaVault = await uToken.balanceOf(shieldAddress);
-  const amountUTokenLockedInUSD = BigNumber.from(uTokenPriceInUSD * USD_BUFFER).mul(uTokenBalOfRcaVault);
+  console.log(parseEther(`${uTokenPriceInUSD}`).toString());
+  const totalUTokenBalInUSD = BigNumber.from(Math.floor(uTokenPriceInUSD * USD_BUFFER)).mul(uTokenBalOfRcaVault);
   // double the value
-  const totalVaultValueInUSD = amountUTokenLockedInUSD.mul(2);
+  const totalVaultValueInUSD = totalUTokenBalInUSD.mul(2);
   const shield = <RcaShield>new ethers.Contract(shieldAddress, rcaShieldAbi, provider);
   const shieldTotalSupply = await shield.totalSupply();
-  let rcaPriceInUSD: number;
-  if (shieldTotalSupply.gt(0)) {
-    const rcaPrice = totalVaultValueInUSD.div(shieldTotalSupply);
+  let rcaPriceInUSD = 0;
+  if (shieldTotalSupply.isZero()) {
+    rcaPriceInUSD = uTokenPriceInUSD;
+  } else {
+    const rcaPrice = totalVaultValueInUSD.div(shieldTotalSupply.div(await shield.decimals()));
     rcaPriceInUSD = +formatUnits(rcaPrice, USD_BUFFER_DECIMALS);
   }
   return rcaPriceInUSD;
 }
 
-export async function getCTokenPriceInUSD({
-  coingeckoId,
-  tokenAddress,
-}: {
-  coingeckoId: string;
-  tokenAddress: string;
-}): Promise<number> {
+export async function getCTokenPriceInUSD({ coingeckoId, address, name }: RcaToken): Promise<number> {
   const price = await getCoingeckoPrice(coingeckoId);
   if (price.inUSD !== 0) {
     return price.inUSD;
   } else {
     //   TODO: fetch details from different source
-    const provider = new ethers.providers.JsonRpcProvider(process.env.MAINNET_URL_ALCHEMY);
-    const cToken = <CToken>new ethers.Contract(tokenAddress, cTokenAbi, provider);
+    console.log("I am here.. cTOKEN");
+    const provider = new ethers.providers.JsonRpcProvider(RPC);
+    const cToken = <CToken>new ethers.Contract(address, cTokenAbi, provider);
     const exchangeRate = await cToken.exchangeRateStored();
-
+    console.log(exchangeRate.toString());
     // TODO: get price of underlying token that represents cToken
+    const underlyingTokenSymbol = name.split(" ")[0].slice(1).toLowerCase();
+
+    // Multiply it to the exchange rate
   }
   // TODO: find another way to calculate price
   return 0;
 }
 
-export async function getATokenPriceInUSD({ coingeckoId }: { coingeckoId: string }): Promise<number> {
+export async function getATokenPriceInUSD({ coingeckoId }: RcaToken): Promise<number> {
   try {
     const price = await getCoingeckoPrice(coingeckoId);
-    return price.inETH;
+    return price.inUSD;
   } catch {
     // TODO: try another method to get price of token
     console.log(`Couldn't fetch price of ${coingeckoId}`);
@@ -119,12 +126,12 @@ export async function getATokenPriceInUSD({ coingeckoId }: { coingeckoId: string
   return 0;
 }
 
-export async function getyvTokenPriceInUSD({ tokenAddress }: { tokenAddress: string }): Promise<number> {
+export async function getyvTokenPriceInUSD({ address }: RcaToken): Promise<number> {
   const api = "https://api.yearn.finance/v1/chains/1/vaults/all";
   const res = await axios.get(api);
   const vaultsData = res.data as YearnVaultDetails[];
   for (const vaultData of vaultsData) {
-    if (tokenAddress === vaultData.address) {
+    if (address === vaultData.address) {
       // handle decimals being long?
       return vaultData.tvl.price;
     }
@@ -133,22 +140,16 @@ export async function getyvTokenPriceInUSD({ tokenAddress }: { tokenAddress: str
   return 0;
 }
 
-export async function getOnsenLpTokenPriceInUSD({
-  coingeckoId,
-  tokenAddress,
-}: {
-  coingeckoId: string;
-  tokenAddress: string;
-}): Promise<number> {
+export async function getOnsenLpTokenPriceInUSD({ coingeckoId, address }: RcaToken): Promise<number> {
   if (coingeckoId.length > 0) {
     const priceData = await getCoingeckoPrice(coingeckoId);
     if (priceData.inETH > 0) {
       return priceData.inETH;
     }
   }
-  const provider = new ethers.providers.JsonRpcProvider(process.env.MAINNET_URL_ALCHEMY);
+  const provider = new ethers.providers.JsonRpcProvider(RPC);
   const wethPriceData = await getCoingeckoPrice("weth");
-  const pairContract = <IUniswapV2Pair>new ethers.Contract(tokenAddress, uniswapV2PairAbi, provider);
+  const pairContract = <IUniswapV2Pair>new ethers.Contract(address, uniswapV2PairAbi, provider);
   const totalPairTokenSupply = await pairContract.totalSupply();
   const reserves = await pairContract.getReserves();
   const token0Address = await pairContract.token0();
@@ -181,14 +182,14 @@ export async function getOnsenLpTokenPriceInUSD({
 
     return parseFloat(formatUnits(tokenPriceNormalizedInUSD, 10));
   } else {
-    console.log(`Couldn't find price for ${tokenAddress}`);
+    console.log(`Couldn't find price for ${address}`);
     // TODO: find prices for token symbol. Not needed for current supported pools as they are pair of weth
   }
   // this represents no price was found
   return 0;
 }
 
-export async function getcvxPoolTokenPriceinUSD({ coingeckoId }: { coingeckoId: string }): Promise<number> {
+export async function getcvxPoolTokenPriceinUSD({ coingeckoId }: RcaToken): Promise<number> {
   if (coingeckoId.length > 0) {
     const priceData = await getCoingeckoPrice(coingeckoId);
     if (priceData.inETH > 0) {
