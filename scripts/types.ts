@@ -24,3 +24,9 @@ export type FundMeTokenArgs = {
   me: string;
   sendAllWhaleBalance?: boolean;
 };
+
+export type CrvPoolUnderlyingDetails = {
+  symbol: string;
+  uTokensCrv?: string[];
+  rewardPoolCrv?: string;
+};

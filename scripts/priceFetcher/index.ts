@@ -23,7 +23,6 @@ async function fetchPrices() {
     const uTokenPriceInUSD = await getATokenPriceInUSD(token);
     // calculate price of rcaToken in usd
     console.log(token.name);
-    console.log(uTokenPriceInUSD);
     const rcaTokenPriceInUSD = await getRcaPriceInUSD({
       uTokenAddress: token.address,
       shieldAddress: token.shield,
@@ -40,13 +39,15 @@ async function fetchPrices() {
     // TODO: get price of cToken in usd
     const uTokenPriceInUSD = await getCTokenPriceInUSD(token);
     // calculate price of rcaToken in usd
+    console.log(token.name);
     const rcaTokenPriceInUSD = await getRcaPriceInUSD({
       uTokenAddress: token.address,
       shieldAddress: token.shield,
       uTokenPriceInUSD,
     });
     // do something with this data
-    const rcaTokenPriceInETH = getPriceInEth({ priceInUSD: rcaTokenPriceInUSD });
+    const rcaTokenPriceInETH = await getPriceInEth({ priceInUSD: rcaTokenPriceInUSD });
+    console.log("Price in eth", rcaTokenPriceInETH);
   }
 
   /*//////////////////////////////////////////////////////////////
@@ -57,13 +58,15 @@ async function fetchPrices() {
     // TODO: get price of lpToken in usd
     const uTokenPriceInUSD = await getOnsenLpTokenPriceInUSD(token);
     // calculate price of rcaToken in usd
+    console.log(token.name);
     const rcaTokenPriceInUSD = await getRcaPriceInUSD({
       uTokenAddress: token.address,
       shieldAddress: token.shield,
       uTokenPriceInUSD,
     });
     // do something with this data
-    const rcaTokenPriceInETH = getPriceInEth({ priceInUSD: rcaTokenPriceInUSD });
+    const rcaTokenPriceInETH = await getPriceInEth({ priceInUSD: rcaTokenPriceInUSD });
+    console.log("Price in eth", rcaTokenPriceInETH);
   }
   /*//////////////////////////////////////////////////////////////
                     yearn vault Tokens PRICE
@@ -72,13 +75,15 @@ async function fetchPrices() {
     // TODO: get price of yvToken in usd
     const uTokenPriceInUSD = await getyvTokenPriceInUSD(token);
     // calculate price of rcaToken in usd
+    console.log(token.name);
     const rcaTokenPriceInUSD = await getRcaPriceInUSD({
       uTokenAddress: token.address,
       shieldAddress: token.shield,
       uTokenPriceInUSD,
     });
     // do something with this data
-    const rcaTokenPriceInETH = getPriceInEth({ priceInUSD: rcaTokenPriceInUSD });
+    const rcaTokenPriceInETH = await getPriceInEth({ priceInUSD: rcaTokenPriceInUSD });
+    console.log("Price in eth", rcaTokenPriceInETH);
   }
   /*//////////////////////////////////////////////////////////////
                     Convex vault Tokens PRICE
@@ -87,13 +92,15 @@ async function fetchPrices() {
     // TODO: get cvxToken prices
     const uTokenPriceInUSD = await getcvxPoolTokenPriceinUSD(token);
     // calculate price of rcaToken in usd
+    console.log(token.name);
     const rcaTokenPriceInUSD = await getRcaPriceInUSD({
       uTokenAddress: token.address,
       shieldAddress: token.shield,
       uTokenPriceInUSD,
     });
     // do something with this data
-    const rcaTokenPriceInETH = getPriceInEth({ priceInUSD: rcaTokenPriceInUSD });
+    const rcaTokenPriceInETH = await getPriceInEth({ priceInUSD: rcaTokenPriceInUSD });
+    console.log("Price in eth", rcaTokenPriceInETH);
   }
 
   console.log(balances);

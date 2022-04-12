@@ -2,7 +2,7 @@ import axios from "axios";
 import { config } from "dotenv";
 import { CoinGeckoClient } from "coingecko-api-v3";
 import { BigNumber, ethers } from "ethers";
-import { formatUnits, parseEther } from "ethers/lib/utils";
+import { formatUnits } from "ethers/lib/utils";
 
 import type { SymbolToId, YearnVaultDetails } from "./types";
 
@@ -26,13 +26,17 @@ export const ROUNDING_DECIMALS = 18;
 export const USD_BUFFER = 10 ** USD_BUFFER_DECIMALS;
 const RPC = process.env.TENDERLY_FORK;
 
-export const coingeckoSymbolToId: SymbolToId = {
+export const tokenSymbolToCoingeckoId: SymbolToId = {
   weth: "weth",
   bit: "bitdao",
   dai: "dai",
   usdc: "usd-coin",
   wbtc: "wrapped-bitcoin",
   usdt: "tether",
+  frax: "frax",
+  mim: "magic-internet-money",
+  "3crv": "lp-3pool-curve",
+  crvRenWBTC: "lp-renbtc-curve",
 };
 
 export async function getCoingeckoPrice(id: string): Promise<{ inETH: number; inUSD: number }> {
@@ -79,18 +83,19 @@ export async function getRcaPriceInUSD({
   const provider = new ethers.providers.JsonRpcProvider(RPC);
   const uToken = <MockERC20>new ethers.Contract(uTokenAddress, erc20Abi, provider);
   const uTokenBalOfRcaVault = await uToken.balanceOf(shieldAddress);
-  console.log(parseEther(`${uTokenPriceInUSD}`).toString());
-  const totalUTokenBalInUSD = BigNumber.from(Math.floor(uTokenPriceInUSD * USD_BUFFER)).mul(uTokenBalOfRcaVault);
+
+  const uTokenDecimals = await uToken.decimals();
+  const totalUTokenBalInUSD = uTokenPriceInUSD * +formatUnits(uTokenBalOfRcaVault, uTokenDecimals);
   // double the value
-  const totalVaultValueInUSD = totalUTokenBalInUSD.mul(2);
   const shield = <RcaShield>new ethers.Contract(shieldAddress, rcaShieldAbi, provider);
   const shieldTotalSupply = await shield.totalSupply();
+  const shieldDecimals = await shield.decimals();
+  const shieldTotalSupplyInNumber = +formatUnits(shieldTotalSupply, shieldDecimals);
   let rcaPriceInUSD = 0;
   if (shieldTotalSupply.isZero()) {
     rcaPriceInUSD = uTokenPriceInUSD;
   } else {
-    const rcaPrice = totalVaultValueInUSD.div(shieldTotalSupply.div(await shield.decimals()));
-    rcaPriceInUSD = +formatUnits(rcaPrice, USD_BUFFER_DECIMALS);
+    rcaPriceInUSD = totalUTokenBalInUSD / shieldTotalSupplyInNumber;
   }
   return rcaPriceInUSD;
 }
@@ -100,8 +105,7 @@ export async function getCTokenPriceInUSD({ coingeckoId, address, name }: RcaTok
   if (price.inUSD !== 0) {
     return price.inUSD;
   } else {
-    //   TODO: fetch details from different source
-    console.log("I am here.. cTOKEN");
+    // TODO: fetch details from different source
     const provider = new ethers.providers.JsonRpcProvider(RPC);
     const cToken = <CToken>new ethers.Contract(address, cTokenAbi, provider);
     const exchangeRate = await cToken.exchangeRateStored();
@@ -195,6 +199,8 @@ export async function getcvxPoolTokenPriceinUSD({ coingeckoId }: RcaToken): Prom
     if (priceData.inETH > 0) {
       return priceData.inETH;
     }
+  } else {
+    // Get price from pool
   }
   console.log(`Couldn't find pricedata for ${coingeckoId}`);
   // TODO: find alternate source for data
