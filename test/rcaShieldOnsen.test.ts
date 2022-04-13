@@ -1,7 +1,7 @@
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import hre, { ethers } from "hardhat";
 import { MockERC20 } from "../src/types/MockERC20";
-import { IMasterChefV2 } from "../src/types/IMasterChefV2";
+import { IMasterChef } from "../src/types/IMasterChef";
 import { MAINNET_ADDRESSES, TIME_IN_SECS } from "./constants";
 import { Contracts, MerkleProofs, MerkleTrees, Signers } from "./types";
 import { ether, getExpectedRcaValue, getSignatureDetailsFromCapOracle, increase, mine, resetBlockchain } from "./utils";
@@ -23,7 +23,7 @@ describe("RcaShieldOnsen", function () {
   const merkleTrees = {} as MerkleTrees;
   const merkleProofs = {} as MerkleProofs;
   let sushiToken: MockERC20;
-  let masterChefV2: IMasterChefV2;
+  let masterChefV2: IMasterChef;
   let sushiWhale: SignerWithAddress;
   before(async function () {
     await resetBlockchain();
@@ -58,8 +58,8 @@ describe("RcaShieldOnsen", function () {
     sushiToken = <MockERC20>await ethers.getContractAt("MockERC20", MAINNET_ADDRESSES.contracts.onsen.sushiToken);
 
     // sushi masterchef
-    masterChefV2 = <IMasterChefV2>(
-      await ethers.getContractAt("IMasterChefV2", MAINNET_ADDRESSES.contracts.onsen.masterChefV2)
+    masterChefV2 = <IMasterChef>(
+      await ethers.getContractAt("IMasterChef", MAINNET_ADDRESSES.contracts.onsen.masterChefV2)
     );
 
     // send some btcWeth lp tokens to the referrer
