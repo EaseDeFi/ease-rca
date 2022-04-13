@@ -480,7 +480,10 @@ abstract contract RcaShieldBase is ERC20, Governable {
     function _rcaValue(uint256 _uAmount, uint256 _totalForSale) internal view returns (uint256 rcaAmount) {
         uint256 balance = _uBalance();
 
-        if (balance == 0 || balance < _totalForSale) return _uAmount;
+        // Interesting edgecase in which 1 person is in vault, they request redeem, 
+        // underlying continue to gain value, then withdraw their original value.
+        // Vault is then un-useable because below we're dividing 0 by > 0.
+        if (balance == 0 || totalSupply() == 0 || balance < _totalForSale) return _uAmount;
 
         rcaAmount = ((totalSupply() + pendingWithdrawal) * _uAmount) / (balance - _totalForSale);
     }
