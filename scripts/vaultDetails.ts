@@ -206,7 +206,7 @@ rcaTokens.convex = [
     decimals: 18,
     whale: "0x7e2b9b5244bcfa5108a76d5e7b507cfd5581ad4a",
     shield: "",
-    rewardPool: "0x74b79021Ea6De3f0D1731fb8BdfF6eE7DF10b8Ae",
+    rewardPool: "0x8e299c62eed737a5d5a53539df37b5356a27b07d",
   },
   {
     name: "cvxMIM-3LP3CRV-f Ease Vault",
@@ -215,7 +215,7 @@ rcaTokens.convex = [
     decimals: 18,
     whale: "0xfd5abf66b003881b88567eb9ed9c651f14dc4771",
     shield: "",
-    rewardPool: "0xabB54222c2b77158CC975a2b715a3d703c256F05",
+    rewardPool: "0xfd5abf66b003881b88567eb9ed9c651f14dc4771",
   },
   {
     name: "cvxcrv3crypto Ease Vault",
