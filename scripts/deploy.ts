@@ -40,13 +40,9 @@ const CAPORACLE_ADDRESS = "0xEa5edeF10d62c08c447C5c0e9a9d7523777886a7";
 
 // OTHERS
 const VANITY_TRANSFER_AMOUNT = ether("0.02");
-const WITHDRAWAL_DELAY = BigNumber.from(0); // TODO: CHANGE FROM ONE HOUR
+const WITHDRAWAL_DELAY = BigNumber.from(0); // TODO: CHANGE FROM 0
 const DISCOUNT = BigNumber.from(0); // 0%
 const APR = BigNumber.from(0);
-
-// switch cETH for cSUSHI
-// switch cWBTC for cTrueUSD
-// switch convex wormhole for whatever
 
 async function fundMeToken({ details, ethWhaleSigner, me }: FundMeTokenArgs) {
   try {
