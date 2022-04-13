@@ -114,7 +114,7 @@ rcaTokens.aave = [
     name: "aCRV Ease Vault",
     symbol: "ez-aCRV",
     address: "0x8dAE6Cb04688C62d939ed9B68d32Bc62e49970b1",
-    decimals: 8,
+    decimals: 18,
     whale: "0x602d9abd5671d24026e2ca473903ff2a9a957407",
     shield: "",
   },
