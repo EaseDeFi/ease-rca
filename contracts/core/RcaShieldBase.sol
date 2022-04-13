@@ -1,6 +1,14 @@
 /// SPDX-License-Identifier: UNLICENSED
 
 /**
+ * By using this contract and/or any other launched by the Ease protocol, you agree to Ease's
+ * Terms and Conditions, Privacy Policy, and Terms of Coverage.
+ * https://ease.org/about-ease-defi/terms-and-conditions-disclaimer/
+ * https://ease.org/about-ease-defi/privacy-policy/
+ * https://ease.org/learn-crypto-defi/get-defi-cover-at-ease/ease-defi-cover/terms-of-ease-coverage/
+ */
+
+/**
 
                                ................                            
                           ..',,;;::::::::ccccc:;,'..                       
@@ -516,6 +524,13 @@ abstract contract RcaShieldBase is ERC20, Governable {
         fees = (activeInclReserved * aprAvg * totalTimeElapsed) / YEAR_SECS / DENOMINATOR / BUFFER;
     }
 
+    /**
+     * @notice Grabs full underlying balance to make frontend fetching much easier.
+     */
+    function uBalance() external view returns (uint256) {
+        return _uBalance();
+    }
+
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////// internal ///////////////////////////////////////////////////
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -541,7 +556,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    //////////////////////////////////////////////// internal ///////////////////////////////////////////////////
+    ///////////////////////////////////////////////// virtual ///////////////////////////////////////////////////
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     /// @notice Check balance of underlying token.
