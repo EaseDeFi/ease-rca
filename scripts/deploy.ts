@@ -40,7 +40,7 @@ const CAPORACLE_ADDRESS = "0xEa5edeF10d62c08c447C5c0e9a9d7523777886a7";
 
 // OTHERS
 const VANITY_TRANSFER_AMOUNT = ether("0.02");
-const WITHDRAWAL_DELAY = BigNumber.from(3600);
+const WITHDRAWAL_DELAY = BigNumber.from(3600); // TODO: CHANGE FROM ONE HOUR
 const DISCOUNT = BigNumber.from(0); // 0%
 const APR = BigNumber.from(0);
 
@@ -73,7 +73,7 @@ async function fundMeToken({ details, ethWhaleSigner, me }: FundMeTokenArgs) {
 // canImpersonate? ETH_WHALE is the funder else PRIVATE_KEY1's wallet is
 // PRIVATE_KEY2 =
 // PRIVATE_KEY3 =
-// PRIVATE_KEY4 = is treasury deployer
+// PRIVATE_KEY4 = is treasury deployer TODO: CHANGE TREASURY PRIVATE KEY
 // PRIVATE_KEY5 = is controller deployer
 // PRIVATE_KEY6 and beyond are rca vault deployers
 async function main() {
@@ -170,7 +170,7 @@ async function main() {
 
   // deploy controller with PRIVATE_KEY5
   contracts.rcaController = <RcaController>await RCA_CONTROLLER.connect(accounts[4]).deploy(
-    signers.gov.address, // governor
+    signers.gov.address, // governor TODO: CHANGE GOVERNOR
     GUARDIAN_ADDRESS, // guardian
     PRICEORACLE_ADDRESS, // price oracle
     CAPORACLE_ADDRESS, // capacity oracle
@@ -287,7 +287,6 @@ async function main() {
     }
   }
   async function initializeOnsenVaults() {
-    const masterChefV2 = "0xEF0881eC094552b2e128Cf945EF17a6752B4Ec5d";
     const RCA_SHIELD = <RcaShieldOnsen__factory>await ethers.getContractFactory("RcaShieldOnsen");
     for (let i = 0; i < rcaTokens.onsen.length; i++) {
       const details = rcaTokens.onsen[i];
@@ -298,7 +297,7 @@ async function main() {
         details.decimals,
         signers.gov.address, // governor
         contracts.rcaController.address, // rcaController
-        masterChefV2,
+        details.rewardPool || "",
         details.pid || 0,
       );
 

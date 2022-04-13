@@ -135,6 +135,7 @@ rcaTokens.onsen = [
     decimals: 18,
     whale: "0x5c00977a2002a3C9925dFDfb6815765F578a804f",
     shield: "",
+    rewardPool: "0xc2edad668740f1aa35e4d8f227fb8e17dca888cd",
     pid: 1,
   }, // Cannot send more than 1 of this one
   {
@@ -144,6 +145,8 @@ rcaTokens.onsen = [
     decimals: 18,
     whale: "0xbd445883d29a1631c8a69d1f26537f4f551d7763",
     shield: "",
+    rewardPool: "0xc2edad668740f1aa35e4d8f227fb8e17dca888cd",
+    pid: 0,
   },
   {
     name: "WBTC-WETH SLP Ease Vault",
@@ -152,6 +155,7 @@ rcaTokens.onsen = [
     decimals: 18,
     whale: "0x0489076A0D17394835aF93cd62ACFf703B6814a9",
     shield: "",
+    rewardPool: "0xc2edad668740f1aa35e4d8f227fb8e17dca888cd",
     pid: 21,
   }, // Can't send more than 0.001
   {
@@ -161,6 +165,7 @@ rcaTokens.onsen = [
     decimals: 18,
     whale: "0x54b55662901aF57B31fb6B52AF8175b652A5816e",
     shield: "",
+    rewardPool: "0xef0881ec094552b2e128cf945ef17a6752b4ec5d",
     pid: 17,
   },
   {
@@ -170,6 +175,7 @@ rcaTokens.onsen = [
     decimals: 18,
     whale: "0x647481c033a4a2e816175ce115a0804adf793891",
     shield: "",
+    rewardPool: "0xc2EdaD668740f1aA35E4D8f227fB8E17dcA888Cd",
     pid: 2,
   },
 ];

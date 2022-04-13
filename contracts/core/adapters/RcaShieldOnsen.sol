@@ -3,12 +3,15 @@
 pragma solidity ^0.8.11;
 
 import "../RcaShieldNormalized.sol";
-import { IMasterChefV2 } from "../../external/Sushiswap.sol";
+import { IMasterChef } from "../../external/Sushiswap.sol";
 
 contract RcaShieldOnsen is RcaShieldNormalized {
     using SafeERC20 for IERC20Metadata;
 
-    IMasterChefV2 public immutable masterChef;
+    IMasterChef public immutable masterChef;
+
+    // Check our masterchef against this to call the correct functions.
+    address private constant MCV1 = 0xc2EdaD668740f1aA35E4D8f227fB8E17dcA888Cd;
 
     uint256 public immutable pid;
 
@@ -19,7 +22,7 @@ contract RcaShieldOnsen is RcaShieldNormalized {
         uint256 _uTokenDecimals,
         address _governance,
         address _controller,
-        IMasterChefV2 _masterChef,
+        IMasterChef _masterChef,
         uint256 _pid
     ) RcaShieldNormalized(_name, _symbol, _uToken, _uTokenDecimals, _governance, _controller) {
         masterChef = _masterChef;
@@ -64,10 +67,12 @@ contract RcaShieldOnsen is RcaShieldNormalized {
     }
 
     function _afterMint(uint256 _uAmount) internal override {
-        masterChef.deposit(pid, _uAmount, address(this));
+        if (address(masterChef) == MCV1) masterChef.deposit(pid, _uAmount);
+        else masterChef.deposit(pid, _uAmount, address(this));
     }
 
     function _afterRedeem(uint256 _uAmount) internal override {
-        masterChef.withdraw(pid, _uAmount, address(this));
+        if (address(masterChef) == MCV1) masterChef.withdraw(pid, _uAmount);
+        else masterChef.withdraw(pid, _uAmount, address(this));
     }
 }
