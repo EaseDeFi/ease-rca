@@ -1,4 +1,4 @@
-import { CrvPoolUnderlyingDetails, RcaTokens } from "./types";
+import { RcaTokens } from "./types";
 
 export const rcaTokens: RcaTokens = {} as RcaTokens;
 rcaTokens.yearn = [
@@ -142,7 +142,7 @@ rcaTokens.aave = [
     name: "aCRV Ease Vault",
     symbol: "ez-aCRV",
     address: "0x8dAE6Cb04688C62d939ed9B68d32Bc62e49970b1",
-    decimals: 8,
+    decimals: 18,
     whale: "0x602d9abd5671d24026e2ca473903ff2a9a957407",
     shield: "0xEA5eDEf156c03504dF1E4AE5F02E3cA27E79189D",
     rewardPool: "0x0A760466E1B4621579a82a39CB56Dda2F4E70f03",
@@ -266,41 +266,5 @@ rcaTokens.convex = [
     shield: "0xeA5edEf112577C107Fa395f2865CCE6Ec7224559",
     rewardPool: "0x9D5C5E364D81DaB193b72db9E9BE9D8ee669B652",
     coingeckoId: "",
-  },
-];
-
-export const cvxToCrvUnderlyingAndPool: CrvPoolUnderlyingDetails[] = [
-  {
-    symbol: "ez-cvxFRAX3CRV-f",
-    //                        frax                                       3crv
-    uTokensCrv: ["0x853d955aCEf822Db058eb8505911ED77F175b99e", "0x6c3F90f043a72FA612cbac8115EE7e52BDe6E490"],
-    rewardPoolCrv: "0xd632f22692FaC7611d2AA1C0D552930D43CAEd3B",
-  },
-  {
-    symbol: "ez-cvxsteCRV",
-    //                        ethBalance                                       stEth
-    uTokensCrv: ["0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", "0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84"],
-    rewardPoolCrv: "0xDC24316b9AE028F1497c275EB9192a3Ea0f67022",
-  },
-  {
-    symbol: "ez-cvxcrvRenWBTC",
-    //                        renBTC                                       wbtc
-    uTokensCrv: ["0xEB4C2781e4ebA804CE9a9803C67d0893436bB27D", "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599"],
-    rewardPoolCrv: "0x93054188d876f558f4a66B2EF1d97d16eDf0895B",
-  },
-  {
-    symbol: "ez-cvxMIM-3LP3CRV-f",
-    //                        mim                                       wbtc
-    uTokensCrv: ["0x99D8a9C45b2ecA8864373A26D1459e3Dff1e17F3", "0x6c3F90f043a72FA612cbac8115EE7e52BDe6E490"],
-    rewardPoolCrv: "0x5a6A4D54456819380173272A5E8E9B9904BdF41B",
-  },
-  {
-    symbol: "ez-cvxcrv3crypto",
-    uTokensCrv: [
-      "0xdAC17F958D2ee523a2206206994597C13D831ec7", // usdt
-      "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2", // weth
-      "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599", // wbtc
-    ],
-    rewardPoolCrv: "0xD51a44d3FaE010294C616388b506AcdA1bfAAE46",
   },
 ];

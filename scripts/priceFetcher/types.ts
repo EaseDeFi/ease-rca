@@ -5,11 +5,11 @@ export type TokenToUnderlyingSymbol = {
   [key: string]: string;
 };
 
-export type Balance = {
+export type TokenPrice = {
   name: string;
   symbol: string;
-  priceInETH: number;
-  priceInUSD: number;
+  inETH: number;
+  inUSD: number;
   uTokenAddress?: string;
   shieldAddress?: string;
 };
@@ -20,5 +20,17 @@ export type YearnVaultDetails = {
     total_assets: number;
     price: number;
     tvl: number;
+  };
+};
+
+export type CTokenApiDetails = {
+  symbol: string;
+  token_address: string;
+  exchange_rate: {
+    value: number;
+  };
+  underlying_address: string;
+  underlying_price: {
+    value: number;
   };
 };

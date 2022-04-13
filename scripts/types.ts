@@ -1,4 +1,8 @@
 import { Signer } from "ethers";
+export type Price = {
+  inETH: number;
+  inUSD: number;
+};
 
 export type RcaTokens = {
   yearn: RcaToken[];
@@ -23,10 +27,4 @@ export type FundMeTokenArgs = {
   ethWhaleSigner: Signer;
   me: string;
   sendAllWhaleBalance?: boolean;
-};
-
-export type CrvPoolUnderlyingDetails = {
-  symbol: string;
-  uTokensCrv?: string[];
-  rewardPoolCrv?: string;
 };
