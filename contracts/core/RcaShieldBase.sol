@@ -508,7 +508,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
      */
     function _getInterimFees(uint256 _newApr, uint256 _aprUpdate) internal view returns (uint256 fees) {
         // Get all variables that are currently in this contract's state.
-        uint256 uBalance = _uBalance();
+        uint256 balance = _uBalance();
         uint256 aprAvg = apr * BUFFER;
         uint256 totalTimeElapsed = block.timestamp - lastUpdate;
 
@@ -520,10 +520,10 @@ abstract contract RcaShieldBase is ERC20, Governable {
         }
 
         // Will probably never occur, but just in case.
-        if (uBalance < amtForSale) return 0;
+        if (balance < amtForSale) return 0;
 
         // Calculate fees based on average active amount.
-        uint256 activeInclReserved = uBalance - amtForSale;
+        uint256 activeInclReserved = balance - amtForSale;
         fees = (activeInclReserved * aprAvg * totalTimeElapsed) / YEAR_SECS / DENOMINATOR / BUFFER;
     }
 
