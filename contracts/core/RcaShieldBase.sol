@@ -1,3 +1,12 @@
+/// SPDX-License-Identifier: UNLICENSED
+
+/**
+ * By using this contract and/or any other launched by the Ease protocol, you agree to Ease's
+ * Terms and Conditions, Privacy Policy, and Terms of Coverage.
+ * https://ease.org/about-ease-defi/terms-and-conditions-disclaimer/
+ * https://ease.org/about-ease-defi/privacy-policy/
+ * https://ease.org/learn-crypto-defi/get-defi-cover-at-ease/ease-defi-cover/terms-of-ease-coverage/
+ */
 
 /**
 
@@ -46,7 +55,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
  * Each underlying token (not protocol) has its own RCA vault. This contract
  * doubles as the vault and the RCA token.
  * @dev This contract assumes uToken decimals of 18.
- * @author Robert M.C. Forster, Romke Jonker, Taek Lee, Chiranjibi Poudyal
+ * @author Ease -- Robert M.C. Forster, Romke Jonker, Taek Lee, Chiranjibi Poudyal, Dominik Prediger
  **/
 abstract contract RcaShieldBase is ERC20, Governable {
     using SafeERC20 for IERC20Metadata;
@@ -82,7 +91,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
     uint256 public amtForSale;
 
     /**
-     * @notice Amount of underlying tokens pending withdrawal.
+     * @notice Amount of RCA tokens pending withdrawal.
      * @dev When doing value calculations this is required because RCAs are burned immediately
      * upon request, but underlying tokens only leave the contract once the withdrawal is finalized.
      */
@@ -271,7 +280,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
 
         _afterRedeem(uAmount);
 
-        pendingWithdrawal += uAmount;
+        pendingWithdrawal += _rcaAmount;
 
         WithdrawRequest memory curRequest = withdrawRequests[msg.sender];
         uint112 newUAmount = uint112(uAmount) + curRequest.uAmount;
@@ -288,12 +297,17 @@ abstract contract RcaShieldBase is ERC20, Governable {
      * @param _to The destination of the tokens.
      * @param _newCumLiqForClaims New cumulative liquidated if this must be updated.
      * @param _liqForClaimsProof Merkle proof to verify new cumulative liquidation.
+     * @param _liqForClaimsProof Merkle proof to verify the new cumulative liquidated.
+     * @param _newPercentReserved New percent of funds in shield that are reserved.
+     * @param _percentReservedProof Merkle proof for the new percent reserved.
      */
     function redeemFinalize(
         address _to,
         bytes calldata _routerData,
         uint256 _newCumLiqForClaims,
-        bytes32[] calldata _liqForClaimsProof
+        bytes32[] calldata _liqForClaimsProof,
+        uint256 _newPercentReserved,
+        bytes32[] calldata _percentReservedProof
     ) external virtual {
         address user = msg.sender;
 
@@ -303,19 +317,33 @@ abstract contract RcaShieldBase is ERC20, Governable {
         // endTime > 0 ensures request exists.
         require(request.endTime > 0 && uint32(block.timestamp) > request.endTime, "Withdrawal not yet allowed.");
 
-        bool isRouterVerified = controller.redeemFinalize(user, _to, _newCumLiqForClaims, _liqForClaimsProof);
+        bool isRouterVerified = controller.redeemFinalize(
+            user,
+            _to,
+            _newCumLiqForClaims,
+            _liqForClaimsProof,
+            _newPercentReserved,
+            _percentReservedProof
+        );
 
         _update();
 
-        pendingWithdrawal -= uint256(request.uAmount);
+        // We're going to calculate uAmount a second time here then send the lesser of the two.
+        // If we only calculate once, users can either get their full uAmount after a hack if percentReserved
+        // hasn't been sent in, or users can earn yield after requesting redeem (with the same consequence).
+        uint256 uAmount = _uValue(request.rcaAmount, amtForSale, percentReserved);
+        if (request.uAmount < uAmount) uAmount = uint256(request.uAmount);
 
-        uToken.safeTransfer(_to, request.uAmount);
+        pendingWithdrawal -= uint256(request.rcaAmount);
+
+        uToken.safeTransfer(_to, uAmount);
 
         // The cool part about doing it this way rather than having user send RCAs to router contract,
         // then it exchanging and returning Ether is that it's more gas efficient and no approvals are needed.
-        if (isRouterVerified) IRouter(_to).routeTo(user, uint256(request.uAmount), _routerData);
+        // (and no nonsense with the withdrawal delay making routers wonky)
+        if (isRouterVerified) IRouter(_to).routeTo(user, uAmount, _routerData);
 
-        emit RedeemFinalize(user, _to, request.uAmount, uint256(request.rcaAmount), block.timestamp);
+        emit RedeemFinalize(user, _to, uAmount, uint256(request.rcaAmount), block.timestamp);
     }
 
     /**
@@ -435,12 +463,11 @@ abstract contract RcaShieldBase is ERC20, Governable {
         uint256 _percentReserved
     ) internal view returns (uint256 uAmount) {
         uint256 balance = _uBalance();
-        uint256 subtrahend = _totalForSale + pendingWithdrawal;
 
         if (totalSupply() == 0) return _rcaAmount;
-        else if (balance < subtrahend) return 0;
+        else if (balance < _totalForSale) return 0;
 
-        uAmount = ((balance - subtrahend) * _rcaAmount) / (totalSupply());
+        uAmount = ((balance - _totalForSale) * _rcaAmount) / (totalSupply() + pendingWithdrawal);
 
         if (_percentReserved > 0) uAmount -= ((uAmount * _percentReserved) / DENOMINATOR);
     }
@@ -452,11 +479,13 @@ abstract contract RcaShieldBase is ERC20, Governable {
      */
     function _rcaValue(uint256 _uAmount, uint256 _totalForSale) internal view returns (uint256 rcaAmount) {
         uint256 balance = _uBalance();
-        uint256 subtrahend = _totalForSale + pendingWithdrawal;
 
-        if (balance == 0 || balance < subtrahend) return _uAmount;
+        // Interesting edgecase in which 1 person is in vault, they request redeem, 
+        // underlying continue to gain value, then withdraw their original value.
+        // Vault is then un-useable because below we're dividing 0 by > 0.
+        if (balance == 0 || totalSupply() == 0 || balance < _totalForSale) return _uAmount;
 
-        rcaAmount = (totalSupply() * _uAmount) / (balance - subtrahend);
+        rcaAmount = ((totalSupply() + pendingWithdrawal) * _uAmount) / (balance - _totalForSale);
     }
 
     /**
@@ -479,7 +508,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
      */
     function _getInterimFees(uint256 _newApr, uint256 _aprUpdate) internal view returns (uint256 fees) {
         // Get all variables that are currently in this contract's state.
-        uint256 uBalance = _uBalance();
+        uint256 balance = _uBalance();
         uint256 aprAvg = apr * BUFFER;
         uint256 totalTimeElapsed = block.timestamp - lastUpdate;
 
@@ -491,11 +520,18 @@ abstract contract RcaShieldBase is ERC20, Governable {
         }
 
         // Will probably never occur, but just in case.
-        if (uBalance < pendingWithdrawal + amtForSale) return 0;
+        if (balance < amtForSale) return 0;
 
-        // Calculate fees based on average active amount
-        uint256 activeInclReserved = uBalance - pendingWithdrawal - amtForSale;
+        // Calculate fees based on average active amount.
+        uint256 activeInclReserved = balance - amtForSale;
         fees = (activeInclReserved * aprAvg * totalTimeElapsed) / YEAR_SECS / DENOMINATOR / BUFFER;
+    }
+
+    /**
+     * @notice Grabs full underlying balance to make frontend fetching much easier.
+     */
+    function uBalance() external view returns (uint256) {
+        return _uBalance();
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -508,13 +544,12 @@ abstract contract RcaShieldBase is ERC20, Governable {
     function _update() internal {
         if (apr > 0) {
             uint256 balance = _uBalance();
-            uint256 subtrahend = amtForSale + pendingWithdrawal;
 
             // If liquidation for claims is set incorrectly this could occur and break the contract.
-            if (balance < subtrahend) return;
+            if (balance < amtForSale) return;
 
             uint256 secsElapsed = block.timestamp - lastUpdate;
-            uint256 active = balance - subtrahend;
+            uint256 active = balance - amtForSale;
             uint256 activeExclReserved = active - ((active * percentReserved) / DENOMINATOR);
 
             amtForSale += (activeExclReserved * secsElapsed * apr) / YEAR_SECS / DENOMINATOR;
@@ -524,7 +559,7 @@ abstract contract RcaShieldBase is ERC20, Governable {
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    //////////////////////////////////////////////// internal ///////////////////////////////////////////////////
+    ///////////////////////////////////////////////// virtual ///////////////////////////////////////////////////
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     /// @notice Check balance of underlying token.
@@ -563,6 +598,8 @@ abstract contract RcaShieldBase is ERC20, Governable {
             uint256 subtrahend = cumLiqForClaims - _newCumLiqForClaims;
             amtForSale = amtForSale > subtrahend ? amtForSale - subtrahend : 0;
         }
+
+        require(_uBalance() >= amtForSale, "amtForSale is too high.");
 
         cumLiqForClaims = _newCumLiqForClaims;
     }

@@ -114,7 +114,7 @@ rcaTokens.aave = [
     name: "aCRV Ease Vault",
     symbol: "ez-aCRV",
     address: "0x8dAE6Cb04688C62d939ed9B68d32Bc62e49970b1",
-    decimals: 8,
+    decimals: 18,
     whale: "0x602d9abd5671d24026e2ca473903ff2a9a957407",
     shield: "",
   },
@@ -135,6 +135,7 @@ rcaTokens.onsen = [
     decimals: 18,
     whale: "0x5c00977a2002a3C9925dFDfb6815765F578a804f",
     shield: "",
+    rewardPool: "0xc2edad668740f1aa35e4d8f227fb8e17dca888cd",
     pid: 1,
   }, // Cannot send more than 1 of this one
   {
@@ -144,6 +145,8 @@ rcaTokens.onsen = [
     decimals: 18,
     whale: "0xbd445883d29a1631c8a69d1f26537f4f551d7763",
     shield: "",
+    rewardPool: "0xc2edad668740f1aa35e4d8f227fb8e17dca888cd",
+    pid: 0,
   },
   {
     name: "WBTC-WETH SLP Ease Vault",
@@ -152,6 +155,7 @@ rcaTokens.onsen = [
     decimals: 18,
     whale: "0x0489076A0D17394835aF93cd62ACFf703B6814a9",
     shield: "",
+    rewardPool: "0xc2edad668740f1aa35e4d8f227fb8e17dca888cd",
     pid: 21,
   }, // Can't send more than 0.001
   {
@@ -161,6 +165,7 @@ rcaTokens.onsen = [
     decimals: 18,
     whale: "0x54b55662901aF57B31fb6B52AF8175b652A5816e",
     shield: "",
+    rewardPool: "0xef0881ec094552b2e128cf945ef17a6752b4ec5d",
     pid: 17,
   },
   {
@@ -170,6 +175,7 @@ rcaTokens.onsen = [
     decimals: 18,
     whale: "0x647481c033a4a2e816175ce115a0804adf793891",
     shield: "",
+    rewardPool: "0xc2EdaD668740f1aA35E4D8f227fB8E17dcA888Cd",
     pid: 2,
   },
 ];
@@ -200,7 +206,7 @@ rcaTokens.convex = [
     decimals: 18,
     whale: "0x7e2b9b5244bcfa5108a76d5e7b507cfd5581ad4a",
     shield: "",
-    rewardPool: "0x74b79021Ea6De3f0D1731fb8BdfF6eE7DF10b8Ae",
+    rewardPool: "0x8e299c62eed737a5d5a53539df37b5356a27b07d",
   },
   {
     name: "cvxMIM-3LP3CRV-f Ease Vault",
@@ -209,7 +215,7 @@ rcaTokens.convex = [
     decimals: 18,
     whale: "0xfd5abf66b003881b88567eb9ed9c651f14dc4771",
     shield: "",
-    rewardPool: "0xabB54222c2b77158CC975a2b715a3d703c256F05",
+    rewardPool: "0xfd5abf66b003881b88567eb9ed9c651f14dc4771",
   },
   {
     name: "cvxcrv3crypto Ease Vault",

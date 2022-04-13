@@ -308,6 +308,39 @@ describe("RCAs and Controller", function () {
         expect(uValue).to.be.equal(expectedUValue);
         expect(rcaValue).to.be.equal(expectedRcaValue);
       });
+      it("should revert if amtForSale is too high", async function () {
+        const userAddress = signers.user.address;
+        const uAmount = ether("100");
+        // returns: expiry, vInt, r, s
+        const sigValues = await getSignatureDetailsFromCapOracle({
+          amount: uAmount,
+          capOracle: signers.capOracle,
+          controller: contracts.rcaController,
+          userAddress,
+          shieldAddress: contracts.rcaShield.address,
+        });
+        await contracts.rcaController
+          .connect(signers.gov)
+          .setLiqTotal(merkleTrees.liqTree1.getHexRoot(), merkleTrees.resTree2.getHexRoot());
+
+        await expect(
+          contracts.rcaShield
+            .connect(signers.user)
+            .mintTo(
+              signers.user.address,
+              signers.referrer.address,
+              uAmount,
+              sigValues.expiry,
+              sigValues.vInt,
+              sigValues.r,
+              sigValues.s,
+              ether("100"),
+              merkleProofs.liqProof1,
+            ),
+        ).to.be.revertedWith("amtForSale is too high.");
+
+        // Testing minting to a different address here as well
+      });
     });
     describe("#events", function () {
       it("should emit mint event with valid args from rcaController", async function () {
@@ -477,7 +510,7 @@ describe("RCAs and Controller", function () {
 
         await contracts.rcaShield
           .connect(signers.user)
-          .redeemFinalize(signers.user.address, ethers.constants.AddressZero, 0, merkleProofs.liqProof1);
+          .redeemFinalize(signers.user.address, ethers.constants.AddressZero, 0, merkleProofs.liqProof1, 0, []);
         const userUTokenBalAfter = await contracts.uToken.balanceOf(signers.user.address);
         const userRcaBalAfter = await contracts.rcaShield.balanceOf(signers.user.address);
         expect(userRcaBalBefore.sub(userRcaBalAfter)).to.be.equal(redeemRequest.rcaAmount);
@@ -526,7 +559,7 @@ describe("RCAs and Controller", function () {
         // will fail if it routes
         contracts.rcaShield
           .connect(signers.user)
-          .redeemFinalize(contracts.router.address, ethers.constants.AddressZero, 0, merkleProofs.liqProof1);
+          .redeemFinalize(contracts.router.address, ethers.constants.AddressZero, 0, merkleProofs.liqProof1, 0, []);
       });
       // check with router
       it("should fail if zapping router is verified", async function () {
@@ -550,7 +583,7 @@ describe("RCAs and Controller", function () {
         await expect(
           contracts.rcaShield
             .connect(signers.user)
-            .redeemFinalize(contracts.router.address, ethers.constants.AddressZero, 0, merkleProofs.liqProof1),
+            .redeemFinalize(contracts.router.address, ethers.constants.AddressZero, 0, merkleProofs.liqProof1, 0, []),
         ).to.be.reverted;
       });
     });

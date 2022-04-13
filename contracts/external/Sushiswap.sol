@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.11;
 
-interface IMasterChefV2 {
+interface IMasterChef {
     struct UserInfo {
         uint256 amount;
         int256 rewardDebt;
@@ -22,10 +22,20 @@ interface IMasterChefV2 {
         address to
     ) external;
 
+    function deposit(
+        uint256 pid,
+        uint256 amount
+    ) external;
+
     function withdraw(
         uint256 pid,
         uint256 amount,
         address to
+    ) external;
+
+    function withdraw(
+        uint256 pid,
+        uint256 amount
     ) external;
 
     function harvest(uint256 pid, address to) external;

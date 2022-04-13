@@ -145,7 +145,10 @@ export async function getExpectedUValue({
   const subtrahend = totalForSale.add(pendingWithdrawal);
   const totalRcaTokenSupply = await rcaShield.totalSupply();
 
-  expectedUValue = shieldUTokenBalance.sub(subtrahend).mul(rcaAmountForUvalue).div(totalRcaTokenSupply);
+  expectedUValue = shieldUTokenBalance
+    .sub(subtrahend)
+    .mul(rcaAmountForUvalue)
+    .div(totalRcaTokenSupply.add(pendingWithdrawal));
   if (totalRcaTokenSupply.isZero()) {
     expectedUValue = rcaAmountForUvalue;
   } else if (shieldUTokenBalance.lt(subtrahend)) {
@@ -183,7 +186,10 @@ export async function getExpectedRcaValue({
   if (shieldUTokenBalance.isZero() || shieldUTokenBalance.lt(subtrahend)) {
     expectedRcaValue = uAmountForRcaValue;
   } else {
-    expectedRcaValue = rcaTotalSupply.mul(uAmountForRcaValue).div(shieldUTokenBalance.sub(subtrahend));
+    expectedRcaValue = rcaTotalSupply
+      .add(pendingWithdrawal)
+      .mul(uAmountForRcaValue)
+      .div(shieldUTokenBalance.sub(subtrahend));
   }
   return expectedRcaValue;
 }

@@ -217,14 +217,18 @@ contract RcaController is RcaGovernable {
      * @param _to Router address which should be used for zapping.
      * @param _newCumLiqForClaims New cumulative amount of liquidated tokens if an update is needed.
      * @param _liqForClaimsProof Merkle proof to verify the new cumulative liquidated if needed.
+     * @param _newPercentReserved New percent of the shield that is reserved for hack payouts.
+     * @param _percentReservedProof Merkle proof to verify the new percent reserved.
      */
     function redeemFinalize(
         address _user,
         address _to,
         uint256 _newCumLiqForClaims,
-        bytes32[] calldata _liqForClaimsProof
+        bytes32[] calldata _liqForClaimsProof,
+        uint256 _newPercentReserved,
+        bytes32[] calldata _percentReservedProof
     ) external onlyShield returns (bool) {
-        _update(_newCumLiqForClaims, _liqForClaimsProof, 0, new bytes32[](0), false);
+        _update(_newCumLiqForClaims, _liqForClaimsProof, _newPercentReserved, _percentReservedProof, true);
 
         emit RedeemFinalize(msg.sender, _user, block.timestamp);
         return isRouterVerified[_to];
@@ -265,14 +269,14 @@ contract RcaController is RcaGovernable {
      * @param _liqForClaimsProof Merkle proof to verify the new cumulative liquidated if needed.
      * @param _newPercentReserved New percent of tokens of this shield that are reserved.
      * @param _percentReservedProof Merkle proof to verify the new percent reserved.
-     * @param _redeemRequest Whether or not this is a redeem request to know whether to update reserved.
+     * @param _redeem Whether or not this is a redeem request to know whether to update reserved.
      */
     function _update(
         uint256 _newCumLiqForClaims,
         bytes32[] memory _liqForClaimsProof,
         uint256 _newPercentReserved,
         bytes32[] memory _percentReservedProof,
-        bool _redeemRequest
+        bool _redeem
     ) internal {
         IRcaShield shield = IRcaShield(msg.sender);
         uint32 lastUpdate = uint32(lastShieldUpdate[msg.sender]);
@@ -289,11 +293,14 @@ contract RcaController is RcaGovernable {
             shield.setApr(apr);
         }
         if (lastUpdate <= updates.liqUpdate) {
+            // Update potentially needed here as well if amtForSale will grow from APR.
+            shield.controllerUpdate(apr, uint256(updates.aprUpdate));
+            
             verifyLiq(msg.sender, _newCumLiqForClaims, _liqForClaimsProof);
             shield.setLiqForClaims(_newCumLiqForClaims);
         }
         // Only updates if it's a redeem request (which is the only call that's affected by reserved).
-        if (lastUpdate <= updates.reservedUpdate && _redeemRequest) {
+        if (lastUpdate <= updates.reservedUpdate && _redeem) {
             verifyReserved(msg.sender, _newPercentReserved, _percentReservedProof);
             shield.setPercentReserved(_newPercentReserved);
         }

@@ -35,18 +35,14 @@ config();
 const ETH_WHALE = "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf";
 const GOV_ADDRESS = "0x5AFeDEF13Bd7B3e363db724420D773cAa8B88763";
 const GUARDIAN_ADDRESS = "0x1f28ed9d4792a567dad779235c2b766ab84d8e33";
-const PRICEORACLE_ADDRESS = "0xEa5EDef10E0a7CB6C8C87C2F35B36f0f8E608eBC";
-const CAPORACLE_ADDRESS = "0xEa5edeF10d62c08c447C5c0e9a9d7523777886a7";
+const PRICEORACLE_ADDRESS = "0xea5edef12b0f19e7bf0360940e89cf34be19c091";
+const CAPORACLE_ADDRESS = "0xea5edef15d1e28f92981ff4f60257747cd99a247";
 
 // OTHERS
-const VANITY_TRANSFER_AMOUNT = ether("0.02");
-const WITHDRAWAL_DELAY = BigNumber.from(3600);
+const VANITY_TRANSFER_AMOUNT = ether("0.25");
+const WITHDRAWAL_DELAY = BigNumber.from(0); // TODO: CHANGE FROM 0
 const DISCOUNT = BigNumber.from(0); // 0%
 const APR = BigNumber.from(0);
-
-// switch cETH for cSUSHI
-// switch cWBTC for cTrueUSD
-// switch convex wormhole for whatever
 
 async function fundMeToken({ details, ethWhaleSigner, me }: FundMeTokenArgs) {
   try {
@@ -73,7 +69,7 @@ async function fundMeToken({ details, ethWhaleSigner, me }: FundMeTokenArgs) {
 // canImpersonate? ETH_WHALE is the funder else PRIVATE_KEY1's wallet is
 // PRIVATE_KEY2 =
 // PRIVATE_KEY3 =
-// PRIVATE_KEY4 = is treasury deployer
+// PRIVATE_KEY4 = is treasury deployer TODO: CHANGE TREASURY PRIVATE KEY
 // PRIVATE_KEY5 = is controller deployer
 // PRIVATE_KEY6 and beyond are rca vault deployers
 async function main() {
@@ -147,7 +143,7 @@ async function main() {
     });
     signers.gov = await ethers.getSigner(GOV_ADDRESS);
   } else {
-    signers.gov = new ethers.Wallet(privateKeys[1], ethers.provider) as unknown as SignerWithAddress;
+    signers.gov = new ethers.Wallet(privateKeys[0], ethers.provider) as unknown as SignerWithAddress;
   }
   // Whale Fund other accounts
   if (canImpersonate) {
@@ -155,14 +151,15 @@ async function main() {
     await ethWhaleSigner.sendTransaction({ to: signers.gov.address, value: ether("10") });
   }
 
-  console.log("Governance:", signers.gov.address);
+  console.log("Initial Governance:", signers.gov.address);
+  console.log("Real Governance:", GOV_ADDRESS);
   console.log("User/guardian:", GUARDIAN_ADDRESS);
   console.log("Price oracle:", PRICEORACLE_ADDRESS);
   console.log("Capacity oracle:", CAPORACLE_ADDRESS);
 
   const RCA_TREASURY = <RcaTreasury__factory>await ethers.getContractFactory("RcaTreasury");
   // deploy treasury with PRIVATE_KEY4
-  contracts.rcaTreasury = <RcaTreasury>await RCA_TREASURY.connect(accounts[3]).deploy(signers.gov.address);
+  contracts.rcaTreasury = <RcaTreasury>await RCA_TREASURY.connect(accounts[3]).deploy(GOV_ADDRESS);
 
   console.log("Treasury:", contracts.rcaTreasury.address);
 
@@ -170,7 +167,7 @@ async function main() {
 
   // deploy controller with PRIVATE_KEY5
   contracts.rcaController = <RcaController>await RCA_CONTROLLER.connect(accounts[4]).deploy(
-    signers.gov.address, // governor
+    signers.gov.address, // governor TODO: CHANGE GOVERNOR
     GUARDIAN_ADDRESS, // guardian
     PRICEORACLE_ADDRESS, // price oracle
     CAPORACLE_ADDRESS, // capacity oracle
@@ -194,7 +191,7 @@ async function main() {
           details.name, // token name
           details.symbol, // symbol
           details.address, // underlying token
-          signers.gov.address, // governor
+          GOV_ADDRESS, // governor
           contracts.rcaController.address, // rcaController
         );
       } else {
@@ -203,7 +200,7 @@ async function main() {
           details.symbol, // symbol
           details.address, // underlying token
           details.decimals,
-          signers.gov.address, // governor
+          GOV_ADDRESS, // governor
           contracts.rcaController.address, // rcaController
         );
       }
@@ -228,7 +225,7 @@ async function main() {
         details.symbol, // symbol
         details.address, // underlying token
         details.decimals,
-        signers.gov.address, // governor
+        GOV_ADDRESS, // governor
         contracts.rcaController.address, // rcaController
         compoundComptroller,
       );
@@ -254,7 +251,7 @@ async function main() {
         details.symbol, // symbol
         details.address, // underlying token
         details.decimals,
-        signers.gov.address, // governor
+        GOV_ADDRESS, // governor
         contracts.rcaController.address, // rcaController
         aaveIncentivesController,
       );
@@ -287,7 +284,6 @@ async function main() {
     }
   }
   async function initializeOnsenVaults() {
-    const masterChefV2 = "0xEF0881eC094552b2e128Cf945EF17a6752B4Ec5d";
     const RCA_SHIELD = <RcaShieldOnsen__factory>await ethers.getContractFactory("RcaShieldOnsen");
     for (let i = 0; i < rcaTokens.onsen.length; i++) {
       const details = rcaTokens.onsen[i];
@@ -296,9 +292,9 @@ async function main() {
         details.symbol, // symbol
         details.address, // underlying token
         details.decimals,
-        signers.gov.address, // governor
+        GOV_ADDRESS, // governor
         contracts.rcaController.address, // rcaController
-        masterChefV2,
+        details.rewardPool || "",
         details.pid || 0,
       );
 
@@ -321,7 +317,7 @@ async function main() {
         details.name, // token name
         details.symbol, // symbol
         details.address, // underlying token
-        signers.gov.address, // governor
+        GOV_ADDRESS, // governor
         contracts.rcaController.address, // rcaController
         details.rewardPool || "",
       );

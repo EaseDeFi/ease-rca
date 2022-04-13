@@ -337,7 +337,7 @@ describe("RCA controller", function () {
       );
     });
   });
-  describe.only("balancesOfs() & requestOfs()", function () {
+  describe("balancesOfs() & requestOfs()", function () {
     it("should return correct uToken balance of a user", async function () {
       const user = signers.user.address;
       const uToken = contracts.uToken.address;

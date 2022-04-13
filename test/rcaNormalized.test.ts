@@ -473,7 +473,7 @@ describe("Normalized RCA and Controller", function () {
 
         await contracts.rcaShield
           .connect(signers.user)
-          .redeemFinalize(signers.user.address, ethers.constants.AddressZero, 0, merkleProofs.liqProof1);
+          .redeemFinalize(signers.user.address, ethers.constants.AddressZero, 0, merkleProofs.liqProof1, 0, []);
         const userUTokenBalAfter = await contracts.uToken.balanceOf(signers.user.address);
         const userRcaBalAfter = await contracts.rcaShield.balanceOf(signers.user.address);
         expect(userRcaBalBefore.sub(userRcaBalAfter)).to.be.equal(redeemRequest.rcaAmount);
