@@ -13,7 +13,8 @@
     "prettier:check": "prettier --check .",
     "prettier:format": "prettier --write .",
     "test": "NODE_OPTIONS='--max-old-space-size=4096' npx hardhat test",
-    "coverage": "NODE_OPTIONS='--max-old-space-size=4096' npx hardhat coverage"
+    "coverage": "NODE_OPTIONS='--max-old-space-size=4096' npx hardhat coverage",
+    "pricefetch": "ts-node 'scripts/priceFetcher/index.ts'"
   },
   "repository": {
     "type": "git",
@@ -24,6 +25,7 @@
     "@nomiclabs/hardhat-etherscan": "^3.0.1",
     "@openzeppelin/contract-loader": "^0.6.3",
     "@umb-network/toolbox": "^5.4.0",
+    "aws-sdk": "^2.1114.0",
     "axios": "^0.26.1",
     "bignumber.js": "9.0.1",
     "coingecko-api-v3": "^0.0.13",

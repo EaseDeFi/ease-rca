@@ -1,3 +1,5 @@
+// AWS imports
+import {DynamoDB} from 'aws-sdk';
 // local imports
 import { rcaTokens } from "../vaultDetails";
 import {
@@ -139,26 +141,44 @@ async function fetchPrices(): Promise<TokenPrice[]> {
   return tokenPrices;
 }
 
+async function savePrices(tokenPrices : TokenPrice[]) : Promise<string> {
+  const docClient = new DynamoDB.DocumentClient({
+    accessKeyId: process.env.DB_ACCESS_KEY,
+    secretAccessKey: process.env.DB_SECRET_KEY,
+    region: process.env.DB_REGION,
+  });
+  for (const tokenPrice of tokenPrices) {
+    assert(tokenPrice.uTokenAddress, "uToken must have a value");
+    console.log(`Save token ${tokenPrice.uTokenAddress} with priceETH: ${tokenPrice.inETH} and priceUSD: ${tokenPrice.inUSD}`);
+    const params = {
+      TableName: "org.ease.tokens",
+      Key: {
+        "address": tokenPrice.uTokenAddress.toLowerCase()
+      },
+      UpdateExpression: "set priceUSD = :priceUSD, priceETH = :priceETH",
+      ExpressionAttributeValues: {
+        ":priceUSD": tokenPrice.inUSD,
+        ":priceETH": tokenPrice.inETH
+      }
+    };
+
+    await docClient.update(params, function (err, data) {
+      if (err) console.log(err);
+    });
+  }
+
+  return Promise.resolve("done");
+}
+
+import assert = require("assert");
 async function main() {
   console.log("Fetching prices.... This may take a while....");
   const tokenPrices = await fetchPrices();
-  console.log("Token price fetched... Verifying now....");
-  // TODO: this is framework for verifying and updating prices
-  for (const tokenPrice of tokenPrices) {
-    if (tokenPrice.inETH === 0 && tokenPrice.inUSD === 0) {
-      console.log(`Couldn't get price for ${tokenPrice.name}`);
-      // TODO: tell bot to inform ease-devs
-    } else if (tokenPrice.inETH === 0) {
-      // TODO: calculate token price in eth using tokenprice in usd and update tokenPrice object
-    } else if (tokenPrice.inUSD === 0) {
-      // TODO: calculate token price in eth and update tokenPrice object
-    }
 
-    // TODO: call api/lastPrice/`${tokenPrice.shield}`
-    // check for % difference
-    // if there's high difference alert ease-devs
-  }
-  console.log(tokenPrices);
+  console.log("Token price fetched... Saving now....");
+  const warnings = await savePrices(tokenPrices);
+
+  console.log("Done: " + warnings);
 }
 
 main();
