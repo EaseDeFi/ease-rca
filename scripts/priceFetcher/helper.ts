@@ -72,7 +72,7 @@ export async function getPriceInEth({ priceInUSD }: { priceInUSD: number }): Pro
   if (ethPriceInUSD === 0) {
     // TODO: fetch price from chainlink
   }
-  return priceInUSD / ethPriceInUSD;
+  return Math.floor(priceInUSD * 1e18 / ethPriceInUSD);
 }
 
 /*//////////////////////////////////////////////////////////////
