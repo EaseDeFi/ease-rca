@@ -22,8 +22,8 @@ contract AaveRouter is IRouter {
     IRcaShield public immutable shield;
     ILendingPool public immutable lendingPool;
     IWETH public immutable weth = IWETH(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
-    // TODO: Should I care about packing this struct?
     address _currentUser;
+    // TODO: Should I care about packing this struct?
     struct MintToArgs {
         address referrer;
         uint256 expiry;
@@ -47,6 +47,7 @@ contract AaveRouter is IRouter {
         shield = IRcaShield(_shield);
         lendingPool = ILendingPool(_lendingPool);
         baseToken.approve(_router, type(uint256).max);
+        baseToken.approve(_lendingPool, type(uint256).max);
     }
 
     function routeTo(
@@ -100,7 +101,6 @@ contract AaveRouter is IRouter {
             _currentUser = address(0);
         }
         // deposit to a desired pool/vault
-        baseToken.approve(address(lendingPool), amountOut);
         lendingPool.deposit(address(baseToken), amountOut, address(this), 0);
 
         // mint an rca
