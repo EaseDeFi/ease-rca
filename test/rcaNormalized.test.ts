@@ -154,8 +154,8 @@ describe("Normalized RCA and Controller", function () {
     describe("#feature", function () {
       it("should be able to mint an RCA token", async function () {
         let userAddress = signers.user.address;
-        let uAmount = ether("100");
-        const rcaAmount = ether("100");
+        let uAmount = ether("100.100000001234556");
+        const rcaAmount = ether("100.1");
         // returns: expiry, vInt, r, s
         const sigValues = await getSignatureDetailsFromCapOracle({
           amount: uAmount,
@@ -192,7 +192,7 @@ describe("Normalized RCA and Controller", function () {
           );
 
         const rcaBal = await contracts.rcaShield.balanceOf(signers.user.address);
-        expect(rcaBal).to.be.equal(ether("100"));
+        expect(rcaBal).to.be.equal(rcaAmount);
         // Testing minting to a different address here as well
         userAddress = signers.referrer.address;
         uAmount = ether("50");

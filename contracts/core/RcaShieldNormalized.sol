@@ -3,6 +3,7 @@
 pragma solidity ^0.8.11;
 
 import "./RcaShieldBase.sol";
+import "hardhat/console.sol";
 
 contract RcaShieldNormalized is RcaShieldBase {
     using SafeERC20 for IERC20Metadata;
@@ -38,6 +39,7 @@ contract RcaShieldNormalized is RcaShieldBase {
         _update();
 
         uint256 rcaAmount = _rcaValue(_uAmount, amtForSale);
+        rcaAmount = (rcaAmount / BUFFER_UTOKEN) * BUFFER_UTOKEN;
 
         // handles decimals diff of underlying tokens
         _uAmount = _normalizedUAmount(_uAmount);
@@ -66,7 +68,14 @@ contract RcaShieldNormalized is RcaShieldBase {
         // endTime > 0 ensures request exists.
         require(request.endTime > 0 && uint32(block.timestamp) > request.endTime, "Withdrawal not yet allowed.");
 
-        bool isRouterVerified = controller.redeemFinalize(msg.sender, _to, _newCumLiqForClaims, _liqForClaimsProof, _newPercentReserved, _percentReservedProof);
+        bool isRouterVerified = controller.redeemFinalize(
+            msg.sender,
+            _to,
+            _newCumLiqForClaims,
+            _liqForClaimsProof,
+            _newPercentReserved,
+            _percentReservedProof
+        );
 
         _update();
 
@@ -113,6 +122,25 @@ contract RcaShieldNormalized is RcaShieldBase {
         treasury.transfer(msg.value);
 
         emit PurchaseU(_user, _uAmount, ethAmount, _uEthPrice, block.timestamp);
+    }
+
+    function _rcaValue(uint256 _uAmount, uint256 _totalForSale) internal view override returns (uint256 rcaAmount) {
+        uint256 balance = _uBalance();
+
+        // Interesting edgecase in which 1 person is in vault, they request redeem,
+        // underlying continue to gain value, then withdraw their original value.
+        // Vault is then un-useable because below we're dividing 0 by > 0.
+        if (balance == 0 || totalSupply() == 0 || balance < _totalForSale) {
+            rcaAmount = _uAmount;
+        } else {
+            rcaAmount = ((totalSupply() + pendingWithdrawal) * _uAmount) / (balance - _totalForSale);
+        }
+
+        // normalize for different decimals of uToken and Rca Token
+        uint256 normalizingBuffer = BUFFER / BUFFER_UTOKEN;
+        if (normalizingBuffer != 0) {
+            rcaAmount = (rcaAmount / normalizingBuffer) * normalizingBuffer;
+        }
     }
 
     /**

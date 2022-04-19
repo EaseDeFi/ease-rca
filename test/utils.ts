@@ -177,9 +177,9 @@ export async function getExpectedRcaValue({
   const amountForSale = await rcaShield.amtForSale();
   const extraForSale = await rcaShield.getExtraForSale(newCumLiqForClaims);
   const totalForSale = amountForSale.add(extraForSale);
-  const shieldUTokenBalance = (await uToken.balanceOf(rcaShield.address))
-    .mul(BigNumber.from(10).pow(await rcaShield.decimals()))
-    .div(BigNumber.from(10).pow(await uToken.decimals()));
+  const uTokenBuffer = BigNumber.from(10).pow(await uToken.decimals());
+  const rcaBuffer = BigNumber.from(10).pow(await rcaShield.decimals());
+  const shieldUTokenBalance = (await uToken.balanceOf(rcaShield.address)).mul(rcaBuffer).div(uTokenBuffer);
   const pendingWithdrawal = await rcaShield.pendingWithdrawal();
   const rcaTotalSupply = await rcaShield.totalSupply();
   const subtrahend = totalForSale.add(pendingWithdrawal);
@@ -190,6 +190,10 @@ export async function getExpectedRcaValue({
       .add(pendingWithdrawal)
       .mul(uAmountForRcaValue)
       .div(shieldUTokenBalance.sub(subtrahend));
+  }
+  const normalizingBuffer = rcaBuffer.div(uTokenBuffer);
+  if (!normalizingBuffer.isZero()) {
+    expectedRcaValue = expectedRcaValue.div(normalizingBuffer).mul(normalizingBuffer);
   }
   return expectedRcaValue;
 }
