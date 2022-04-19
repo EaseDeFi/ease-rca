@@ -38,7 +38,6 @@ contract RcaShieldNormalized is RcaShieldBase {
         _update();
 
         uint256 rcaAmount = _rcaValue(_uAmount, amtForSale);
-        rcaAmount = (rcaAmount / BUFFER_UTOKEN) * BUFFER_UTOKEN;
 
         // handles decimals diff of underlying tokens
         _uAmount = _normalizedUAmount(_uAmount);
