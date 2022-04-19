@@ -3,7 +3,6 @@
 pragma solidity ^0.8.11;
 
 import "./RcaShieldBase.sol";
-import "hardhat/console.sol";
 
 contract RcaShieldNormalized is RcaShieldBase {
     using SafeERC20 for IERC20Metadata;
