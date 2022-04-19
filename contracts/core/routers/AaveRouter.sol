@@ -46,6 +46,7 @@ contract AaveRouter is IRouter {
         router = IUniswapV2Router02(_router);
         shield = IRcaShield(_shield);
         lendingPool = ILendingPool(_lendingPool);
+        baseToken.approve(_router, type(uint256).max);
     }
 
     function routeTo(
@@ -53,7 +54,10 @@ contract AaveRouter is IRouter {
         uint256 uAmount,
         bytes calldata data
     ) external override {
-        (address tokenOut, uint256 amountOutMin, uint256 deadline) = abi.decode(data, (address, uint256, uint256));
+        (address tokenOut, uint256 amountOutMin, uint256 deadline, bool inEth) = abi.decode(
+            data,
+            (address, uint256, uint256, bool)
+        );
 
         if (tokenOut == address(baseToken)) {
             lendingPool.withdraw(address(baseToken), uAmount, user);
@@ -63,11 +67,16 @@ contract AaveRouter is IRouter {
             address[] memory path = new address[](2);
             path[0] = address(baseToken);
             path[1] = tokenOut;
-            router.swapExactTokensForTokens(amountIn, amountOutMin, path, user, deadline);
+            if (inEth) {
+                // swap exactTokenForEth
+                router.swapExactTokensForETH(amountIn, amountOutMin, path, user, deadline);
+            } else {
+                // swap exactTokenForTokens
+                router.swapExactTokensForTokens(amountIn, amountOutMin, path, user, deadline);
+            }
         }
     }
 
-    // Question: Do we need zap consumer? If yes then how will this function change?
     function zapIn(address user, bytes calldata data) external payable {
         // But do we really need this check as function calls in between may fail if we don't send enough eth?
         require(msg.value > 0, "send some eth anon");

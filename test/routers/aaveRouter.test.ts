@@ -31,6 +31,7 @@ describe("AaveRouter:aUSDC", function () {
   contracts.routers = {} as Routers;
   //  local tokens
   let usdcToken: MockERC20;
+  let weth: MockERC20;
   before(async function () {
     await resetBlockchain();
   });
@@ -55,6 +56,7 @@ describe("AaveRouter:aUSDC", function () {
     contracts.uToken = <MockERC20>await ethers.getContractAt("MockERC20", MAINNET_ADDRESSES.contracts.aave.aUSDC);
 
     usdcToken = <MockERC20>await ethers.getContractAt("MockERC20", MAINNET_ADDRESSES.contracts.tokens.usdc);
+    weth = <MockERC20>await ethers.getContractAt("MockERC20", MAINNET_ADDRESSES.contracts.tokens.weth);
     const rcaShieldAaveFactory = <RcaShieldAave__factory>await ethers.getContractFactory("RcaShieldAave");
     const rcaControllerFactory = <RcaController__factory>await ethers.getContractFactory("RcaController");
     const rcaTreasuryFactory = <RcaTreasury__factory>await ethers.getContractFactory("RcaTreasury");
@@ -194,17 +196,62 @@ describe("AaveRouter:aUSDC", function () {
       const deadline = (await getTimestamp()).add(100);
       // TODO: update this later *fetch using uniswap*
       const amountOutMin = uAmount;
+      const tokenOut = usdcToken.address;
+      const inEth = false;
       const zapArgs = ethers.utils.AbiCoder.prototype.encode(
-        ["address", "uint256", "uint256"],
-        [MAINNET_ADDRESSES.contracts.tokens.usdc, amountOutMin, deadline],
+        ["address", "uint256", "uint256", "bool"],
+        [tokenOut, amountOutMin, deadline, inEth],
       );
       await contracts.routers.aaveRouter.routeTo(userAddress, uAmount, zapArgs);
       //check usdc balances
       const userUSDCBalAfter = await usdcToken.balanceOf(userAddress);
       expect(userUSDCBalAfter.sub(userUSDCBalBefore)).to.be.gte(amountOutMin);
     });
-    xit("should allow user to route and recieve exact eth or wrapped eth", async function () {
-      // TODO: complete this
+    it("should allow user to route and recieve wrapped eth", async function () {
+      const uAmount = parseUnits("100", 6);
+      const routerAddress = contracts.routers.aaveRouter.address;
+      const userAddress = signers.user.address;
+      // transfer token to the zapper
+      await contracts.uToken.connect(signers.user).transfer(routerAddress, uAmount);
+
+      const userWethBalBefore = await weth.balanceOf(userAddress);
+      const deadline = (await getTimestamp()).add(100);
+      // TODO: update this later *fetch using uniswap*
+      const amountOutMin = ether("0.03");
+      const tokenOut = weth.address;
+      const inEth = false;
+      const zapArgs = ethers.utils.AbiCoder.prototype.encode(
+        ["address", "uint256", "uint256", "bool"],
+        [tokenOut, amountOutMin, deadline, inEth],
+      );
+
+      await contracts.routers.aaveRouter.routeTo(userAddress, uAmount, zapArgs);
+      //check weth balances
+      const userWethBalAfter = await weth.balanceOf(userAddress);
+      expect(userWethBalAfter.sub(userWethBalBefore)).to.be.gte(amountOutMin);
+    });
+    it("should allow user to route and recieve eth", async function () {
+      const uAmount = parseUnits("100", 6);
+      const routerAddress = contracts.routers.aaveRouter.address;
+      const userAddress = signers.user.address;
+      // transfer token to the zapper
+      await contracts.uToken.connect(signers.user).transfer(routerAddress, uAmount);
+
+      const userEthBalBefore = await ethers.provider.getBalance(userAddress);
+      const deadline = (await getTimestamp()).add(100);
+      // TODO: update this later *fetch using uniswap*
+      const amountOutMin = ether("0.03");
+      const tokenOut = weth.address;
+      const inEth = true;
+      const zapArgs = ethers.utils.AbiCoder.prototype.encode(
+        ["address", "uint256", "uint256", "bool"],
+        [tokenOut, amountOutMin, deadline, inEth],
+      );
+
+      await contracts.routers.aaveRouter.routeTo(userAddress, uAmount, zapArgs);
+      //check weth balances
+      const userEthBalAfter = await ethers.provider.getBalance(userAddress);
+      expect(userEthBalAfter.sub(userEthBalBefore)).to.be.gte(amountOutMin);
     });
   });
 });
