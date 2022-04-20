@@ -52,7 +52,7 @@ contract AaveRouter is IRouter {
 
     function routeTo(
         address user,
-        uint256 uAmount,
+        uint256,
         bytes calldata data
     ) external override {
         (address tokenOut, uint256 amountOutMin, uint256 deadline, bool inEth) = abi.decode(
@@ -60,10 +60,11 @@ contract AaveRouter is IRouter {
             (address, uint256, uint256, bool)
         );
 
+        uint256 amount = aToken.balanceOf(address(this));
         if (tokenOut == address(baseToken)) {
-            lendingPool.withdraw(address(baseToken), uAmount, user);
+            lendingPool.withdraw(address(baseToken), amount, user);
         } else {
-            lendingPool.withdraw(address(baseToken), uAmount, address(this));
+            lendingPool.withdraw(address(baseToken), amount, address(this));
             uint256 amountIn = baseToken.balanceOf(address(this));
             address[] memory path = new address[](2);
             path[0] = address(baseToken);

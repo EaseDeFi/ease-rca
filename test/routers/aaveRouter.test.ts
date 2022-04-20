@@ -6,7 +6,14 @@ import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signe
 import { parseUnits } from "ethers/lib/utils";
 
 import BalanceTree from "../balance-tree";
-import { ether, getExpectedRcaValue, getSignatureDetailsFromCapOracle, getTimestamp, resetBlockchain } from "../utils";
+import {
+  ether,
+  getExpectedRcaValue,
+  getSignatureDetailsFromCapOracle,
+  getTimestamp,
+  increase,
+  resetBlockchain,
+} from "../utils";
 import { MAINNET_ADDRESSES, TIME_IN_SECS } from "../constants";
 import type { Contracts, MerkleProofs, MerkleTrees, Routers, Signers } from "../types";
 
@@ -109,6 +116,10 @@ describe("AaveRouter:aUSDC", function () {
       )
     );
     await contracts.routers.aaveRouter.deployed();
+    // TODO: whitelist router
+    await contracts.rcaController
+      .connect(signers.guardian)
+      .setRouterVerified(contracts.routers.aaveRouter.address, true);
 
     // Set liquidation tree.
     merkleTrees.liqTree1 = new BalanceTree([
@@ -252,6 +263,51 @@ describe("AaveRouter:aUSDC", function () {
       //check weth balances
       const userEthBalAfter = await ethers.provider.getBalance(userAddress);
       expect(userEthBalAfter.sub(userEthBalBefore)).to.be.gte(amountOutMin);
+    });
+    it("should allow user to recieve desired token while redeeming rca's", async function () {
+      const shieldAddress = contracts.rcaShieldAave.address;
+      await contracts.uToken.connect(signers.user).approve(shieldAddress, ether("1000"));
+      const uAmount = ether("100");
+      const userAddress = signers.user.address;
+      const sigValues = await getSignatureDetailsFromCapOracle({
+        amount: uAmount,
+        capOracle: signers.capOracle,
+        controller: contracts.rcaController,
+        userAddress,
+        shieldAddress: shieldAddress,
+      });
+      await contracts.rcaShieldAave
+        .connect(signers.user)
+        .mintTo(
+          signers.user.address,
+          signers.referrer.address,
+          uAmount,
+          sigValues.expiry,
+          sigValues.vInt,
+          sigValues.r,
+          sigValues.s,
+          0,
+          [],
+        );
+      await contracts.rcaShieldAave.connect(signers.user).redeemRequest(ether("100"), 0, [], 0, []);
+
+      // A bit more than 1 day withdrawal
+      await increase(86500);
+
+      const routerAddress = contracts.routers.aaveRouter.address;
+      const deadline = (await getTimestamp()).add(TIME_IN_SECS.halfYear);
+      const amountOutMin = ether("0.03");
+      const tokenOut = weth.address;
+      const inEth = false;
+      const zapArgs = ethers.utils.AbiCoder.prototype.encode(
+        ["address", "uint256", "uint256", "bool"],
+        [tokenOut, amountOutMin, deadline, inEth],
+      );
+      const userWethBalBefore = await weth.balanceOf(userAddress);
+      await contracts.rcaShieldAave.connect(signers.user).redeemFinalize(routerAddress, zapArgs, 0, []);
+      const userWethBalAfter = await weth.balanceOf(userAddress);
+
+      expect(userWethBalAfter.sub(userWethBalBefore)).to.be.gte(amountOutMin);
     });
   });
 });
