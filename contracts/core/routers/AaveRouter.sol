@@ -84,7 +84,7 @@ contract AaveRouter is IRouter {
 
     function zapIn(address user, bytes calldata data) external payable {
         // But do we really need this check as function calls in between may fail if we don't send enough eth?
-        require(msg.value > 0, "send some eth anon");
+        require(msg.value != 0, "msg.value should not be zero");
         // 1. swap eth to desired token
         // Question: Can we use _expiry for deadline?
         (uint256 amountOut, MintToArgs memory args) = abi.decode(data, (uint256, (MintToArgs)));
@@ -99,15 +99,13 @@ contract AaveRouter is IRouter {
 
             // swapping eth for exact tokens so that we don't run into invalid capacity sig error
             _currentUser = msg.sender;
-            // uniswap sends 1 or 2 units more token on swap which stays in our zapper contract
-            // TODO: do we need sweep function to cleanup the token balances?
             router.swapETHForExactTokens{ value: msg.value }(amountOut, path, address(this), args.expiry);
             _currentUser = address(0);
         }
         // deposit to a desired pool/vault
         lendingPool.deposit(address(baseToken), amountOut, address(this), 0);
 
-        // mint an rca
+        // mint rca
         aToken.approve(address(shield), amountOut);
         // normalizing amountOut because RCA's assume all tokens as 18 decimals
         uint256 uAmount = (amountOut * BUFFER) / ATOKEN_BUFFER;
