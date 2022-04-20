@@ -14,8 +14,8 @@ import "../../external/Aave.sol";
 import "hardhat/console.sol";
 
 contract AaveRouter is IRouter {
-    // TODO: Do I need tokens at all? or addresses are enough?
-    uint256 BUFFER = 10**18;
+    uint256 immutable BUFFER = 10**18;
+    uint256 immutable ATOKEN_BUFFER;
     IAToken public immutable aToken;
     IERC20 public immutable baseToken;
     IUniswapV2Router02 public immutable router;
@@ -23,7 +23,6 @@ contract AaveRouter is IRouter {
     ILendingPool public immutable lendingPool;
     IWETH public immutable weth = IWETH(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
     address _currentUser;
-    // TODO: Should I care about packing this struct?
     struct MintToArgs {
         address referrer;
         uint256 expiry;
@@ -36,12 +35,14 @@ contract AaveRouter is IRouter {
 
     constructor(
         address _aToken,
+        uint8 _aTokenDecimals,
         address _baseToken,
         address _router,
         address _shield,
         address _lendingPool
     ) {
         aToken = IAToken(_aToken);
+        ATOKEN_BUFFER = 10**_aTokenDecimals;
         baseToken = IERC20(_baseToken);
         router = IUniswapV2Router02(_router);
         shield = IRcaShield(_shield);
@@ -52,6 +53,7 @@ contract AaveRouter is IRouter {
 
     function routeTo(
         address user,
+        // initially this field was for uAmount but seems unnecessary now
         uint256,
         bytes calldata data
     ) external override {
@@ -60,6 +62,7 @@ contract AaveRouter is IRouter {
             (address, uint256, uint256, bool)
         );
 
+        // using balance of router address sweeps extra units we get using zapIn
         uint256 amount = aToken.balanceOf(address(this));
         if (tokenOut == address(baseToken)) {
             lendingPool.withdraw(address(baseToken), amount, user);
@@ -106,9 +109,8 @@ contract AaveRouter is IRouter {
 
         // mint an rca
         aToken.approve(address(shield), amountOut);
-        // TODO: store a token decimals as immutable variable?
         // normalizing amountOut because RCA's assume all tokens as 18 decimals
-        uint256 uAmount = (amountOut * BUFFER) / 10**aToken.decimals();
+        uint256 uAmount = (amountOut * BUFFER) / ATOKEN_BUFFER;
         shield.mintTo(
             user,
             args.referrer,
@@ -123,7 +125,6 @@ contract AaveRouter is IRouter {
     }
 
     receive() external payable {
-        //TODO: transfer eth to current user
         // Using recieve here because swapEthForExactTokens returns extra eth to the caller
         require(_currentUser != address(0), "can't recieve ether");
         payable(_currentUser).transfer(msg.value);

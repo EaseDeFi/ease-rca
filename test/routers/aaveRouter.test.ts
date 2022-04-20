@@ -106,9 +106,11 @@ describe("AaveRouter:aUSDC", function () {
     await contracts.rcaController.connect(signers.gov).initializeShield(contracts.rcaShieldAave.address);
 
     // initialize aave router
+    const uTokenDecimals = await contracts.uToken.decimals();
     contracts.routers.aaveRouter = <AaveRouter>(
       await aaveRouterFactory.deploy(
         contracts.uToken.address,
+        uTokenDecimals,
         MAINNET_ADDRESSES.contracts.tokens.usdc,
         MAINNET_ADDRESSES.contracts.uniswap.routerV2,
         contracts.rcaShieldAave.address,
