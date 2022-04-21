@@ -222,7 +222,7 @@ export async function getExpectUTokenForCTokens(
   const formattedExchangeRate = +formatUnits(exchangeRate, scalingDecimalsFactor);
   const formattedCTokenAmount = +formatUnits(cAmount, cTokenDecimals);
   const expUTokens = formattedCTokenAmount * formattedExchangeRate;
-  const expectedUTokens = parseUnits(`${truncate(expUTokens, cTokenDecimals)}`, cTokenDecimals);
+  const expectedUTokens = parseUnits(`${truncate(expUTokens, underlyingDecimals)}`, underlyingDecimals);
   return expectedUTokens;
 }
 
