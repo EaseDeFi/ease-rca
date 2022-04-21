@@ -147,7 +147,9 @@ describe("AaveRouter:aUSDC", function () {
   describe("Initialize", function () {
     it("should intialize the shield with valid state", async function () {
       expect(await contracts.routers.aaveRouter.aToken()).to.equal(contracts.uToken.address);
-      expect(await contracts.routers.aaveRouter.baseToken()).to.equal(MAINNET_ADDRESSES.contracts.tokens.usdc);
+      expect((await contracts.routers.aaveRouter.baseToken()).toLowerCase()).to.equal(
+        MAINNET_ADDRESSES.contracts.tokens.usdc,
+      );
       expect(await contracts.routers.aaveRouter.router()).to.equal(MAINNET_ADDRESSES.contracts.uniswap.routerV2);
       expect(await contracts.routers.aaveRouter.lendingPool()).to.equal(MAINNET_ADDRESSES.contracts.aave.lendingPool);
       expect(await contracts.routers.aaveRouter.shield()).to.equal(contracts.rcaShieldAave.address);
