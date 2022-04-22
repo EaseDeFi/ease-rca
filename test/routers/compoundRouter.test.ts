@@ -117,7 +117,6 @@ describe("CompoundRouter:cComp", function () {
     contracts.routers.compoundRouter = <CompoundRouter>(
       await compoundRouterFactory.deploy(
         contracts.uToken.address,
-        uTokenDecimals,
         MAINNET_ADDRESSES.contracts.tokens.usdc,
         MAINNET_ADDRESSES.contracts.uniswap.routerV2,
         contracts.rcaShieldCompound.address,

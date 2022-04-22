@@ -16,7 +16,6 @@ import "hardhat/console.sol";
 contract CompoundRouter is IRouter {
     // TODO: Do I need tokens at all? or addresses are enough?
     uint256 immutable BUFFER = 10**18;
-    uint256 immutable CTOKEN_BUFFER;
     ICToken public immutable cToken;
     IERC20 public immutable baseToken;
     IUniswapV2Router02 public immutable router;
@@ -36,13 +35,11 @@ contract CompoundRouter is IRouter {
 
     constructor(
         address _cToken,
-        uint8 _cTokenDecimals,
         address _baseToken,
         address _router,
         address _shield
     ) {
         cToken = ICToken(_cToken);
-        CTOKEN_BUFFER = 10**_cTokenDecimals;
         baseToken = IERC20(_baseToken);
         router = IUniswapV2Router02(_router);
         shield = IRcaShield(_shield);
