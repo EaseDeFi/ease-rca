@@ -5,6 +5,7 @@ export const MAINNET_ADDRESSES: MainnetAddresses = {
     tokens: {
       weth: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
       usdc: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      stEth: "0xae7ab96520de3a18e5e111b5eaab095312d7fe84",
     },
     uniswap: {
       routerV2: "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D",
@@ -42,6 +43,11 @@ export const MAINNET_ADDRESSES: MainnetAddresses = {
       bitWethPid: 17,
       bitWethPair: "0xE12af1218b4e9272e9628D7c7Dc6354D137D024e",
     },
+    yearn: {
+      yvStEth: "0xdCD90C7f6324cfa40d7169ef80b12031770B4325",
+      yvUSDC: "0xa354F35829Ae975e850e23e9615b11Da1B3dC4DE",
+      lidoLiqPool: "0xDC24316b9AE028F1497c275EB9192a3Ea0f67022",
+    },
   },
   accounts: {
     aAAVEWhale: "0x9080bdc6377e4ef9d51eddae526fb713c535041f",
@@ -58,6 +64,7 @@ export const MAINNET_ADDRESSES: MainnetAddresses = {
     bitWethWhale: "0x54b55662901aF57B31fb6B52AF8175b652A5816e",
     sushiWhale: "0xabea1a9b8b4a4534ae6b71041aa48067d84a3df3",
     stkAAVEWhale: "0xafdabfb6227507ff6522b8a242168f6b5f353a6e",
+    yvUSDCWhale: "0xdb91f52eefe537e5256b8043e5f7c7f44d81f5aa",
   },
 };
 

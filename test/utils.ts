@@ -14,6 +14,7 @@ import { getForkingBlockNumber, getMainnetUrl, isMainnetFork } from "../env_help
 import { RcaShieldNormalized } from "../src/types/RcaShieldNormalized";
 import { ICToken } from "../src/types/ICToken";
 import { formatUnits, parseUnits } from "ethers/lib/utils";
+import { IYVault } from "../src/types/IYVault";
 
 dotenv.config();
 
@@ -228,4 +229,15 @@ export async function getExpectUTokenForCTokens(
 
 export function truncate(num: number, places: number): number {
   return Math.trunc(num * Math.pow(10, places)) / Math.pow(10, places);
+}
+
+export async function getExpectedYvTokens(yVault: IYVault, amount: BigNumber): Promise<BigNumber> {
+  // price per share decimals is always decimals of yvToken
+  const pricePerShareDecimals = await yVault.decimals();
+
+  const pricePerShare = await yVault.pricePerShare();
+  let expectedYvTokens = amount.mul(BigNumber.from(10).pow(pricePerShareDecimals)).div(pricePerShare);
+  // upto 0.00001% diff in expected yvTokens
+  expectedYvTokens = expectedYvTokens.sub(expectedYvTokens.div(1000000));
+  return expectedYvTokens;
 }
