@@ -23,7 +23,7 @@ contract AaveRouter is IRouter {
 
     IWETH public immutable weth = IWETH(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
 
-    // user address to send returned eth when calling swapExactTokensForEth
+    // user address to send returned eth when calling swapEthForExactTokens
     address _currentUser;
 
     struct MintToArgs {
@@ -93,27 +93,27 @@ contract AaveRouter is IRouter {
             ((ShieldArgs), (SwapArgs), (MintToArgs))
         );
         if (swapArgs.shouldSwap) {
+            // do a tokenSwap to desired currency
+            address[] memory path = new address[](2);
+            path[0] = address(weth);
+            path[1] = shieldArgs.baseToken;
+
+            // swapping eth for exact tokens so that we don't run into invalid capacity sig error
+            _currentUser = msg.sender;
+            router.swapETHForExactTokens{ value: msg.value }(
+                swapArgs.amountOutMin,
+                path,
+                address(this),
+                swapArgs.deadline
+            );
+            _currentUser = address(0);
+        } else {
             if (shieldArgs.baseToken == address(weth)) {
                 // don't need token swaps just wrap eth
                 weth.deposit{ value: msg.value }();
             } else {
-                // do a tokenSwap to desired currency
-                address[] memory path = new address[](2);
-                path[0] = address(weth);
-                path[1] = shieldArgs.baseToken;
-
-                // swapping eth for exact tokens so that we don't run into invalid capacity sig error
-                _currentUser = msg.sender;
-                router.swapETHForExactTokens{ value: msg.value }(
-                    swapArgs.amountOutMin,
-                    path,
-                    address(this),
-                    swapArgs.deadline
-                );
-                _currentUser = address(0);
+                IERC20(shieldArgs.baseToken).safeTransferFrom(msg.sender, address(this), swapArgs.amountOutMin);
             }
-        } else {
-            IERC20(shieldArgs.baseToken).safeTransferFrom(msg.sender, address(this), swapArgs.amountOutMin);
         }
 
         IAToken(shieldArgs.baseToken).safeApprove(address(lendingPool), swapArgs.amountOutMin);
