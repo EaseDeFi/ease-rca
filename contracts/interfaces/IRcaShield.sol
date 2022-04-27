@@ -38,4 +38,49 @@ interface IRcaShield {
     }
 
     function withdrawRequests(address user) external view returns (WithdrawRequest memory);
+
+    function mintTo(
+        address _user,
+        address _referrer,
+        uint256 _uAmount,
+        uint256 _expiry,
+        uint8 _v,
+        bytes32 _r,
+        bytes32 _s,
+        uint256 _newCumLiqForClaims,
+        bytes32[] calldata _liqForClaimsProof
+    ) external;
+
+    function redeemRequest(
+        uint256 _rcaAmount,
+        uint256 _newCumLiqForClaims,
+        bytes32[] calldata _liqForClaimsProof,
+        uint256 _newPercentReserved,
+        bytes32[] calldata _percentReservedProof
+    ) external;
+
+    function redeemFinalize(
+        address _to,
+        bytes calldata _routerData,
+        uint256 _newCumLiqForClaims,
+        bytes32[] calldata _liqForClaimsProof
+    ) external;
+
+    function purchaseU(
+        address _user,
+        uint256 _uAmount,
+        uint256 _uEthPrice,
+        bytes32[] calldata _priceProof,
+        uint256 _newCumLiqForClaims,
+        bytes32[] calldata _liqForClaimsProof
+    ) external payable;
+
+    function purchaseRca(
+        address _user,
+        uint256 _uAmount,
+        uint256 _uEthPrice,
+        bytes32[] calldata _priceProof,
+        uint256 _newCumLiqForClaims,
+        bytes32[] calldata _liqForClaimsProof
+    ) external payable;
 }
