@@ -66,7 +66,7 @@ contract AaveRouter is IRouter {
         // using balance of router address sweeps extra units we get using zapIn
         uint256 amount = IAToken(shieldArgs.uToken).balanceOf(address(this));
 
-        if (swapArgs.tokenOut == shieldArgs.baseToken) {
+        if (swapArgs.tokenOut == shieldArgs.baseToken && !swapArgs.inEth) {
             lendingPool.withdraw(shieldArgs.baseToken, amount, user);
         } else {
             lendingPool.withdraw(shieldArgs.baseToken, amount, address(this));
@@ -76,8 +76,17 @@ contract AaveRouter is IRouter {
             path[1] = swapArgs.tokenOut;
             IERC20(shieldArgs.baseToken).safeApprove(address(router), amountIn);
             if (swapArgs.inEth) {
-                // swap exactTokenForEth
-                router.swapExactTokensForETH(amountIn, swapArgs.amountOutMin, path, user, swapArgs.deadline);
+                // this means base token is weth and user want's to zap out with eth
+                // TODO: make this function readable it's confusing for others to
+                // understand what's going under the hood stupid?
+                if (swapArgs.tokenOut == shieldArgs.baseToken) {
+                    // don't need token swaps just unwrap eth and transfer to user
+                    weth.withdraw(amount);
+                    payable(user).transfer(amount);
+                } else {
+                    // swap exactTokenForEth
+                    router.swapExactTokensForETH(amountIn, swapArgs.amountOutMin, path, user, swapArgs.deadline);
+                }
             } else {
                 // swap exactTokenForTokens
                 router.swapExactTokensForTokens(amountIn, swapArgs.amountOutMin, path, user, swapArgs.deadline);
@@ -86,37 +95,37 @@ contract AaveRouter is IRouter {
     }
 
     function zapIn(bytes calldata data) external payable {
-        // 1. swap eth to desired token
-        // Question: Can we use _expiry for deadline?
         (ShieldArgs memory shieldArgs, SwapArgs memory swapArgs, MintToArgs memory mintArgs) = abi.decode(
             data,
             ((ShieldArgs), (SwapArgs), (MintToArgs))
         );
         if (swapArgs.shouldSwap) {
-            // do a tokenSwap to desired currency
-            address[] memory path = new address[](2);
-            path[0] = address(weth);
-            path[1] = shieldArgs.baseToken;
-
-            // swapping eth for exact tokens so that we don't run into invalid capacity sig error
-            _currentUser = msg.sender;
-            router.swapETHForExactTokens{ value: msg.value }(
-                swapArgs.amountOutMin,
-                path,
-                address(this),
-                swapArgs.deadline
-            );
-            _currentUser = address(0);
-        } else {
+            // 1. swap eth to desired token
             if (shieldArgs.baseToken == address(weth)) {
                 // don't need token swaps just wrap eth
                 weth.deposit{ value: msg.value }();
             } else {
-                IERC20(shieldArgs.baseToken).safeTransferFrom(msg.sender, address(this), swapArgs.amountOutMin);
+                // do a tokenSwap to desired currency
+                address[] memory path = new address[](2);
+                path[0] = address(weth);
+                path[1] = shieldArgs.baseToken;
+
+                // swapping eth for exact tokens so that we don't run into invalid capacity sig error
+                _currentUser = msg.sender;
+                router.swapETHForExactTokens{ value: msg.value }(
+                    swapArgs.amountOutMin,
+                    path,
+                    address(this),
+                    swapArgs.deadline
+                );
+                _currentUser = address(0);
             }
+        } else {
+            // user is trying to use baseToken of his wallet
+            IERC20(shieldArgs.baseToken).safeTransferFrom(msg.sender, address(this), swapArgs.amountOutMin);
         }
 
-        IAToken(shieldArgs.baseToken).safeApprove(address(lendingPool), swapArgs.amountOutMin);
+        IERC20(shieldArgs.baseToken).safeApprove(address(lendingPool), swapArgs.amountOutMin);
         // deposit to a desired pool/vault
         lendingPool.deposit(shieldArgs.baseToken, swapArgs.amountOutMin, address(this), 0);
 
@@ -137,8 +146,9 @@ contract AaveRouter is IRouter {
     }
 
     receive() external payable {
-        // Using recieve here because swapEthForExactTokens returns extra eth to the caller
-        require(_currentUser != address(0), "can't recieve ether");
-        payable(_currentUser).transfer(msg.value);
+        // transfer eth returned by swapEthForExactTokens to the caller
+        if (_currentUser != address(0)) {
+            payable(_currentUser).transfer(msg.value);
+        }
     }
 }
