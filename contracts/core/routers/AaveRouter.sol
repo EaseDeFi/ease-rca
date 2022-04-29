@@ -76,10 +76,7 @@ contract AaveRouter is IRouter {
             path[1] = swapArgs.tokenOut;
             IERC20(shieldArgs.baseToken).safeApprove(address(router), amountIn);
             if (swapArgs.inEth) {
-                // this means base token is weth and user want's to zap out with eth
-                // TODO: make this function readable it's confusing for others to
-                // understand what's going under the hood stupid?
-                if (swapArgs.tokenOut == shieldArgs.baseToken) {
+                if (shieldArgs.baseToken == address(weth)) {
                     // don't need token swaps just unwrap eth and transfer to user
                     weth.withdraw(amount);
                     payable(user).transfer(amount);
