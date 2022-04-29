@@ -190,9 +190,8 @@ describe("AaveRouter:aUSDC", function () {
       const userRcaBalBefore = await contracts.rcaShieldAave.balanceOf(userAddress);
       const shieldArgs = [shieldAddress, uTokenAddress, baseTokenAddress];
       const shouldSwap = true;
-      const inEth = false;
-      const tokenOut = ethers.constants.AddressZero;
-      const swapArgs = [shouldSwap, inEth, tokenOut, uAmount, sigValues.expiry];
+      const tokenOut = baseToken.address;
+      const swapArgs = [shouldSwap, tokenOut, uAmount, sigValues.expiry];
       const mintToArgs = [
         userAddress,
         signers.referrer.address,
@@ -207,7 +206,7 @@ describe("AaveRouter:aUSDC", function () {
       const zapArgs = ethers.utils.AbiCoder.prototype.encode(
         [
           "tuple(address, address, address)", // shieldArgs(shieldAddress, uToken, baseToken)
-          "tuple(bool, bool, address, uint256, uint256)", // swapArgs(shouldSwap, amountOut)
+          "tuple(bool, address, uint256, uint256)", // swapArgs(shouldSwap, amountOut)
           "tuple(address, address, uint256, uint256, uint8, bytes32, bytes32, uint256, bytes32[])", // mintToArgs
         ],
         [shieldArgs, swapArgs, mintToArgs],
@@ -246,9 +245,8 @@ describe("AaveRouter:aUSDC", function () {
       const userRcaBalBefore = await contracts.rcaShieldAave.balanceOf(userAddress);
       const shieldArgs = [shieldAddress, uTokenAddress, baseTokenAddress];
       const shouldSwap = false;
-      const inEth = false;
-      const tokenOut = ethers.constants.AddressZero;
-      const swapArgs = [shouldSwap, inEth, tokenOut, uAmount, sigValues.expiry];
+      const tokenOut = baseToken.address;
+      const swapArgs = [shouldSwap, tokenOut, uAmount, sigValues.expiry];
       const mintToArgs = [
         userAddress,
         signers.referrer.address,
@@ -263,7 +261,7 @@ describe("AaveRouter:aUSDC", function () {
       const zapArgs = ethers.utils.AbiCoder.prototype.encode(
         [
           "tuple(address, address, address)", // shieldArgs(shieldAddress, uToken, baseToken)
-          "tuple(bool, bool, address, uint256, uint256)", // swapArgs(shouldSwap, amountOut)
+          "tuple(bool, address, uint256, uint256)", // swapArgs(shouldSwap, amountOut)
           "tuple(address, address, uint256, uint256, uint8, bytes32, bytes32, uint256, bytes32[])", // mintToArgs
         ],
         [shieldArgs, swapArgs, mintToArgs],
@@ -298,10 +296,9 @@ describe("AaveRouter:aUSDC", function () {
       const amountOutMin = uAmount;
       const tokenOut = baseToken.address;
       const inEth = false;
-      const shouldSwap = false;
-      const swapArgs = [shouldSwap, inEth, tokenOut, amountOutMin, deadline];
+      const swapArgs = [inEth, tokenOut, amountOutMin, deadline];
       const zapArgs = ethers.utils.AbiCoder.prototype.encode(
-        ["tuple(address, address, address)", "tuple(bool, bool, address, uint256, uint256)"],
+        ["tuple(address, address, address)", "tuple(bool, address, uint256, uint256)"],
         [shieldArgs, swapArgs],
       );
       await contracts.routers.aaveRouter.routeTo(userAddress, uAmount, zapArgs);
@@ -329,11 +326,10 @@ describe("AaveRouter:aUSDC", function () {
       const amountOutMin = amountsOut[1];
       const tokenOut = weth.address;
       const inEth = false;
-      const shouldSwap = false;
-      const swapArgs = [shouldSwap, inEth, tokenOut, amountOutMin, deadline];
+      const swapArgs = [inEth, tokenOut, amountOutMin, deadline];
 
       const zapArgs = ethers.utils.AbiCoder.prototype.encode(
-        ["tuple(address, address, address)", "tuple(bool, bool, address, uint256, uint256)"],
+        ["tuple(address, address, address)", "tuple(bool, address, uint256, uint256)"],
         [shieldArgs, swapArgs],
       );
 
@@ -362,11 +358,10 @@ describe("AaveRouter:aUSDC", function () {
       const amountOutMin = amountsOut[1];
       const tokenOut = weth.address;
       const inEth = true;
-      const shouldSwap = false;
-      const swapArgs = [shouldSwap, inEth, tokenOut, amountOutMin, deadline];
+      const swapArgs = [inEth, tokenOut, amountOutMin, deadline];
 
       const zapArgs = ethers.utils.AbiCoder.prototype.encode(
-        ["tuple(address, address, address)", "tuple(bool, bool, address, uint256, uint256)"],
+        ["tuple(address, address, address)", "tuple(bool, address, uint256, uint256)"],
         [shieldArgs, swapArgs],
       );
 
@@ -420,11 +415,10 @@ describe("AaveRouter:aUSDC", function () {
       const amountOutMin = amountsOut[1];
       const tokenOut = weth.address;
       const inEth = false;
-      const shouldSwap = false;
 
-      const swapArgs = [shouldSwap, inEth, tokenOut, amountOutMin, deadline];
+      const swapArgs = [inEth, tokenOut, amountOutMin, deadline];
       const zapArgs = ethers.utils.AbiCoder.prototype.encode(
-        ["tuple(address, address, address)", "tuple(bool, bool, address, uint256, uint256)"],
+        ["tuple(address, address, address)", "tuple(bool, address, uint256, uint256)"],
         [shieldArgs, swapArgs],
       );
       const userWethBalBefore = await weth.balanceOf(userAddress);
@@ -583,9 +577,8 @@ describe("AaveRouter:aWETH", function () {
       const userRcaBalBefore = await contracts.rcaShieldAave.balanceOf(userAddress);
       const shieldArgs = [shieldAddress, uTokenAddress, baseTokenAddress];
       const shouldSwap = true;
-      const inEth = false;
-      const tokenOut = ethers.constants.AddressZero;
-      const swapArgs = [shouldSwap, inEth, tokenOut, uAmount, sigValues.expiry];
+      const tokenOut = baseToken.address;
+      const swapArgs = [shouldSwap, tokenOut, uAmount, sigValues.expiry];
       const mintToArgs = [
         userAddress,
         signers.referrer.address,
@@ -600,7 +593,7 @@ describe("AaveRouter:aWETH", function () {
       const zapArgs = ethers.utils.AbiCoder.prototype.encode(
         [
           "tuple(address, address, address)", // shieldArgs(shieldAddress, uToken, baseToken)
-          "tuple(bool, bool, address, uint256, uint256)", // swapArgs(shouldSwap, amountOut)
+          "tuple(bool, address, uint256, uint256)", // swapArgs(shouldSwap, amountOut)
           "tuple(address, address, uint256, uint256, uint8, bytes32, bytes32, uint256, bytes32[])", // mintToArgs
         ],
         [shieldArgs, swapArgs, mintToArgs],
@@ -641,9 +634,8 @@ describe("AaveRouter:aWETH", function () {
       const userRcaBalBefore = await contracts.rcaShieldAave.balanceOf(userAddress);
       const shieldArgs = [shieldAddress, uTokenAddress, baseTokenAddress];
       const shouldSwap = false;
-      const inEth = false;
-      const tokenOut = ethers.constants.AddressZero;
-      const swapArgs = [shouldSwap, inEth, tokenOut, uAmount, sigValues.expiry];
+      const tokenOut = baseToken.address;
+      const swapArgs = [shouldSwap, tokenOut, uAmount, sigValues.expiry];
       const mintToArgs = [
         userAddress,
         signers.referrer.address,
@@ -658,7 +650,7 @@ describe("AaveRouter:aWETH", function () {
       const zapArgs = ethers.utils.AbiCoder.prototype.encode(
         [
           "tuple(address, address, address)", // shieldArgs(shieldAddress, uToken, baseToken)
-          "tuple(bool, bool, address, uint256, uint256)", // swapArgs(shouldSwap, amountOut)
+          "tuple(bool, address, uint256, uint256)", // swapArgs(shouldSwap, amountOut)
           "tuple(address, address, uint256, uint256, uint8, bytes32, bytes32, uint256, bytes32[])", // mintToArgs
         ],
         [shieldArgs, swapArgs, mintToArgs],
@@ -694,11 +686,10 @@ describe("AaveRouter:aWETH", function () {
       const amountOutMin = uAmount;
       const tokenOut = weth.address;
       const inEth = true;
-      const shouldSwap = false;
-      const swapArgs = [shouldSwap, inEth, tokenOut, amountOutMin, deadline];
+      const swapArgs = [inEth, tokenOut, amountOutMin, deadline];
 
       const zapArgs = ethers.utils.AbiCoder.prototype.encode(
-        ["tuple(address, address, address)", "tuple(bool, bool, address, uint256, uint256)"],
+        ["tuple(address, address, address)", "tuple(bool, address, uint256, uint256)"],
         [shieldArgs, swapArgs],
       );
 
@@ -748,11 +739,10 @@ describe("AaveRouter:aWETH", function () {
       const amountOutMin = uAmount;
       const tokenOut = weth.address;
       const inEth = false;
-      const shouldSwap = false;
 
-      const swapArgs = [shouldSwap, inEth, tokenOut, amountOutMin, deadline];
+      const swapArgs = [inEth, tokenOut, amountOutMin, deadline];
       const zapArgs = ethers.utils.AbiCoder.prototype.encode(
-        ["tuple(address, address, address)", "tuple(bool, bool, address, uint256, uint256)"],
+        ["tuple(address, address, address)", "tuple(bool, address, uint256, uint256)"],
         [shieldArgs, swapArgs],
       );
       const userWethBalBefore = await weth.balanceOf(userAddress);

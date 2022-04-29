@@ -37,8 +37,13 @@ contract AaveRouter is IRouter {
         uint256 newCumLiqForClaims;
         bytes32[] liqForClaimsProof;
     }
-    struct SwapArgs {
+    struct SwapInArgs {
         bool shouldSwap; // needed for zapping with base token
+        address tokenOut; // shield base token
+        uint256 amountOutMin; // exact expected amount on token swap from uniswap router
+        uint256 deadline;
+    }
+    struct SwapOutArgs {
         bool inEth; // need to check if user wants to zapOut in ETH
         address tokenOut; // needed for zapping out
         uint256 amountOutMin; // exact expected amount on token swap from uniswap router
@@ -61,7 +66,7 @@ contract AaveRouter is IRouter {
         uint256,
         bytes calldata data
     ) external override {
-        (ShieldArgs memory shieldArgs, SwapArgs memory swapArgs) = abi.decode(data, ((ShieldArgs), (SwapArgs)));
+        (ShieldArgs memory shieldArgs, SwapOutArgs memory swapArgs) = abi.decode(data, ((ShieldArgs), (SwapOutArgs)));
 
         // using balance of router address sweeps extra units we get using zapIn
         uint256 amount = IAToken(shieldArgs.uToken).balanceOf(address(this));
@@ -92,9 +97,9 @@ contract AaveRouter is IRouter {
     }
 
     function zapIn(bytes calldata data) external payable {
-        (ShieldArgs memory shieldArgs, SwapArgs memory swapArgs, MintToArgs memory mintArgs) = abi.decode(
+        (ShieldArgs memory shieldArgs, SwapInArgs memory swapArgs, MintToArgs memory mintArgs) = abi.decode(
             data,
-            ((ShieldArgs), (SwapArgs), (MintToArgs))
+            ((ShieldArgs), (SwapInArgs), (MintToArgs))
         );
         if (swapArgs.shouldSwap) {
             // 1. swap eth to desired token
@@ -105,7 +110,7 @@ contract AaveRouter is IRouter {
                 // do a tokenSwap to desired currency
                 address[] memory path = new address[](2);
                 path[0] = address(weth);
-                path[1] = shieldArgs.baseToken;
+                path[1] = swapArgs.tokenOut;
 
                 // swapping eth for exact tokens so that we don't run into invalid capacity sig error
                 _currentUser = msg.sender;
