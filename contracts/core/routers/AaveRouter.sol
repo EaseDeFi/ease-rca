@@ -18,13 +18,13 @@ contract AaveRouter is IRouter {
     using SafeERC20 for IERC20;
     using SafeERC20 for IAToken;
 
-    IUniswapV2Router02 public immutable router;
-    ILendingPool public immutable lendingPool;
+    IUniswapV2Router02 private immutable router;
+    ILendingPool private immutable lendingPool;
 
-    IWETH public immutable weth = IWETH(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
+    IWETH private immutable weth = IWETH(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
 
     // user address to send returned eth when calling swapEthForExactTokens
-    address _currentUser;
+    address private _currentUser;
 
     struct MintToArgs {
         address user;

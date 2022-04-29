@@ -159,12 +159,6 @@ describe("AaveRouter:aUSDC", function () {
     await contracts.uToken.connect(signers.referrer).approve(contracts.rcaShieldAave.address, ether("100000"));
   });
 
-  describe("Initialize", function () {
-    it("should intialize the shield with valid state", async function () {
-      expect(await contracts.routers.aaveRouter.router()).to.equal(MAINNET_ADDRESSES.contracts.uniswap.routerV2);
-      expect(await contracts.routers.aaveRouter.lendingPool()).to.equal(MAINNET_ADDRESSES.contracts.aave.lendingPool);
-    });
-  });
   describe("zapIn()", function () {
     it("should allow the user to zap in with eth", async function () {
       //   mint RCA and check for shields uToken balance
@@ -546,12 +540,6 @@ describe("AaveRouter:aWETH", function () {
     await contracts.uToken.connect(signers.referrer).approve(contracts.rcaShieldAave.address, ether("100000"));
   });
 
-  describe("Initialize", function () {
-    it("should intialize the shield with valid state", async function () {
-      expect(await contracts.routers.aaveRouter.router()).to.equal(MAINNET_ADDRESSES.contracts.uniswap.routerV2);
-      expect(await contracts.routers.aaveRouter.lendingPool()).to.equal(MAINNET_ADDRESSES.contracts.aave.lendingPool);
-    });
-  });
   describe("zapIn()", function () {
     it("should allow the user to zap in with eth", async function () {
       //   mint RCA and check for shields uToken balance
