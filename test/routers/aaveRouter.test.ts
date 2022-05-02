@@ -332,6 +332,39 @@ describe("AaveRouter:aUSDC", function () {
       const userWethBalAfter = await weth.balanceOf(userAddress);
       expect(userWethBalAfter.sub(userWethBalBefore)).to.be.gte(amountOutMin);
     });
+    it.only("should allow user to route and recieve aave", async function () {
+      const tokenOut = MAINNET_ADDRESSES.contracts.aave.token;
+      const aaveToken = <MockERC20>await ethers.getContractAt("MockERC20", tokenOut);
+      const uAmount = parseUnits("100", uTokenDecimals);
+      const routerAddress = contracts.routers.aaveRouter.address;
+      const userAddress = signers.user.address;
+      // transfer token to the zapper
+      await contracts.uToken.connect(signers.user).transfer(routerAddress, uAmount);
+
+      const userAAVEBalBefore = await aaveToken.balanceOf(userAddress);
+      const deadline = (await getTimestamp()).add(100);
+      // Shield args
+      const shieldAddress = contracts.rcaShieldAave.address;
+      const uTokenAddress = contracts.uToken.address;
+      const shieldArgs = [shieldAddress, uTokenAddress, baseTokenAddress];
+
+      // SWAP args
+      const amountsOut = await uniswapRouterV2.getAmountsOut(uAmount, [baseToken.address, tokenOut]);
+      // desired minimum weth in return
+      const amountOutMin = amountsOut[1];
+      const inEth = false;
+      const swapArgs = [inEth, tokenOut, amountOutMin, deadline];
+
+      const zapArgs = ethers.utils.AbiCoder.prototype.encode(
+        ["tuple(address, address, address)", "tuple(bool, address, uint256, uint256)"],
+        [shieldArgs, swapArgs],
+      );
+
+      await contracts.routers.aaveRouter.routeTo(userAddress, uAmount, zapArgs);
+      //check weth balances
+      const userAAVEBalAfter = await aaveToken.balanceOf(userAddress);
+      expect(userAAVEBalAfter.sub(userAAVEBalBefore)).to.be.gte(amountOutMin);
+    });
     it("should allow user to route and recieve eth", async function () {
       const uAmount = parseUnits("100", uTokenDecimals);
       const routerAddress = contracts.routers.aaveRouter.address;
