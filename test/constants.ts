@@ -27,6 +27,7 @@ export const MAINNET_ADDRESSES: MainnetAddresses = {
       comptroller: "0x3d9819210a31b4961b30ef54be2aed79b9c9cd3b",
       cAAVEToken: "0xe65cdB6479BaC1e22340E4E755fAE7E509EcD06c",
       cEthToken: "0x4Ddc2D193948926D02f9B1fE9e1daa0718270ED5",
+      cUSDCToken: "0x39aa39c021dfbae8fac545936693ac917d5e7563",
     },
     convex: {
       token: "0x4e3fbd56cd56c3e72c1403e103b45db9da5b9d2b",
@@ -54,6 +55,7 @@ export const MAINNET_ADDRESSES: MainnetAddresses = {
     cvxCRVWhale: "0xE4360E6e45F5b122586BCA3b9d7b222EA69C5568",
     cCompWhale: "0xa23CB68780be74b254a5f7210Ec6cF1c76289953",
     cEthWhale: "0xde55095aAC488dE3926463aeDf6A9B117F180260",
+    cUSDCWhale: "0x26b8bf3027afe6d9458427ddbc09bb215bc0f972",
     compWhale: "0x0f50d31b3eaefd65236dd3736b863cffa4c63c4e",
     bitWethWhale: "0x54b55662901aF57B31fb6B52AF8175b652A5816e",
     sushiWhale: "0xabea1a9b8b4a4534ae6b71041aa48067d84a3df3",

@@ -14,6 +14,7 @@ import ClaimTree from "./claim-tree";
 import { IConvexRewardPool } from "../src/types/IConvexRewardPool";
 import { IComptroller } from "../src/types/IComptroller";
 import { AaveRouter } from "../src/types/AaveRouter";
+import { CompoundRouter } from "../src/types/CompoundRouter";
 
 export type Signers = {
   user: SignerWithAddress;
@@ -45,6 +46,7 @@ export type Contracts = {
 };
 export type Routers = {
   aaveRouter: AaveRouter;
+  compoundRouter: CompoundRouter;
 };
 
 export type MerkleTrees = {
@@ -74,6 +76,7 @@ export type CompoundContracts = {
   cCompToken: string;
   cAAVEToken: string;
   cEthToken: string;
+  cUSDCToken: string;
 };
 export type AaveContracts = {
   incentivesController: string;
@@ -124,6 +127,7 @@ export type MainnetAccounts = {
   cvxCRVWhale: string;
   cCompWhale: string;
   cEthWhale: string;
+  cUSDCWhale: string;
   compWhale: string;
   sushiWhale: string;
   bitWethWhale: string;

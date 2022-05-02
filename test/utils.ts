@@ -9,9 +9,11 @@ import { RcaShieldAave } from "../src/types/RcaShieldAave";
 import { RcaShieldOnsen } from "../src/types/RcaShieldOnsen";
 import { RcaShieldConvex } from "../src/types/RcaShieldConvex";
 import { RcaShieldCompound } from "../src/types/RcaShieldCompound";
+import { ICToken } from "../src/types/ICToken";
 
 import { getForkingBlockNumber, getMainnetUrl, isMainnetFork } from "../env_helpers";
 import { RcaShieldNormalized } from "../src/types/RcaShieldNormalized";
+import { formatUnits, parseUnits } from "ethers/lib/utils";
 
 dotenv.config();
 
@@ -196,4 +198,42 @@ export async function getExpectedRcaValue({
     expectedRcaValue = expectedRcaValue.div(normalizingBuffer).mul(normalizingBuffer);
   }
   return expectedRcaValue;
+}
+export function truncate(num: number, places: number): number {
+  return Math.trunc(num * Math.pow(10, places)) / Math.pow(10, places);
+}
+export async function getExpectedCTokens(
+  cToken: ICToken,
+  uAmount: BigNumber,
+  underlyingDecimals: number,
+): Promise<BigNumber> {
+  // TODO: should we bother to call cToken.exchangeRateCurrent()? as it costs gas
+  const exchangeRate = await cToken.exchangeRateStored();
+  const scalingDecimalsFactor = 18 - 8 + underlyingDecimals;
+  const formattedExchangeRate = +formatUnits(exchangeRate, scalingDecimalsFactor);
+  const formattedUAmount = +formatUnits(uAmount, underlyingDecimals);
+  const expCTokens = formattedUAmount / formattedExchangeRate;
+  let expectedCTokens = parseUnits(`${truncate(expCTokens, underlyingDecimals)}`, 8);
+  // upto 0.00005 % diff in expected CTokens and minted CTokens
+  // when exchangeRateStored() is used for expected amount
+  // TODO: discuss if this % deduction is fair and won't cause any problems later
+  //  because the small amount remaining in the router will be sweeped on routeTo as we
+  // use router's token balance for routing instead of uAmount passed in by shield
+  // 0.00005 % = 1/2000000
+  expectedCTokens = expectedCTokens.sub(expectedCTokens.div(2000000));
+  return expectedCTokens;
+}
+export async function getExpectUTokenForCTokens(
+  cToken: ICToken,
+  cAmount: BigNumber,
+  underlyingDecimals: number,
+  cTokenDecimals: number,
+): Promise<BigNumber> {
+  const exchangeRate = await cToken.exchangeRateStored();
+  const scalingDecimalsFactor = 18 - 8 + underlyingDecimals;
+  const formattedExchangeRate = +formatUnits(exchangeRate, scalingDecimalsFactor);
+  const formattedCTokenAmount = +formatUnits(cAmount, cTokenDecimals);
+  const expUTokens = formattedCTokenAmount * formattedExchangeRate;
+  const expectedUTokens = parseUnits(`${truncate(expUTokens, underlyingDecimals)}`, underlyingDecimals);
+  return expectedUTokens;
 }
