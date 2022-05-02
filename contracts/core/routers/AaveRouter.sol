@@ -79,7 +79,7 @@ contract AaveRouter is IRouter {
             address[] memory path = new address[](2);
             path[0] = shieldArgs.baseToken;
             path[1] = swapArgs.tokenOut;
-            IERC20(shieldArgs.baseToken).safeApprove(address(router), amountIn);
+            IERC20(shieldArgs.baseToken).safeIncreaseAllowance(address(router), amountIn);
             if (swapArgs.inEth) {
                 if (shieldArgs.baseToken == address(weth)) {
                     // don't need token swaps just unwrap eth and transfer to user
@@ -124,15 +124,15 @@ contract AaveRouter is IRouter {
             }
         } else {
             // user is trying to use baseToken of his wallet
-            IERC20(shieldArgs.baseToken).safeTransferFrom(msg.sender, address(this), swapArgs.amountOutMin);
+            IERC20(shieldArgs.baseToken).transferFrom(msg.sender, address(this), swapArgs.amountOutMin);
         }
 
-        IERC20(shieldArgs.baseToken).safeApprove(address(lendingPool), swapArgs.amountOutMin);
+        IERC20(shieldArgs.baseToken).approve(address(lendingPool), swapArgs.amountOutMin);
         // deposit to a desired pool/vault
         lendingPool.deposit(shieldArgs.baseToken, swapArgs.amountOutMin, address(this), 0);
 
         // mint rca
-        IAToken(shieldArgs.uToken).safeApprove(shieldArgs.shield, swapArgs.amountOutMin);
+        IAToken(shieldArgs.uToken).approve(shieldArgs.shield, swapArgs.amountOutMin);
 
         IRcaShield(shieldArgs.shield).mintTo(
             mintArgs.user,
