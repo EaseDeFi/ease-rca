@@ -477,10 +477,10 @@ abstract contract RcaShieldBase is ERC20, Governable {
      * @param _uAmount Amount of underlying tokens to find RCA value of.
      * @param _totalForSale Used by external value calls cause updates aren't made on those.
      */
-    function _rcaValue(uint256 _uAmount, uint256 _totalForSale) internal view returns (uint256 rcaAmount) {
+    function _rcaValue(uint256 _uAmount, uint256 _totalForSale) internal view virtual returns (uint256 rcaAmount) {
         uint256 balance = _uBalance();
 
-        // Interesting edgecase in which 1 person is in vault, they request redeem, 
+        // Interesting edgecase in which 1 person is in vault, they request redeem,
         // underlying continue to gain value, then withdraw their original value.
         // Vault is then un-useable because below we're dividing 0 by > 0.
         if (balance == 0 || totalSupply() == 0 || balance < _totalForSale) return _uAmount;
