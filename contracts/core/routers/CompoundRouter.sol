@@ -69,33 +69,46 @@ contract CompoundRouter is IRouter {
         (ShieldArgs memory shieldArgs, SwapOutArgs memory swapArgs) = abi.decode(data, ((ShieldArgs), (SwapOutArgs)));
 
         ICToken cToken = ICToken(shieldArgs.uToken);
-
-        IERC20 baseToken = IERC20(shieldArgs.baseToken);
         // using balance of router address sweeps extra units we get using zapIn
         uint256 amount = cToken.balanceOf(address(this));
 
         // cToken withdraw
-        cToken.redeem(amount);
+        uint256 success = cToken.redeem(amount);
+        require(success == 0, "cToken redeem failed");
 
-        // TODO: check for what happens when uToken is cETH and user want's to withdraw in weth
-        // if the shield underlying token is cETH and user wants to zap out with eth
-        if (swapArgs.inEth && shieldArgs.uToken == CETH) {
-            payable(user).transfer(address(this).balance);
-        } else if (swapArgs.tokenOut == shieldArgs.baseToken) {
-            // if the user want's to zap out with cTokens underlying asset(base token)
-            baseToken.safeTransfer(user, baseToken.balanceOf(address(this)));
-        } else {
-            uint256 amountIn = baseToken.balanceOf(address(this));
-            address[] memory path = new address[](2);
-            path[0] = shieldArgs.baseToken;
-            path[1] = swapArgs.tokenOut;
-            IERC20(shieldArgs.baseToken).safeIncreaseAllowance(address(router), amountIn);
+        if (shieldArgs.uToken == CETH) {
             if (swapArgs.inEth) {
-                // swap exactTokenForEth
-                router.swapExactTokensForETH(amountIn, swapArgs.amountOutMin, path, user, swapArgs.deadline);
+                payable(user).transfer(address(this).balance);
+            } else if (swapArgs.tokenOut == address(weth)) {
+                // if user wants to zap out with weth
+                weth.deposit{ value: swapArgs.amountOutMin }();
+                weth.transfer(user, swapArgs.amountOutMin);
             } else {
-                // swap exactTokenForTokens
-                router.swapExactTokensForTokens(amountIn, swapArgs.amountOutMin, path, user, swapArgs.deadline);
+                // swap eth for tokens
+                uint256 amountIn = address(this).balance;
+                address[] memory path = new address[](2);
+                path[0] = address(weth);
+                path[1] = swapArgs.tokenOut;
+                router.swapExactETHForTokens{ value: amountIn }(swapArgs.amountOutMin, path, user, swapArgs.deadline);
+            }
+        } else {
+            if (swapArgs.tokenOut == shieldArgs.baseToken) {
+                // if the user want's to zap out with cTokens underlying asset(base token)
+                IERC20 baseToken = IERC20(shieldArgs.baseToken);
+                baseToken.safeTransfer(user, baseToken.balanceOf(address(this)));
+            } else {
+                uint256 amountIn = IERC20(shieldArgs.baseToken).balanceOf(address(this));
+                address[] memory path = new address[](2);
+                path[0] = shieldArgs.baseToken;
+                path[1] = swapArgs.tokenOut;
+                IERC20(shieldArgs.baseToken).safeIncreaseAllowance(address(router), amountIn);
+                if (swapArgs.inEth) {
+                    // swap exactTokenForEth
+                    router.swapExactTokensForETH(amountIn, swapArgs.amountOutMin, path, user, swapArgs.deadline);
+                } else {
+                    // swap exactTokenForTokens
+                    router.swapExactTokensForTokens(amountIn, swapArgs.amountOutMin, path, user, swapArgs.deadline);
+                }
             }
         }
     }
@@ -130,9 +143,14 @@ contract CompoundRouter is IRouter {
         }
         ICToken cToken = ICToken(shieldArgs.uToken);
 
-        IERC20(shieldArgs.baseToken).safeIncreaseAllowance(shieldArgs.uToken, swapArgs.amountOutMin);
         // deposit to a desired pool/vault
-        cToken.mint(swapArgs.amountOutMin);
+        if (address(cToken) == CETH) {
+            cToken.mint{ value: msg.value }();
+        } else {
+            IERC20(shieldArgs.baseToken).safeIncreaseAllowance(shieldArgs.uToken, swapArgs.amountOutMin);
+            uint256 success = cToken.mint(swapArgs.amountOutMin);
+            require(success == 0, "cToken mint failed");
+        }
 
         // mint rca
         // make this safe approve

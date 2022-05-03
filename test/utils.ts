@@ -213,7 +213,7 @@ export async function getExpectedCTokens(
   const formattedExchangeRate = +formatUnits(exchangeRate, scalingDecimalsFactor);
   const formattedUAmount = +formatUnits(uAmount, underlyingDecimals);
   const expCTokens = formattedUAmount / formattedExchangeRate;
-  let expectedCTokens = parseUnits(`${truncate(expCTokens, underlyingDecimals)}`, 8);
+  let expectedCTokens = parseUnits(`${truncate(expCTokens, 8)}`, 8);
   // upto 0.00005 % diff in expected CTokens and minted CTokens
   // when exchangeRateStored() is used for expected amount
   // TODO: discuss if this % deduction is fair and won't cause any problems later
