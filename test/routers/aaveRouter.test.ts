@@ -332,7 +332,7 @@ describe("AaveRouter:aUSDC", function () {
       const userWethBalAfter = await weth.balanceOf(userAddress);
       expect(userWethBalAfter.sub(userWethBalBefore)).to.be.gte(amountOutMin);
     });
-    it.only("should allow user to route and recieve aave", async function () {
+    it("should allow user to route and recieve aave", async function () {
       const tokenOut = MAINNET_ADDRESSES.contracts.aave.token;
       const aaveToken = <MockERC20>await ethers.getContractAt("MockERC20", tokenOut);
       const uAmount = parseUnits("100", uTokenDecimals);
