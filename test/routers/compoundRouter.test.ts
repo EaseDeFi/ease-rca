@@ -324,7 +324,7 @@ describe("CompoundRouter:cUSDC", function () {
         ["tuple(address, address, address)", "tuple(bool, address, uint256, uint256)"],
         [shieldArgs, swapArgs],
       );
-      await contracts.routers.compoundRouter.routeTo(userAddress, uAmount, zapArgs);
+      await contracts.routers.compoundRouter.routeTo(userAddress, expectedCTokens, zapArgs);
       //check comp balances
       const userBaseTokenBalAfter = await baseToken.balanceOf(userAddress);
       const underlyingAmountExpected = await getExpectUTokenForCTokens(cToken, expectedCTokens, 6, 8);
@@ -335,7 +335,6 @@ describe("CompoundRouter:cUSDC", function () {
       const uAmount = parseUnits("1000", baseTokenDecimals);
       const expectedCTokens = await getExpectedCTokens(cToken, uAmount, baseTokenDecimals);
 
-      const uAmountForRca = expectedCTokens.mul(BigNumber.from(10).pow(18)).div(BigNumber.from(10).pow(uTokenDecimals));
       const routerAddress = contracts.routers.compoundRouter.address;
       const userAddress = signers.user.address;
       // transfer token to the zapper
@@ -362,7 +361,7 @@ describe("CompoundRouter:cUSDC", function () {
         [shieldArgs, swapArgs],
       );
 
-      await contracts.routers.compoundRouter.routeTo(userAddress, uAmountForRca, zapArgs);
+      await contracts.routers.compoundRouter.routeTo(userAddress, expectedCTokens, zapArgs);
       //check weth balances
       const userWethBalAfter = await weth.balanceOf(userAddress);
       expect(userWethBalAfter.sub(userWethBalBefore)).to.be.gte(amountOutMin);
@@ -372,7 +371,6 @@ describe("CompoundRouter:cUSDC", function () {
       const uAmount = parseUnits("1000", baseTokenDecimals);
       const expectedCTokens = await getExpectedCTokens(cToken, uAmount, baseTokenDecimals);
 
-      const uAmountForRca = expectedCTokens.mul(BigNumber.from(10).pow(18)).div(BigNumber.from(10).pow(uTokenDecimals));
       const routerAddress = contracts.routers.compoundRouter.address;
       const userAddress = signers.user.address;
       // transfer token to the zapper
@@ -399,7 +397,7 @@ describe("CompoundRouter:cUSDC", function () {
         [shieldArgs, swapArgs],
       );
 
-      await contracts.routers.compoundRouter.routeTo(userAddress, uAmountForRca, zapArgs);
+      await contracts.routers.compoundRouter.routeTo(userAddress, expectedCTokens, zapArgs);
       //check weth balances
       const userEthBalAfter = await ethers.provider.getBalance(userAddress);
       expect(userEthBalAfter.sub(userEthBalBefore)).to.be.gte(amountOutMin);
@@ -684,7 +682,7 @@ describe("CompoundRouter:cETH", function () {
         ["tuple(address, address, address)", "tuple(bool, address, uint256, uint256)"],
         [shieldArgs, swapArgs],
       );
-      await contracts.routers.compoundRouter.routeTo(userAddress, uAmount, zapArgs);
+      await contracts.routers.compoundRouter.routeTo(userAddress, expectedCTokens, zapArgs);
       //check comp balances
       const userBaseTokenBalAfter = await ethers.provider.getBalance(userAddress);
       let underlyingAmountExpected = await getExpectUTokenForCTokens(cToken, expectedCTokens, 6, 8);
@@ -701,7 +699,6 @@ describe("CompoundRouter:cETH", function () {
       const uAmount = parseUnits("10", baseTokenDecimals);
       const expectedCTokens = await getExpectedCTokens(cToken, uAmount, baseTokenDecimals);
 
-      const uAmountForRca = expectedCTokens.mul(BigNumber.from(10).pow(18)).div(BigNumber.from(10).pow(uTokenDecimals));
       const routerAddress = contracts.routers.compoundRouter.address;
       const userAddress = signers.user.address;
       // transfer token to the zapper
@@ -727,7 +724,7 @@ describe("CompoundRouter:cETH", function () {
         [shieldArgs, swapArgs],
       );
 
-      await contracts.routers.compoundRouter.routeTo(userAddress, uAmountForRca, zapArgs);
+      await contracts.routers.compoundRouter.routeTo(userAddress, expectedCTokens, zapArgs);
       //check aave balances
       const userAAVEBalAfter = await aaveToken.balanceOf(userAddress);
       expect(userAAVEBalAfter.sub(userAAVEBalBefore)).to.be.gte(amountOutMin);
@@ -737,7 +734,6 @@ describe("CompoundRouter:cETH", function () {
       const uAmount = parseUnits("10", baseTokenDecimals);
       const expectedCTokens = await getExpectedCTokens(cToken, uAmount, baseTokenDecimals);
 
-      const uAmountForRca = expectedCTokens.mul(BigNumber.from(10).pow(18)).div(BigNumber.from(10).pow(uTokenDecimals));
       const routerAddress = contracts.routers.compoundRouter.address;
       const userAddress = signers.user.address;
       // transfer token to the zapper
@@ -763,7 +759,7 @@ describe("CompoundRouter:cETH", function () {
         [shieldArgs, swapArgs],
       );
 
-      await contracts.routers.compoundRouter.routeTo(userAddress, uAmountForRca, zapArgs);
+      await contracts.routers.compoundRouter.routeTo(userAddress, expectedCTokens, zapArgs);
       //check weth balances
       const userWethBalAfter = await weth.balanceOf(userAddress);
       expect(userWethBalAfter.sub(userWethBalBefore)).to.be.gte(amountOutMin);
