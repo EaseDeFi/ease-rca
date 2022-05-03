@@ -13,6 +13,7 @@ import BalanceTree from "./balance-tree";
 import ClaimTree from "./claim-tree";
 import { IConvexRewardPool } from "../src/types/IConvexRewardPool";
 import { IComptroller } from "../src/types/IComptroller";
+import { AaveRouter } from "../src/types/AaveRouter";
 
 export type Signers = {
   user: SignerWithAddress;
@@ -40,6 +41,10 @@ export type Contracts = {
   rcaShieldConvex: RcaShieldConvex;
   cvxCRVPool: IConvexRewardPool;
   router: MockRouter;
+  routers: Routers;
+};
+export type Routers = {
+  aaveRouter: AaveRouter;
 };
 
 export type MerkleTrees = {
@@ -72,7 +77,9 @@ export type CompoundContracts = {
 };
 export type AaveContracts = {
   incentivesController: string;
+  lendingPool: string;
   aAAVEToken: string;
+  aUSDC: string;
   token: string;
   stkAAVEToken: string;
   aWeth: string;
@@ -95,12 +102,16 @@ export type OnsenContracts = {
   bitWethPid: number;
   bitWethPair: string;
 };
+export type UniswapContracts = {
+  routerV2: string;
+};
 
 export type MainnetContracts = {
   aave: AaveContracts;
   convex: ConvexContracts;
   onsen: OnsenContracts;
   compound: CompoundContracts;
+  uniswap: UniswapContracts;
 };
 
 export type MainnetAccounts = {
@@ -108,6 +119,7 @@ export type MainnetAccounts = {
   aaveWhale: string;
   aWethWhale: string;
   aWbtcWhale: string;
+  aUSDCWhale: string;
   cvxWhale: string;
   cvxCRVWhale: string;
   cCompWhale: string;
@@ -121,6 +133,12 @@ export type MainnetAccounts = {
 export type MainnetAddresses = {
   contracts: MainnetContracts;
   accounts: MainnetAccounts;
+  tokens: Tokens;
+};
+export type Tokens = {
+  weth: string;
+  usdc: string;
+  stEth: string;
 };
 export type TimeInSecs = {
   year: number;
