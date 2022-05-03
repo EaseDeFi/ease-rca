@@ -63,13 +63,10 @@ contract AaveRouter is IRouter {
     function routeTo(
         address user,
         // initially this field was for uAmount but seems unnecessary now
-        uint256,
+        uint256 amount,
         bytes calldata data
     ) external override {
         (ShieldArgs memory shieldArgs, SwapOutArgs memory swapArgs) = abi.decode(data, ((ShieldArgs), (SwapOutArgs)));
-
-        // using balance of router address sweeps extra units we get using zapIn
-        uint256 amount = IAToken(shieldArgs.uToken).balanceOf(address(this));
 
         if (swapArgs.tokenOut == shieldArgs.baseToken && !swapArgs.inEth) {
             lendingPool.withdraw(shieldArgs.baseToken, amount, user);
