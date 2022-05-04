@@ -4,10 +4,10 @@ pragma solidity ^0.8.11;
 
 import "../../external/SolmateERC20.sol";
 
-contract EaseToken is ERC20 {
-    address private immutable minter;
+contract EaseToken is SolmateERC20 {
+    address public immutable minter;
 
-    constructor(address _minter) ERC20("Ease Token", "EASE", 18) {
+    constructor(address _minter) SolmateERC20("Ease Token", "EASE", 18) {
         minter = _minter;
     }
 

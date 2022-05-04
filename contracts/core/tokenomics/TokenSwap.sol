@@ -6,8 +6,8 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "../../interfaces/tokenomics/IEaseToken.sol";
 
 contract TokenSwap {
-    IEaseToken private immutable easeToken;
-    IERC20 private immutable armorToken;
+    IEaseToken public immutable easeToken;
+    IERC20 public immutable armorToken;
 
     constructor(address _easeToken, address _armorToken) {
         easeToken = IEaseToken(_easeToken);
