@@ -1,9 +1,11 @@
 // AWS imports
-import {DynamoDB} from 'aws-sdk';
+import { DynamoDB } from "aws-sdk";
 // local imports
-import { rcaTokens } from "../vaultDetails";
+import { rcaTokens, rewardTokens } from "../vaultDetails";
+import assert from "assert";
 import {
   getATokenPriceInUSD,
+  getCoingeckoPrice,
   getCTokenPriceInUSD,
   getcvxPoolTokenPriceinUSD,
   getOnsenLpTokenPriceInUSD,
@@ -138,10 +140,24 @@ async function fetchPrices(): Promise<TokenPrice[]> {
       inUSD: rcaTokenPriceInUSD,
     });
   }
+  /*//////////////////////////////////////////////////////////////
+                    Reward Token Prices
+  //////////////////////////////////////////////////////////////*/
+  console.log("Fetching prices for reward tokens....");
+  for (const token of rewardTokens) {
+    const getTokenPrice = await getCoingeckoPrice(token.coingeckoId);
+    tokenPrices.push({
+      name: token.name,
+      symbol: token.symbol,
+      inETH: getTokenPrice.inETH,
+      inUSD: getTokenPrice.inUSD,
+    });
+  }
+
   return tokenPrices;
 }
 
-async function savePrices(tokenPrices : TokenPrice[]) : Promise<string> {
+async function savePrices(tokenPrices: TokenPrice[]): Promise<string> {
   const docClient = new DynamoDB.DocumentClient({
     accessKeyId: process.env.DB_ACCESS_KEY,
     secretAccessKey: process.env.DB_SECRET_KEY,
@@ -149,17 +165,19 @@ async function savePrices(tokenPrices : TokenPrice[]) : Promise<string> {
   });
   for (const tokenPrice of tokenPrices) {
     assert(tokenPrice.uTokenAddress, "uToken must have a value");
-    console.log(`Save token ${tokenPrice.uTokenAddress} with priceETH: ${tokenPrice.inETH} and priceUSD: ${tokenPrice.inUSD}`);
+    console.log(
+      `Save token ${tokenPrice.uTokenAddress} with priceETH: ${tokenPrice.inETH} and priceUSD: ${tokenPrice.inUSD}`,
+    );
     const params = {
       TableName: "org.ease.tokens",
       Key: {
-        "address": tokenPrice.uTokenAddress.toLowerCase()
+        address: tokenPrice.uTokenAddress.toLowerCase(),
       },
       UpdateExpression: "set priceUSD = :priceUSD, priceETH = :priceETH",
       ExpressionAttributeValues: {
         ":priceUSD": tokenPrice.inUSD,
-        ":priceETH": tokenPrice.inETH
-      }
+        ":priceETH": tokenPrice.inETH,
+      },
     };
 
     await docClient.update(params, function (err, data) {
@@ -170,7 +188,6 @@ async function savePrices(tokenPrices : TokenPrice[]) : Promise<string> {
   return Promise.resolve("done");
 }
 
-import assert = require("assert");
 async function main() {
   console.log("Fetching prices.... This may take a while....");
   const tokenPrices = await fetchPrices();

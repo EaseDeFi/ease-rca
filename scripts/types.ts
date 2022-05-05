@@ -22,6 +22,14 @@ export type RcaToken = {
   rewardPool: string;
   coingeckoId: string;
 };
+
+export type RewardToken = {
+  name: string;
+  symbol: string;
+  address: string;
+  coingeckoId: string;
+};
+
 export type FundMeTokenArgs = {
   details: RcaToken;
   ethWhaleSigner: Signer;

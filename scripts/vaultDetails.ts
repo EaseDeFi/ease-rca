@@ -1,5 +1,30 @@
-import { RcaTokens } from "./types";
-
+import { RcaTokens, RewardToken } from "./types";
+export const rewardTokens: RewardToken[] = [
+  {
+    name: "Staked Aave",
+    symbol: "stkAAVE",
+    address: "0x4da27a545c0c5B758a6BA100e3a049001de870f5",
+    coingeckoId: "aave",
+  },
+  {
+    name: "Compound",
+    symbol: "COMP",
+    address: "0xc00e94Cb662C3520282E6f5717214004A7f26888",
+    coingeckoId: "compound-governance-token",
+  },
+  {
+    name: "SushiToken",
+    symbol: "SUSHI",
+    address: "0x6B3595068778DD592e39A122f4f5a5cF09C90fE2",
+    coingeckoId: "sushi",
+  },
+  {
+    name: "Convex Token",
+    symbol: "CVX",
+    address: "0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B",
+    coingeckoId: "convex-finance",
+  },
+];
 export const rcaTokens: RcaTokens = {} as RcaTokens;
 rcaTokens.yearn = [
   {
