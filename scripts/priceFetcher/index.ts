@@ -149,6 +149,7 @@ async function fetchPrices(): Promise<TokenPrice[]> {
     tokenPrices.push({
       name: token.name,
       symbol: token.symbol,
+      uTokenAddress: token.address,
       inETH: getTokenPrice.inETH,
       inUSD: getTokenPrice.inUSD,
     });
