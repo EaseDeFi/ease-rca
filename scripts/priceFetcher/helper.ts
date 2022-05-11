@@ -24,8 +24,8 @@ export const USD_BUFFER_DECIMALS = 6;
 export const ROUNDING_DECIMALS = 18;
 export const USD_BUFFER = 10 ** USD_BUFFER_DECIMALS;
 
-// TODO: change this to MAINNET_URL_ALCHEMY for mainnet price calculations
-const RPC = process.env.TENDERLY_FORK;
+// use Tenderly for testing or Alchemy for mainnet price calculations
+const RPC = process.env.RPC_URL;
 export function getProvider(): JsonRpcProvider {
   return new ethers.providers.JsonRpcProvider(RPC);
 }
