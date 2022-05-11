@@ -174,10 +174,11 @@ async function savePrices(tokenPrices: TokenPrice[]): Promise<string> {
       Key: {
         address: tokenPrice.uTokenAddress.toLowerCase(),
       },
-      UpdateExpression: "set priceUSD = :priceUSD, priceETH = :priceETH",
+      UpdateExpression: "set priceUSD = :priceUSD, priceETH = :priceETH, priceTS = :priceTS",
       ExpressionAttributeValues: {
         ":priceUSD": tokenPrice.inUSD,
         ":priceETH": tokenPrice.inETH,
+        ":priceTS": new Date().toISOString(),
       },
     };
 
