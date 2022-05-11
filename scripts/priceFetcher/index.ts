@@ -166,25 +166,28 @@ async function savePrices(tokenPrices: TokenPrice[]): Promise<string> {
   });
   for (const tokenPrice of tokenPrices) {
     assert(tokenPrice.uTokenAddress, "uToken must have a value");
-    console.log(
-      `Save token ${tokenPrice.uTokenAddress} with priceETH: ${tokenPrice.inETH} and priceUSD: ${tokenPrice.inUSD}`,
-    );
-    const params = {
-      TableName: "org.ease.tokens",
-      Key: {
-        address: tokenPrice.uTokenAddress.toLowerCase(),
-      },
-      UpdateExpression: "set priceUSD = :priceUSD, priceETH = :priceETH, priceTS = :priceTS",
-      ExpressionAttributeValues: {
-        ":priceUSD": tokenPrice.inUSD,
-        ":priceETH": tokenPrice.inETH,
-        ":priceTS": new Date().toISOString(),
-      },
-    };
+    // skip if price is zero
+    if (tokenPrice.inUSD === 0 || tokenPrice.inETH === 0) {
+      console.error(`Skip token ${tokenPrice.uTokenAddress} with priceETH: ${tokenPrice.inETH} and priceUSD: ${tokenPrice.inUSD}`);
+    } else {
+      console.log(`Save token ${tokenPrice.uTokenAddress} with priceETH: ${tokenPrice.inETH} and priceUSD: ${tokenPrice.inUSD}`);
+      const params = {
+        TableName: "org.ease.tokens",
+        Key: {
+          address: tokenPrice.uTokenAddress.toLowerCase(),
+        },
+        UpdateExpression: "set priceUSD = :priceUSD, priceETH = :priceETH, priceTS = :priceTS",
+        ExpressionAttributeValues: {
+          ":priceUSD": tokenPrice.inUSD,
+          ":priceETH": tokenPrice.inETH,
+          ":priceTS": new Date().toISOString(),
+        },
+      };
 
-    await docClient.update(params, function (err, data) {
-      if (err) console.log(err);
-    });
+      await docClient.update(params, function (err, data) {
+        if (err) console.log(err);
+      });
+    }
   }
 
   return Promise.resolve("done");

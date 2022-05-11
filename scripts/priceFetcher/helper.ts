@@ -101,7 +101,7 @@ export async function getRcaPriceInUSD({
     const shieldTotalSupply = await shield.totalSupply();
     const shieldDecimals = await shield.decimals();
     const shieldTotalSupplyInNumber = +formatUnits(shieldTotalSupply, shieldDecimals);
-    if (shieldTotalSupply.isZero()) {
+    if (shieldTotalSupply.isZero() || totalUTokenBalInUSD === 0) {
       rcaPriceInUSD = uTokenPriceInUSD;
     } else {
       rcaPriceInUSD = totalUTokenBalInUSD / shieldTotalSupplyInNumber;
