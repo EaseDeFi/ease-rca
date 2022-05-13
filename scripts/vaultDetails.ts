@@ -77,6 +77,16 @@ rcaTokens.yearn = [
     rewardPool: "0x0A760466E1B4621579a82a39CB56Dda2F4E70f03",
     coingeckoId: "",
   },
+  {
+    name: "yvCurve-stETH-WETH Ease Vault",
+    symbol: "ez-yvCurve-stETH-WETH",
+    address: "0x5faF6a2D186448Dfa667c51CB3D695c7A6E52d8E",
+    decimals: 18,
+    whale: "0xd6d16b110ea9173d7ceb6cfe8ca4060749a75f5c",
+    shield: "0xea5edef1eaff6f8aaa2dfa81c17d707d952842e4",
+    rewardPool: "0x0A760466E1B4621579a82a39CB56Dda2F4E70f03",
+    coingeckoId: "",
+  },
 ];
 rcaTokens.compound = [
   {
