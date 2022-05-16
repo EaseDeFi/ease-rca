@@ -172,7 +172,7 @@ async function savePrices(tokenPrices: TokenPrice[]): Promise<string> {
     } else {
       console.log(`Save token ${tokenPrice.uTokenAddress} with priceETH: ${tokenPrice.inETH} and priceUSD: ${tokenPrice.inUSD}`);
       const params = {
-        TableName: "org.ease.tokens",
+        TableName: process.env.TOKENS_TABLE_NAME,
         Key: {
           address: tokenPrice.uTokenAddress.toLowerCase(),
         },
