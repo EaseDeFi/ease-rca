@@ -28,7 +28,7 @@ export const USD_BUFFER = 10 ** USD_BUFFER_DECIMALS;
 // use Tenderly for testing or Alchemy for mainnet price calculations
 const RPC = process.env.RPC_URL;
 export function getProvider(): JsonRpcProvider {
-  return new ethers.providers.JsonRpcProvider(RPC);
+  return new ethers.providers.JsonRpcProvider(RPC) as JsonRpcProvider;
 }
 export const tokenSymbolToCoingeckoId: SymbolToId = {
   weth: "weth",
@@ -194,7 +194,11 @@ export async function getOnsenLpTokenPriceInUSD({ coingeckoId, address }: RcaTok
   const provider = getProvider();
   const wethPriceData = await getCoingeckoPrice("weth");
   const pairContract = <IUniswapV2Pair>new ethers.Contract(address, uniswapV2PairAbi, provider);
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
   const totalPairTokenSupply = await pairContract.totalSupply();
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
   const pairDecimals = await pairContract.decimals();
   const reserves = await pairContract.getReserves();
   const token0Address = await pairContract.token0();

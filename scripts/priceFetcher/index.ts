@@ -205,12 +205,10 @@ async function main() {
   console.log("Fetching prices.... This may take a while....");
   const tokenPrices = await fetchPrices();
 
-  console.log(tokenPrices)
-
   console.log("Token price fetched... Saving now....");
-  // const warnings = await savePrices(tokenPrices);
+  const warnings = await savePrices(tokenPrices);
 
-  // console.log("Done: " + warnings);
+  console.log("Done: " + warnings);
 }
 
 main();
