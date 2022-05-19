@@ -4,7 +4,7 @@ import { CoinGeckoClient } from "coingecko-api-v3";
 import { ethers } from "ethers";
 import { formatEther, formatUnits } from "ethers/lib/utils";
 
-import type { CTokenApiDetails, SymbolToId, YearnVaultDetails } from "./types";
+import type {CToken, CTokenApiDetails, SymbolToId, YearnVaultDetails} from "./types";
 
 // ABI's
 import erc20Abi from "./abis/ERC20.json";
@@ -17,6 +17,7 @@ import { MockERC20 } from "../../src/types/MockERC20";
 import { RcaShield } from "../../src/types/RcaShield";
 import { Price, RcaToken } from "../types";
 import { JsonRpcProvider } from "@ethersproject/providers";
+import {CompoundApiDetails} from "./types";
 
 config();
 
@@ -140,6 +141,14 @@ export async function getCTokenPriceInUSD({ coingeckoId, address }: RcaToken): P
   // const cToken = <CToken>new ethers.Contract(address, cTokenAbi, provider);
   // const exchangeRate = await cToken.exchangeRateStored();
   return 0;
+}
+
+export async function getCTokenPricesFromAPI(): Promise<CToken[]> {
+  const compoundApi = "https://api.compound.finance/api/v2/ctoken?meta=true&network=mainnet";
+  const res = await axios.get(compoundApi);
+  const cTokenDetails = res.data as CompoundApiDetails;
+
+  return cTokenDetails.cToken
 }
 
 /*//////////////////////////////////////////////////////////////

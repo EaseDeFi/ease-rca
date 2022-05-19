@@ -2,11 +2,12 @@
 import { DynamoDB } from "aws-sdk";
 // local imports
 import { rcaTokens, rewardTokens } from "../vaultDetails";
-import assert from "assert";
+import assert = require("assert");
+
 import {
   getATokenPriceInUSD,
   getCoingeckoPrice,
-  getCTokenPriceInUSD,
+  getCTokenPricesFromAPI,
   getcvxPoolTokenPriceinUSD,
   getOnsenLpTokenPriceInUSD,
   getPriceInEth,
@@ -46,25 +47,32 @@ async function fetchPrices(): Promise<TokenPrice[]> {
                         cTOKEN PRICE
   //////////////////////////////////////////////////////////////*/
   console.log("Fetching prices for ez-cTokens....");
+  const cTokens = await getCTokenPricesFromAPI();
   for (const token of rcaTokens.compound) {
     // get price of cToken in usd
-    const uTokenPriceInUSD = await getCTokenPriceInUSD(token);
-    // calculate price of rcaToken in usd
-    const rcaTokenPriceInUSD = await getRcaPriceInUSD({
-      uTokenAddress: token.address,
-      shieldAddress: token.shield,
-      uTokenPriceInUSD,
-    });
-    // do something with this data
-    const rcaTokenPriceInETH = await getPriceInEth({ priceInUSD: rcaTokenPriceInUSD });
-    tokenPrices.push({
-      name: token.name,
-      symbol: token.symbol,
-      shieldAddress: token.shield,
-      uTokenAddress: token.address,
-      inETH: rcaTokenPriceInETH,
-      inUSD: rcaTokenPriceInUSD,
-    });
+    const tokenSymbol = token.symbol.replace("ez-", "")
+    const filter = cTokens.filter(s => s.symbol == tokenSymbol)
+
+    if (filter.length > 0) {
+      const uTokenPriceInUSD = parseFloat(filter[0].exchange_rate.value)
+
+      // calculate price of rcaToken in usd
+      const rcaTokenPriceInUSD = await getRcaPriceInUSD({
+        uTokenAddress: token.address,
+        shieldAddress: token.shield,
+        uTokenPriceInUSD,
+      });
+      // do something with this data
+      const rcaTokenPriceInETH = await getPriceInEth({priceInUSD: rcaTokenPriceInUSD});
+      tokenPrices.push({
+        name: token.name,
+        symbol: token.symbol,
+        shieldAddress: token.shield,
+        uTokenAddress: token.address,
+        inETH: rcaTokenPriceInETH,
+        inUSD: rcaTokenPriceInUSD,
+      });
+    }
   }
 
   /*//////////////////////////////////////////////////////////////
@@ -197,10 +205,12 @@ async function main() {
   console.log("Fetching prices.... This may take a while....");
   const tokenPrices = await fetchPrices();
 
-  console.log("Token price fetched... Saving now....");
-  const warnings = await savePrices(tokenPrices);
+  console.log(tokenPrices)
 
-  console.log("Done: " + warnings);
+  console.log("Token price fetched... Saving now....");
+  // const warnings = await savePrices(tokenPrices);
+
+  // console.log("Done: " + warnings);
 }
 
 main();
