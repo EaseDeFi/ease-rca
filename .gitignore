@@ -8,6 +8,7 @@ coverage/
 coverage.json
 src/types
 abi/
+.idea/
 
 # files
 .env
