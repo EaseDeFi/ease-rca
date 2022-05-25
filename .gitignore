@@ -8,6 +8,7 @@ coverage/
 coverage.json
 src/types
 abi/
+.vscode/
 
 # files
 .env
