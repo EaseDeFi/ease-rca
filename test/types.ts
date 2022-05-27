@@ -8,6 +8,7 @@ import { RcaShieldAave } from "../src/types/RcaShieldAave";
 import { RcaShieldOnsen } from "../src/types/RcaShieldOnsen";
 import { RcaShieldCompound } from "../src/types/RcaShieldCompound";
 import { RcaShieldConvex } from "../src/types/RcaShieldConvex";
+import { RcaShieldBancor } from "../src/types/RcaShieldBancor";
 import { RcaTreasury } from "../src/types/RcaTreasury";
 import BalanceTree from "./balance-tree";
 import ClaimTree from "./claim-tree";
@@ -40,6 +41,7 @@ export type Contracts = {
   rcaShieldCompound: RcaShieldCompound;
   compoundComptroller: IComptroller;
   rcaShieldConvex: RcaShieldConvex;
+  rcaShieldBancor: RcaShieldBancor;
   cvxCRVPool: IConvexRewardPool;
   router: MockRouter;
   routers: Routers;
@@ -109,12 +111,17 @@ export type UniswapContracts = {
   routerV2: string;
 };
 
+export type BancorContracts = {
+  bancorNetwork: string;
+};
+
 export type MainnetContracts = {
   aave: AaveContracts;
   convex: ConvexContracts;
   onsen: OnsenContracts;
   compound: CompoundContracts;
   uniswap: UniswapContracts;
+  bancor: BancorContracts;
 };
 
 export type MainnetAccounts = {

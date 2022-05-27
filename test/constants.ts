@@ -44,6 +44,10 @@ export const MAINNET_ADDRESSES: MainnetAddresses = {
       bitWethPid: 17,
       bitWethPair: "0xE12af1218b4e9272e9628D7c7Dc6354D137D024e",
     },
+    bancor: {
+      bancorNetwork: "0xeEF417e1D5CC832e619ae18D2F140De2999dD4fB"
+    },
+
   },
   accounts: {
     aAAVEWhale: "0x9080bdc6377e4ef9d51eddae526fb713c535041f",
