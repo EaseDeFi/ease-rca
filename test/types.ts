@@ -113,6 +113,12 @@ export type UniswapContracts = {
 
 export type BancorContracts = {
   bancorNetwork: string;
+  standardRewards: string;
+  bnETHPool: string;
+  bnDAIPool: string;
+  bnETH: string;
+  bnDAI: string;
+  idETH: number;
 };
 
 export type MainnetContracts = {

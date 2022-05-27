@@ -45,7 +45,13 @@ export const MAINNET_ADDRESSES: MainnetAddresses = {
       bitWethPair: "0xE12af1218b4e9272e9628D7c7Dc6354D137D024e",
     },
     bancor: {
-      bancorNetwork: "0xeEF417e1D5CC832e619ae18D2F140De2999dD4fB"
+      bancorNetwork: "0xeEF417e1D5CC832e619ae18D2F140De2999dD4fB",
+      standardRewards: "0xb0B958398ABB0b5DB4ce4d7598Fb868f5A00f372",
+      bnETHPool: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      bnDAIPool: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+      bnETH: "0x256Ed1d83E3e4EfDda977389A5389C3433137DDA",
+      bnDAI: "0x06CD589760Da4616a0606da1367855808196C352",
+      idETH: 6,
     },
 
   },
