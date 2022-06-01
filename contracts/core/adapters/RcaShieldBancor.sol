@@ -4,12 +4,10 @@ pragma solidity ^0.8.11;
 
 import "../RcaShieldNormalized.sol";
 import "../../external/Bancor.sol";
-import "hardhat/console.sol";
 
 contract RcaShieldBancor is RcaShieldNormalized {
     using SafeERC20 for IERC20Metadata;
 
-    // IBancorNetwork public immutable bancorNetwork;
     IStandardRewards public immutable standardRewards;
 
     uint256 public immutable id;
