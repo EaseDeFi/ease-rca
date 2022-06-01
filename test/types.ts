@@ -118,6 +118,7 @@ export type BancorContracts = {
   bnDAIPool: string;
   bnETH: string;
   bnDAI: string;
+  bntToken: string;
   idETH: number;
 };
 
@@ -145,6 +146,7 @@ export type MainnetAccounts = {
   sushiWhale: string;
   bitWethWhale: string;
   stkAAVEWhale: string;
+  bnEthWhale: string;
 };
 
 export type MainnetAddresses = {
@@ -161,5 +163,6 @@ export type TimeInSecs = {
   year: number;
   halfYear: number;
   month: number;
+  week: number;
   day: number;
 };

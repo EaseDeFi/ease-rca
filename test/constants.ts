@@ -51,6 +51,7 @@ export const MAINNET_ADDRESSES: MainnetAddresses = {
       bnDAIPool: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
       bnETH: "0x256Ed1d83E3e4EfDda977389A5389C3433137DDA",
       bnDAI: "0x06CD589760Da4616a0606da1367855808196C352",
+      bntToken: "0x1F573D6Fb3F13d689FF844B4cE37794d79a7FF1C",
       idETH: 6,
     },
 
@@ -70,6 +71,7 @@ export const MAINNET_ADDRESSES: MainnetAddresses = {
     bitWethWhale: "0x54b55662901aF57B31fb6B52AF8175b652A5816e",
     sushiWhale: "0xabea1a9b8b4a4534ae6b71041aa48067d84a3df3",
     stkAAVEWhale: "0xafdabfb6227507ff6522b8a242168f6b5f353a6e",
+    bnEthWhale: "0x3B6543ebe26824Bd8156A103063F56cE50F88080"
   },
 };
 
@@ -77,5 +79,6 @@ export const TIME_IN_SECS: TimeInSecs = {
   year: 60 * 60 * 24 * 365,
   halfYear: 60 * 60 * 24 * 182.5,
   month: 60 * 60 * 24 * 30,
+  week: 60 * 60 * 24 * 7,
   day: 60 * 60 * 24,
 };

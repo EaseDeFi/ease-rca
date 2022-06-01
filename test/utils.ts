@@ -14,6 +14,7 @@ import { ICToken } from "../src/types/ICToken";
 import { getForkingBlockNumber, getMainnetUrl, isMainnetFork } from "../env_helpers";
 import { RcaShieldNormalized } from "../src/types/RcaShieldNormalized";
 import { formatUnits, parseUnits } from "ethers/lib/utils";
+import { RcaShieldBancor } from "../src/types/RcaShieldBancor";
 
 dotenv.config();
 
@@ -118,7 +119,7 @@ export async function getSignatureDetailsFromCapOracle({
 
   return { vInt, r, s, expiry };
 }
-type Shield = RcaShield | RcaShieldAave | RcaShieldOnsen | RcaShieldConvex | RcaShieldCompound | RcaShieldNormalized;
+type Shield = RcaShield | RcaShieldAave | RcaShieldOnsen | RcaShieldConvex | RcaShieldCompound | RcaShieldNormalized | RcaShieldBancor;
 
 type UValueArgs = {
   newCumLiqForClaims: BigNumber;
