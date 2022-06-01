@@ -363,17 +363,17 @@ interface IStandardRewards is IUpgradeable {
     /**
      * @dev returns the total staked amount of a specific provider in a specific program
      */
-    // function providerStake(address provider, uint256 id) external view returns (uint256);
+    function providerStake(address provider, uint256 id) external view returns (uint256);
 
     /**
      * @dev returns whether the specified program is active
      */
-    // function isProgramActive(uint256 id) external view returns (bool);
+    function isProgramActive(uint256 id) external view returns (bool);
 
     /**
      * @dev returns whether the specified program is enabled
      */
-    // function isProgramEnabled(uint256 id) external view returns (bool);
+    function isProgramEnabled(uint256 id) external view returns (bool);
 
     /**
      * @dev returns the ID of the latest program for a given pool (or 0 if no program is currently set)
@@ -423,7 +423,7 @@ interface IStandardRewards is IUpgradeable {
      *
      * - the caller must have approved the contract to transfer pool tokens on its behalf
      */
-    // function join(uint256 id, uint256 poolTokenAmount) external;
+    function join(uint256 id, uint256 poolTokenAmount) external;
 
     /**
      * @dev adds provider's stake to the program by providing an EIP712 typed signature for an EIP2612 permit request
@@ -490,7 +490,7 @@ interface IStandardRewards is IUpgradeable {
     /**
      * @dev claims rewards and returns the claimed reward amount
      */
-    // function claimRewards(uint256[] calldata ids) external returns (uint256);
+    function claimRewards(uint256[] calldata ids) external returns (uint256);
 
     /**
      * @dev claims and stake rewards and returns the claimed reward amount and the received pool token amount
