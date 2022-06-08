@@ -11,6 +11,7 @@ contract RcaShieldBancor is RcaShieldNormalized {
     IStandardRewards public immutable standardRewards;
 
     uint256 public immutable id;
+    bool public joinRewardsProgram;
 
     constructor(
         string memory _name,
@@ -56,11 +57,22 @@ contract RcaShieldBancor is RcaShieldNormalized {
         token.safeTransfer(msg.sender, _amount);
         uToken.safeTransferFrom(msg.sender, address(this), _normalizedUAmount(underlyingAmount));
 
-        standardRewards.join(id, underlyingAmount);
+        if(joinRewardsProgram) {
+            if(standardRewards.isProgramActive(id)) standardRewards.join(id, underlyingAmount);
+        } 
+    }
+
+    function setRewardsProgramJoinEnabled(
+        bool _joinRewardsProgram
+        //TODO: onlyGuardian?
+    ) external {
+        require(standardRewards.isProgramEnabled(id), "Rewards program is disabled for this pool");
+        if(!standardRewards.isProgramEnabled(id)) revert("Rewards program is disabled for this pool");
+        else joinRewardsProgram = _joinRewardsProgram;
     }
 
     function _uBalance() internal view override returns (uint256) {
-
+        return((uToken.balanceOf(address(this)) + standardRewards.providerStake(address(this), id)) * BUFFER) / BUFFER_UTOKEN;
     }
 
     function _afterMint(uint256 _uAmount) internal override {

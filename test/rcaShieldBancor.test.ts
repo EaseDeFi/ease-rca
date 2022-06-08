@@ -17,7 +17,7 @@ import BalanceTree from "./balance-tree";
 
 // SOME TESTS ONLY WORK AROUND BLOCK HEIGHT 14780000 AND HIGHER DUE TO WHALE BALANCE AND ONCHAIN DEPLOYED CONTRACTS
 
-describe.only("RcaShieldBancor", function () {
+describe("RcaShieldBancor", function () {
   const idETH = BigNumber.from(MAINNET_ADDRESSES.contracts.bancor.idETH);
   const contracts = {} as Contracts
   let standardRewards: IStandardRewards;
@@ -294,7 +294,7 @@ describe.only("RcaShieldBancor", function () {
     });
 
     //TODO: make the test activate or deactivte isProgramActive status to get consistent results. This might fluctuate with block height since bancor team might change this or is just "false" for future blocks that have not been minted yet.
-    it.only("Should allow a user to buy claimed BNT tokens and let the shield deposit uToken into StandardRewards contract", async function () {
+    it("Should allow a user to buy claimed BNT tokens and let the shield deposit uToken into StandardRewards contract", async function () {
       await mintTokenForUser();
       await increase(TIME_IN_SECS.week);
       await mine();
@@ -332,6 +332,11 @@ describe.only("RcaShieldBancor", function () {
       expect(userBNTBalanceAfter.sub(userBNTBalanceBefore)).to.be.equal(bntAmountToBuy);
       expect(shieldBNTBalanceAfter.sub(shieldBNTBalanceBefore)).to.be.equal(bntAmountToBuy);
     });
+
+    it("Should activate and deactivate rewards program for pool", async function () {
+      const isActive = await standardRewards.isProgramActive(idETH);
+      expect(isActive).to.be.equal(true);
+    }); 
 
     afterEach(async function () {
       await resetBlockchain();
