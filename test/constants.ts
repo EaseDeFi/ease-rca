@@ -32,6 +32,13 @@ export const MAINNET_ADDRESSES: MainnetAddresses = {
       bitWethPid: 17,
       bitWethPair: "0xE12af1218b4e9272e9628D7c7Dc6354D137D024e",
     },
+    ribbon: {
+      rstEthCCVault: "0x53773E034d9784153471813dacAFF53dBBB78E8c",
+      rstEthGauge: "0x4e079dCA26A4fE2586928c1319b20b1bf9f9be72",
+      stEth: "0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84",
+      minter: "0x5B0655F938A72052c46d2e94D206ccB6FF625A3A",
+      rbn: "0x6123B0049F904d730dB3C36a31167D9d4121fA6B",
+    }
   },
   accounts: {
     aAAVEWhale: "0x9080bdc6377e4ef9d51eddae526fb713c535041f",
@@ -46,6 +53,10 @@ export const MAINNET_ADDRESSES: MainnetAddresses = {
     bitWethWhale: "0x54b55662901aF57B31fb6B52AF8175b652A5816e",
     sushiWhale: "0xabea1a9b8b4a4534ae6b71041aa48067d84a3df3",
     stkAAVEWhale: "0xafdabfb6227507ff6522b8a242168f6b5f353a6e",
+    rstEthWhale: "0xE5350E927B904FdB4d2AF55C566E269BB3df1941",
+    stEthWhale: "0x2FAF487A4414Fe77e2327F0bf4AE2a264a776AD2",
+    ethWhale: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+    rstEthVaultKeeper: "0x55e4b3e3226444cd4de09778844453ba9fe9cd7c",
   },
 };
 
@@ -53,5 +64,6 @@ export const TIME_IN_SECS: TimeInSecs = {
   year: 60 * 60 * 24 * 365,
   halfYear: 60 * 60 * 24 * 182.5,
   month: 60 * 60 * 24 * 30,
+  week: 60 * 60 * 24 * 7,
   day: 60 * 60 * 24,
 };
