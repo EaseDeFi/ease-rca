@@ -3,15 +3,13 @@
 pragma solidity ^0.8.11;
 
 import "../RcaShieldNormalized.sol";
-import { IRibbonVault, ILiquidityGauge, IStakingRewards, IMinter } from "../../external/Ribbon.sol";
-import "hardhat/console.sol";
+import { IRibbonVault, ILiquidityGauge, IMinter } from "../../external/Ribbon.sol";
 
 contract RcaShieldRibbon is RcaShieldNormalized {
     using SafeERC20 for IERC20Metadata;
 
     IRibbonVault public immutable ribbonVault;
     ILiquidityGauge public immutable liquidityGauge;
-    // IStakingRewards public immutable stakingRewards;
     IMinter public immutable minter;
 
     constructor(
@@ -23,12 +21,10 @@ contract RcaShieldRibbon is RcaShieldNormalized {
         address _controller,
         IRibbonVault _ribbonVault,
         ILiquidityGauge _liquidityGauge,
-        // IStakingRewards _stakingRewards,
         IMinter _minter
     ) RcaShieldNormalized(_name, _symbol, _uToken, _uTokenDecimals, _governance, _controller) {
         ribbonVault = _ribbonVault;
         liquidityGauge = _liquidityGauge;
-        // stakingRewards = _stakingRewards;
         minter = _minter;
     }
 
@@ -72,9 +68,7 @@ contract RcaShieldRibbon is RcaShieldNormalized {
     }
 
     function _afterRedeem(uint256 _uAmount) internal override {
-        // ribbonVault.initiateWithdraw(_uAmount);
         require(liquidityGauge.user_checkpoint(address(this)), "Checkpoint didnt work");
         liquidityGauge.withdraw(_normalizedUAmount(_uAmount));      
-        // ribbonVault.maxRedeem();  
     }
 }
