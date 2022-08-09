@@ -12,18 +12,20 @@ import {
 import { BigNumber } from "ethers";
 
 import BalanceTree from "./balance-tree";
-import { MockERC20 } from "../src/types/MockERC20";
-import { MockRouter } from "../src/types/MockRouter";
-import { RcaShield } from "../src/types/RcaShield";
-import { RcaController } from "../src/types/RcaController";
-import { RcaTreasury } from "../src/types/RcaTreasury";
-import { RcaTreasury__factory } from "../src/types/factories/RcaTreasury__factory";
-import { RcaController__factory } from "../src/types/factories/RcaController__factory";
-import { RcaShield__factory } from "../src/types/factories/RcaShield__factory";
-import { MockERC20__factory } from "../src/types/factories/MockERC20__factory";
-import { MockRouter__factory } from "../src/types/factories/MockRouter__factory";
 
 import type { Contracts, MerkleProofs, MerkleTrees, Signers } from "./types";
+import {
+  MockERC20,
+  MockERC20__factory,
+  MockRouter,
+  MockRouter__factory,
+  RcaController,
+  RcaController__factory,
+  RcaShield,
+  RcaShield__factory,
+  RcaTreasury,
+  RcaTreasury__factory,
+} from "../src/types";
 
 // Testing base RCA functionalities
 describe("RCAs and Controller", function () {
