@@ -38,7 +38,7 @@ export const MAINNET_ADDRESSES: MainnetAddresses = {
       stEth: "0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84",
       minter: "0x5B0655F938A72052c46d2e94D206ccB6FF625A3A",
       rbn: "0x6123B0049F904d730dB3C36a31167D9d4121fA6B",
-    }
+    },
   },
   accounts: {
     aAAVEWhale: "0x9080bdc6377e4ef9d51eddae526fb713c535041f",

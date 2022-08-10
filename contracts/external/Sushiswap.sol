@@ -22,10 +22,7 @@ interface IMasterChef {
         address to
     ) external;
 
-    function deposit(
-        uint256 pid,
-        uint256 amount
-    ) external;
+    function deposit(uint256 pid, uint256 amount) external;
 
     function withdraw(
         uint256 pid,
@@ -33,10 +30,7 @@ interface IMasterChef {
         address to
     ) external;
 
-    function withdraw(
-        uint256 pid,
-        uint256 amount
-    ) external;
+    function withdraw(uint256 pid, uint256 amount) external;
 
     function harvest(uint256 pid, address to) external;
 

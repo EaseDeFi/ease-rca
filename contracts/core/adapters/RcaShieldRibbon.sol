@@ -69,6 +69,6 @@ contract RcaShieldRibbon is RcaShieldNormalized {
 
     function _afterRedeem(uint256 _uAmount) internal override {
         require(liquidityGauge.user_checkpoint(address(this)), "Checkpoint didnt work");
-        liquidityGauge.withdraw(_normalizedUAmount(_uAmount));      
+        liquidityGauge.withdraw(_normalizedUAmount(_uAmount));
     }
 }

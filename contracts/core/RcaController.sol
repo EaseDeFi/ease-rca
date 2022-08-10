@@ -295,7 +295,7 @@ contract RcaController is RcaGovernable {
         if (lastUpdate <= updates.liqUpdate) {
             // Update potentially needed here as well if amtForSale will grow from APR.
             shield.controllerUpdate(apr, uint256(updates.aprUpdate));
-            
+
             verifyLiq(msg.sender, _newCumLiqForClaims, _liqForClaimsProof);
             shield.setLiqForClaims(_newCumLiqForClaims);
         }
@@ -414,10 +414,11 @@ contract RcaController is RcaGovernable {
      * @param _user User to find requests of.
      * @param _shields The shields to find the request data for.
      */
-    function requestOfs(
-        address _user, 
-        address[] calldata _shields
-    ) external view returns (IRcaShield.WithdrawRequest[] memory requests) {
+    function requestOfs(address _user, address[] calldata _shields)
+        external
+        view
+        returns (IRcaShield.WithdrawRequest[] memory requests)
+    {
         requests = new IRcaShield.WithdrawRequest[](_shields.length);
 
         for (uint256 i = 0; i < _shields.length; i++) {

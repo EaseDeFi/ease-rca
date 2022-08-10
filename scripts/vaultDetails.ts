@@ -224,6 +224,6 @@ rcaTokens.convex = [
     decimals: 18,
     whale: "0x9d5c5e364d81dab193b72db9e9be9d8ee669b652",
     shield: "",
-    rewardPool: "0x9D5C5E364D81DaB193b72db9E9BE9D8ee669B652"
+    rewardPool: "0x9D5C5E364D81DaB193b72db9E9BE9D8ee669B652",
   },
 ];

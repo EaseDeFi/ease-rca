@@ -15,7 +15,6 @@ import ClaimTree from "./claim-tree";
 import { IConvexRewardPool } from "../src/types/IConvexRewardPool";
 import { IComptroller } from "../src/types/IComptroller";
 
-
 export type Signers = {
   user: SignerWithAddress;
   gov: SignerWithAddress;
@@ -105,7 +104,7 @@ export type RibbonContracts = {
   stEth: string;
   minter: string;
   rbn: string;
-}
+};
 
 export type MainnetContracts = {
   aave: AaveContracts;
