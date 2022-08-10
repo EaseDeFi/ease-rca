@@ -18,7 +18,7 @@ import { BigNumber } from "ethers";
 import BalanceTree from "./balance-tree";
 
 describe("RcaShieldRibbon", function () {
-  const contracts = {} as Contracts
+  const contracts = {} as Contracts;
   let rstETHVault: IRibbonVault;
   let stEth: MockERC20;
   let rbn: MockERC20;
@@ -29,10 +29,9 @@ describe("RcaShieldRibbon", function () {
   const merkleTrees = {} as MerkleTrees;
 
   before(async function () {
-    await resetBlockchain();
-    await newFork();
+    await resetBlockchain(14634392);
   });
-  
+
   beforeEach(async function () {
     const _signers: SignerWithAddress[] = await ethers.getSigners();
     signers.user = _signers[0];
@@ -49,14 +48,10 @@ describe("RcaShieldRibbon", function () {
     signers.user = await ethers.getSigner(MAINNET_ADDRESSES.accounts.rstEthWhale);
 
     // stETH Token
-    stEth = <MockERC20>(
-      await ethers.getContractAt("MockERC20", MAINNET_ADDRESSES.contracts.ribbon.stEth)
-    );
+    stEth = <MockERC20>await ethers.getContractAt("MockERC20", MAINNET_ADDRESSES.contracts.ribbon.stEth);
 
     // RBN TOken
-    rbn = <MockERC20>(
-      await ethers.getContractAt("MockERC20", MAINNET_ADDRESSES.contracts.ribbon.rbn)
-    );
+    rbn = <MockERC20>await ethers.getContractAt("MockERC20", MAINNET_ADDRESSES.contracts.ribbon.rbn);
 
     // rstETH Token
     contracts.uToken = <MockERC20>(
@@ -67,15 +62,13 @@ describe("RcaShieldRibbon", function () {
     rstETHVault = <IRibbonVault>(
       await ethers.getContractAt("IRibbonVault", MAINNET_ADDRESSES.contracts.ribbon.rstEthCCVault)
     );
-    
+
     // rstETH Gauge
     rstEthG = <ILiquidityGauge>(
       await ethers.getContractAt("ILiquidityGauge", MAINNET_ADDRESSES.contracts.ribbon.rstEthGauge)
     );
 
-    minter = <IMinter>(
-      await ethers.getContractAt("IMinter", MAINNET_ADDRESSES.contracts.ribbon.minter)
-    );
+    minter = <IMinter>await ethers.getContractAt("IMinter", MAINNET_ADDRESSES.contracts.ribbon.minter);
     // approves
     await stEth.connect(signers.referrer).approve(rstETHVault.address, ether("100000"));
     await stEth.connect(signers.user).approve(rstETHVault.address, ether("100000"));
@@ -83,7 +76,7 @@ describe("RcaShieldRibbon", function () {
     // withdraw staked rstETH from gauge so user has rstETH
     const balance = await rstEthG.balanceOf(signers.user.address);
     await rstEthG.connect(signers.user).withdraw(balance);
-    
+
     // sent some rstETH to referrer
     await contracts.uToken.connect(signers.user).transfer(signers.referrer.address, ether("100"));
 
@@ -122,7 +115,7 @@ describe("RcaShieldRibbon", function () {
         contracts.rcaController.address,
         rstETHVault.address,
         rstEthG.address,
-        minter.address
+        minter.address,
       )
     );
     await contracts.rcaShieldRibbon.deployed();
@@ -153,17 +146,6 @@ describe("RcaShieldRibbon", function () {
     await contracts.uToken.connect(signers.referrer).approve(contracts.rcaShieldRibbon.address, ether("10000000"));
   });
 
-  async function newFork() {
-    await hre.network.provider.request({
-      method: "hardhat_reset",
-      params: [{
-        forking: {
-          jsonRpcUrl: process.env.MAINNET_URL_ALCHEMY ?? "",
-          blockNumber: 14634392
-        },
-      },],
-    });
-  }
   async function mintTokenForUser(): Promise<void>;
   async function mintTokenForUser(_userAddress: string, _uAmount: BigNumber, _shieldAddress: string): Promise<void>;
   async function mintTokenForUser(_userAddress?: string, _uAmount?: BigNumber, _shieldAddress?: string): Promise<void> {
@@ -251,7 +233,7 @@ describe("RcaShieldRibbon", function () {
         newCumLiqForClaims: BigNumber.from(0),
         rcaShield: contracts.rcaShieldRibbon,
         uAmountForRcaValue: uAmount,
-        uToken: contracts.uToken
+        uToken: contracts.uToken,
       });
 
       await contracts.rcaShieldRibbon
@@ -265,7 +247,7 @@ describe("RcaShieldRibbon", function () {
           sigValues.r,
           sigValues.s,
           0,
-          merkleProofs.liqProof1
+          merkleProofs.liqProof1,
         );
 
       // Check if RCA value received is same as uAmount
@@ -291,8 +273,7 @@ describe("RcaShieldRibbon", function () {
     });
 
     afterEach(async function () {
-      await resetBlockchain();
-      await newFork();
+      await resetBlockchain(14634392);
     });
   });
 
@@ -311,15 +292,15 @@ describe("RcaShieldRibbon", function () {
 
       await expect(
         contracts.rcaShieldRibbon
-        .connect(signers.user)
-        .purchase(
-          contracts.uToken.address,
-          rbnAmountToBuy,
-          rbnPrice,
-          rbnPriceProof,
-          underlyingPrice,
-          underLyingPriceProof
-        )
+          .connect(signers.user)
+          .purchase(
+            contracts.uToken.address,
+            rbnAmountToBuy,
+            rbnPrice,
+            rbnPriceProof,
+            underlyingPrice,
+            underLyingPriceProof,
+          ),
       ).to.be.revertedWith("cannot buy underlying token");
     });
 
@@ -339,16 +320,9 @@ describe("RcaShieldRibbon", function () {
 
       await contracts.rcaShieldRibbon
         .connect(signers.user)
-        .purchase(
-          rbn.address,
-          rbnAmountToBuy,
-          rbnPrice,
-          rbnPriceProof,
-          underlyingPrice,
-          underLyingPriceProof
-        );
+        .purchase(rbn.address, rbnAmountToBuy, rbnPrice, rbnPriceProof, underlyingPrice, underLyingPriceProof);
 
-      const userRBNBalanceAfter = await rbn.balanceOf(signers.user.address)
+      const userRBNBalanceAfter = await rbn.balanceOf(signers.user.address);
       const shieldRstETHGBalanceAfter = await rstEthG.balanceOf(contracts.rcaShieldRibbon.address);
 
       expect(userRBNBalanceAfter.sub(userRBNBalanceBefore)).to.be.equal(rbnAmountToBuy);
@@ -375,14 +349,7 @@ describe("RcaShieldRibbon", function () {
 
       await contracts.rcaShieldRibbon
         .connect(signers.user)
-        .purchase(
-          rbn.address,
-          rbnAmountToBuy,
-          rbnPrice,
-          rbnPriceProof,
-          underlyingPrice,
-          underLyingPriceProof
-        );
+        .purchase(rbn.address, rbnAmountToBuy, rbnPrice, rbnPriceProof, underlyingPrice, underLyingPriceProof);
 
       const userRBNBalanceAfter = await rbn.balanceOf(userAddress);
       const shieldRstETHGBalanceAfter = await rstEthG.balanceOf(contracts.rcaShieldRibbon.address);
@@ -395,8 +362,7 @@ describe("RcaShieldRibbon", function () {
     });
 
     afterEach(async function () {
-      await resetBlockchain();
-      await newFork();
+      await resetBlockchain(14634392);
     });
   });
 
