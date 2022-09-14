@@ -63,7 +63,7 @@ contract RcaShieldRibbon is RcaShieldNormalized {
     }
 
     function _afterMint(uint256 _uAmount) internal override {
-        ribbonVault.maxRedeem();
+        // ribbonVault.maxRedeem();
         ribbonVault.stake(_uAmount);
     }
 

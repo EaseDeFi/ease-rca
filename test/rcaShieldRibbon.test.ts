@@ -53,7 +53,7 @@ describe("RcaShieldRibbon", function () {
       await ethers.getContractAt("MockERC20", MAINNET_ADDRESSES.contracts.ribbon.stEth)
     );
 
-    // RBN TOken
+    // RBN Token
     rbn = <MockERC20>(
       await ethers.getContractAt("MockERC20", MAINNET_ADDRESSES.contracts.ribbon.rbn)
     );
@@ -211,7 +211,7 @@ describe("RcaShieldRibbon", function () {
     });
   });
 
-  describe("mintTo()", function () {
+  describe.only("mintTo()", function () {
     it("Should deposit users rstETH tokens, stake them in liquidity gauge, and mint ez-rstETH tokens to user", async function () {
       let userAddress = signers.user.address;
       let uAmount = ether("100");
@@ -296,7 +296,7 @@ describe("RcaShieldRibbon", function () {
     });
   });
 
-  describe("purchase()", function () {
+  describe.only("purchase()", function () {
     it("Should not allow users to buy uToken", async function () {
       await mintTokenForUser();
       await increase(TIME_IN_SECS.halfYear);
