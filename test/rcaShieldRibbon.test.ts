@@ -11,25 +11,36 @@ import { RcaController } from "../src/types/RcaController";
 import { RcaController__factory } from "../src/types/factories/RcaController__factory";
 import { RcaTreasury } from "../src/types/RcaTreasury";
 import { RcaTreasury__factory } from "../src/types/factories/RcaTreasury__factory";
-import { ether, getExpectedRcaValue, getSignatureDetailsFromCapOracle, increase, mine, resetBlockchain } from "./utils";
+import {
+  ether,
+  getExpectedRcaValue,
+  getSignatureDetailsFromCapOracle,
+  fastForward,
+  mine,
+  resetBlockchain,
+} from "./utils";
 import { expect } from "chai";
 import { RcaShieldRibbon } from "../src/types/RcaShieldRibbon";
 import { BigNumber } from "ethers";
 import BalanceTree from "./balance-tree";
+import { parseEther } from "ethers/lib/utils";
+const RESET_BLOCK_NUMBER = 15565030;
 
 describe("RcaShieldRibbon", function () {
   const contracts = {} as Contracts;
   let rstETHVault: IRibbonVault;
   let stEth: MockERC20;
   let rbn: MockERC20;
-  let rstEthG: ILiquidityGauge;
+  let rstETHGauge: ILiquidityGauge;
   let minter: IMinter;
+  let userAddress: string;
+  let rcaShieldAddress: string;
   const signers = {} as Signers;
   const merkleProofs = {} as MerkleProofs;
   const merkleTrees = {} as MerkleTrees;
 
   before(async function () {
-    await resetBlockchain(14634392);
+    await resetBlockchain(RESET_BLOCK_NUMBER);
   });
 
   beforeEach(async function () {
@@ -45,8 +56,10 @@ describe("RcaShieldRibbon", function () {
 
     // impersonate rstEthWhale and unstake his rstEth from the gauge
     await hre.network.provider.send("hardhat_impersonateAccount", [MAINNET_ADDRESSES.accounts.rstEthWhale]);
+    await signers.user.sendTransaction({ value: parseEther("100"), to: MAINNET_ADDRESSES.accounts.rstEthWhale });
     signers.user = await ethers.getSigner(MAINNET_ADDRESSES.accounts.rstEthWhale);
 
+    userAddress = signers.user.address;
     // stETH Token
     stEth = <MockERC20>await ethers.getContractAt("MockERC20", MAINNET_ADDRESSES.contracts.ribbon.stEth);
 
@@ -64,7 +77,7 @@ describe("RcaShieldRibbon", function () {
     );
 
     // rstETH Gauge
-    rstEthG = <ILiquidityGauge>(
+    rstETHGauge = <ILiquidityGauge>(
       await ethers.getContractAt("ILiquidityGauge", MAINNET_ADDRESSES.contracts.ribbon.rstEthGauge)
     );
 
@@ -74,11 +87,11 @@ describe("RcaShieldRibbon", function () {
     await stEth.connect(signers.user).approve(rstETHVault.address, ether("100000"));
 
     // withdraw staked rstETH from gauge so user has rstETH
-    const balance = await rstEthG.balanceOf(signers.user.address);
-    await rstEthG.connect(signers.user).withdraw(balance);
+    const balance = await rstETHGauge.balanceOf(signers.user.address);
+    await rstETHGauge.connect(signers.user).withdraw(balance);
 
     // sent some rstETH to referrer
-    await contracts.uToken.connect(signers.user).transfer(signers.referrer.address, ether("100"));
+    await contracts.uToken.connect(signers.user).transfer(signers.referrer.address, ether("10"));
 
     // rca contract factories
     const rcaShieldRibbonFactory = <RcaShieldRibbon__factory>await ethers.getContractFactory("RcaShieldRibbon");
@@ -114,7 +127,7 @@ describe("RcaShieldRibbon", function () {
         signers.gov.address,
         contracts.rcaController.address,
         rstETHVault.address,
-        rstEthG.address,
+        rstETHGauge.address,
         minter.address,
       )
     );
@@ -133,12 +146,13 @@ describe("RcaShieldRibbon", function () {
       { account: contracts.rcaShieldRibbon.address, amount: ether("0.001") },
       { account: contracts.rcaController.address, amount: ether("0.001") },
       { account: contracts.uToken.address, amount: ether("0.001") },
-      { account: rstEthG.address, amount: ether("0.001") },
+      { account: rstETHGauge.address, amount: ether("0.001") },
       { account: rbn.address, amount: ether("0.001") },
     ]);
 
     merkleProofs.liqProof1 = merkleTrees.liqTree1.getProof(contracts.rcaShieldRibbon.address, ether("100"));
     merkleProofs.priceProof1 = merkleTrees.priceTree1.getProof(contracts.uToken.address, ether("0.001"));
+    rcaShieldAddress = contracts.rcaShieldRibbon.address;
 
     await contracts.rcaController.connect(signers.priceOracle).setPrices(merkleTrees.priceTree1.getHexRoot());
     // approve uToken to shield
@@ -146,15 +160,13 @@ describe("RcaShieldRibbon", function () {
     await contracts.uToken.connect(signers.referrer).approve(contracts.rcaShieldRibbon.address, ether("10000000"));
   });
 
-  async function mintTokenForUser(): Promise<void>;
-  async function mintTokenForUser(_userAddress: string, _uAmount: BigNumber, _shieldAddress: string): Promise<void>;
-  async function mintTokenForUser(_userAddress?: string, _uAmount?: BigNumber, _shieldAddress?: string): Promise<void> {
+  async function mintTo(_userAddress?: string, _uAmount?: BigNumber, _shieldAddress?: string): Promise<void> {
     let userAddress;
     let uAmount;
     let shieldAddress;
     if (_userAddress == undefined || _uAmount == undefined || _shieldAddress == undefined) {
       userAddress = signers.user.address;
-      uAmount = ether("100");
+      uAmount = ether("5");
       shieldAddress = contracts.rcaShieldRibbon.address;
     } else {
       userAddress = _userAddress;
@@ -189,102 +201,68 @@ describe("RcaShieldRibbon", function () {
   describe("Initialize", function () {
     it("Should initialize the shield with valid state", async function () {
       expect(await contracts.rcaShieldRibbon.ribbonVault()).to.be.equal(rstETHVault.address);
-      expect(await contracts.rcaShieldRibbon.liquidityGauge()).to.be.equal(rstEthG.address);
+      expect(await contracts.rcaShieldRibbon.liquidityGauge()).to.be.equal(rstETHGauge.address);
     });
   });
 
   describe("mintTo()", function () {
-    it("Should deposit users rstETH tokens, stake them in liquidity gauge, and mint ez-rstETH tokens to user", async function () {
-      let userAddress = signers.user.address;
-      let uAmount = ether("100");
-      const shieldAddress = contracts.rcaShieldRibbon.address;
+    let userUAmount: BigNumber;
+    beforeEach(async function () {
+      // mint rca's for the user
+      userUAmount = ether("1");
+      await mintTo(userAddress, userUAmount, rcaShieldAddress);
+    });
+    it("should allow user to deposit rToken and recieve ez-token", async function () {
       // Try to mint RCA from user to user
-      await mintTokenForUser(userAddress, uAmount, shieldAddress);
-
-      let expectedRcaValue = await getExpectedRcaValue({
+      const expectedRcaValue = await getExpectedRcaValue({
         newCumLiqForClaims: BigNumber.from(0),
         rcaShield: contracts.rcaShieldRibbon,
-        uAmountForRcaValue: uAmount,
+        uAmountForRcaValue: userUAmount,
         uToken: contracts.uToken,
       });
 
       // Check if RCA value received is same as uAmount
-      let rcaBal = await contracts.rcaShieldRibbon.balanceOf(userAddress);
+      const rcaBal = await contracts.rcaShieldRibbon.balanceOf(userAddress);
       expect(rcaBal).to.be.equal(expectedRcaValue);
 
-      let stakedRstEth = await rstEthG.balanceOf(shieldAddress);
-      expect(stakedRstEth).to.be.equal(uAmount);
-
-      // Try to mint RCA from referrer to user
-
-      // update details for another user
-      userAddress = signers.referrer.address;
-      uAmount = ether("50");
-
-      const sigValues = await getSignatureDetailsFromCapOracle({
-        amount: uAmount,
-        capOracle: signers.capOracle,
-        controller: contracts.rcaController,
-        userAddress,
-        shieldAddress,
-      });
-
-      expectedRcaValue = await getExpectedRcaValue({
-        newCumLiqForClaims: BigNumber.from(0),
-        rcaShield: contracts.rcaShieldRibbon,
-        uAmountForRcaValue: uAmount,
-        uToken: contracts.uToken,
-      });
-
-      await contracts.rcaShieldRibbon
-        .connect(signers.referrer)
-        .mintTo(
-          userAddress,
-          signers.user.address,
-          uAmount,
-          sigValues.expiry,
-          sigValues.vInt,
-          sigValues.r,
-          sigValues.s,
-          0,
-          merkleProofs.liqProof1,
-        );
-
-      // Check if RCA value received is same as uAmount
-      rcaBal = await contracts.rcaShieldRibbon.balanceOf(userAddress);
-      expect(rcaBal).to.be.equal(expectedRcaValue);
-
-      stakedRstEth = await rstEthG.balanceOf(shieldAddress);
-      const totalStakedRstEth = uAmount.add(ether("100"));
-      expect(stakedRstEth).to.be.equal(totalStakedRstEth);
+      const stakedRstEth = await rstETHGauge.balanceOf(rcaShieldAddress);
+      expect(stakedRstEth).to.be.equal(userUAmount);
+    });
+    it("should stake uToken in rbn liquidity gauge", async function () {
+      const shieldGaugeBalanceBefore = await rstETHGauge.balanceOf(rcaShieldAddress);
+      await mintTo(userAddress, userUAmount, rcaShieldAddress);
+      const shieldGaugeBalanceAfter = await rstETHGauge.balanceOf(rcaShieldAddress);
+      expect(shieldGaugeBalanceAfter.sub(shieldGaugeBalanceBefore)).to.equal(userUAmount);
+      const shieldUTokenBalance = await contracts.uToken.balanceOf(rcaShieldAddress);
+      // shiled uToken balance at this point should be zero because it
+      // should be staked to rbn vault
+      expect(shieldUTokenBalance).to.equal(0);
     });
   });
 
   describe("getRewards()", function () {
-    it("Should have more rewards token in rcaShieldRibbon after function call", async function () {
-      const shieldAddress = contracts.rcaShieldRibbon.address;
-      await mintTokenForUser();
-      await increase(TIME_IN_SECS.halfYear);
+    it("should collect rewards for the shield", async function () {
+      // mint rca
+      await mintTo();
+      // forward time
+      await fastForward(TIME_IN_SECS.day);
       await mine();
-      const shieldRewardBalanceBefore = await rbn.balanceOf(shieldAddress);
+      // check balances
+      const shieldRewardBalanceBefore = await rbn.balanceOf(rcaShieldAddress);
       await contracts.rcaShieldRibbon.getReward();
-      const shieldRewardBalanceAfter = await rbn.balanceOf(shieldAddress);
+      const shieldRewardBalanceAfter = await rbn.balanceOf(rcaShieldAddress);
       expect(shieldRewardBalanceAfter).to.be.gt(shieldRewardBalanceBefore);
-    });
-
-    afterEach(async function () {
-      await resetBlockchain(14634392);
     });
   });
 
   describe("purchase()", function () {
     it("Should not allow users to buy uToken", async function () {
-      await mintTokenForUser();
-      await increase(TIME_IN_SECS.halfYear);
+      await mintTo();
+      await fastForward(TIME_IN_SECS.halfYear);
       await mine();
       await contracts.rcaShieldRibbon.getReward();
 
-      const rbnAmountToBuy = ether("100");
+      const rbnAmountToBuy = ether("1");
       const rbnPrice = ether("0.001");
       const rbnPriceProof = merkleTrees.priceTree1.getProof(rbn.address, rbnPrice);
       const underlyingPrice = ether("0.001");
@@ -304,26 +282,26 @@ describe("RcaShieldRibbon", function () {
       ).to.be.revertedWith("cannot buy underlying token");
     });
 
-    it("Should allow user to buy claimed RBN tokens and let shield deposit received uToken into liquidity gauge", async function () {
-      await mintTokenForUser();
-      await increase(TIME_IN_SECS.halfYear);
+    it("should allow user to purchase rewards and stake uToken to rbn Vault", async function () {
+      await mintTo();
+      await fastForward(TIME_IN_SECS.halfYear);
       await mine();
       await contracts.rcaShieldRibbon.getReward();
 
-      const rbnAmountToBuy = ether("100");
+      const rbnAmountToBuy = ether("1");
       const rbnPrice = ether("0.001");
       const rbnPriceProof = merkleTrees.priceTree1.getProof(rbn.address, rbnPrice);
       const underlyingPrice = ether("0.001");
       const underLyingPriceProof = merkleTrees.priceTree1.getProof(contracts.uToken.address, underlyingPrice);
       const userRBNBalanceBefore = await rbn.balanceOf(signers.user.address);
-      const shieldRstETHGBalanceBefore = await rstEthG.balanceOf(contracts.rcaShieldRibbon.address);
+      const shieldRstETHGBalanceBefore = await rstETHGauge.balanceOf(contracts.rcaShieldRibbon.address);
 
       await contracts.rcaShieldRibbon
         .connect(signers.user)
         .purchase(rbn.address, rbnAmountToBuy, rbnPrice, rbnPriceProof, underlyingPrice, underLyingPriceProof);
 
       const userRBNBalanceAfter = await rbn.balanceOf(signers.user.address);
-      const shieldRstETHGBalanceAfter = await rstEthG.balanceOf(contracts.rcaShieldRibbon.address);
+      const shieldRstETHGBalanceAfter = await rstETHGauge.balanceOf(contracts.rcaShieldRibbon.address);
 
       expect(userRBNBalanceAfter.sub(userRBNBalanceBefore)).to.be.equal(rbnAmountToBuy);
       // as uToken price and RBN Token price are 1:1, we can assume RBN reduced from user after purchase (rbnAmountToBuy) = uTokens tokens the shield receives
@@ -332,27 +310,27 @@ describe("RcaShieldRibbon", function () {
 
     it("Should allow user to buy harvested RBN at a discount", async function () {
       await contracts.rcaController.connect(signers.gov).setDiscount(BigNumber.from(1000));
-      await mintTokenForUser();
-      await increase(TIME_IN_SECS.halfYear);
+      await mintTo();
+      await fastForward(TIME_IN_SECS.halfYear);
       await mine();
       await contracts.rcaShieldRibbon.getReward();
 
       const userAddress = signers.user.address;
-      const rbnAmountToBuy = ether("100");
+      const rbnAmountToBuy = ether("1");
       const rbnPrice = ether("0.001");
       const rbnPriceProof = merkleTrees.priceTree1.getProof(rbn.address, rbnPrice);
       const underlyingPrice = ether("0.001");
       const underLyingPriceProof = merkleTrees.priceTree1.getProof(contracts.uToken.address, underlyingPrice);
 
       const userRBNBalanceBefore = await rbn.balanceOf(signers.user.address);
-      const shieldRstETHGBalanceBefore = await rstEthG.balanceOf(contracts.rcaShieldRibbon.address);
+      const shieldRstETHGBalanceBefore = await rstETHGauge.balanceOf(contracts.rcaShieldRibbon.address);
 
       await contracts.rcaShieldRibbon
         .connect(signers.user)
         .purchase(rbn.address, rbnAmountToBuy, rbnPrice, rbnPriceProof, underlyingPrice, underLyingPriceProof);
 
       const userRBNBalanceAfter = await rbn.balanceOf(userAddress);
-      const shieldRstETHGBalanceAfter = await rstEthG.balanceOf(contracts.rcaShieldRibbon.address);
+      const shieldRstETHGBalanceAfter = await rstETHGauge.balanceOf(contracts.rcaShieldRibbon.address);
 
       expect(userRBNBalanceAfter.sub(userRBNBalanceBefore)).to.be.equal(rbnAmountToBuy);
 
@@ -360,30 +338,58 @@ describe("RcaShieldRibbon", function () {
       const expectedUTokenDeductionFromShield = rbnAmountToBuy.sub(rbnAmountToBuy.mul(discount).div(10000));
       expect(shieldRstETHGBalanceAfter.sub(shieldRstETHGBalanceBefore)).to.be.equal(expectedUTokenDeductionFromShield);
     });
-
-    afterEach(async function () {
-      await resetBlockchain(14634392);
-    });
   });
 
   describe("redeemRequest()", function () {
     it("Should withdraw rstETH from liquidity gauge sending user", async function () {
-      await mintTokenForUser();
+      await mintTo();
 
-      const rcaShieldAddress = contracts.rcaShieldRibbon.address;
-      const rcaAmount = ether("100");
-      const expectedUTokenAmount = ether("100");
+      const rcaAmount = ether("1");
+      const expectedUTokenAmount = ether("1");
 
       const shieldUTokenBalanceBefore = await contracts.uToken.balanceOf(rcaShieldAddress);
-      const shieldStakedBalanceBefore = await rstEthG.balanceOf(rcaShieldAddress);
+      const shieldStakedBalanceBefore = await rstETHGauge.balanceOf(rcaShieldAddress);
 
       await contracts.rcaShieldRibbon.connect(signers.user).redeemRequest(rcaAmount, 0, [], 0, []);
 
       const shieldUTokenBalanceAfter = await contracts.uToken.balanceOf(rcaShieldAddress);
-      const shieldStakedBalanceAfter = await rstEthG.balanceOf(rcaShieldAddress);
+      const shieldStakedBalanceAfter = await rstETHGauge.balanceOf(rcaShieldAddress);
 
       expect(shieldUTokenBalanceAfter.sub(shieldUTokenBalanceBefore)).to.be.equal(expectedUTokenAmount);
       expect(shieldStakedBalanceBefore.sub(shieldStakedBalanceAfter)).to.be.equal(expectedUTokenAmount);
     });
+  });
+
+  describe("finalizeRedeem()", function () {
+    it("user should be able to receive uTokens on withdraw finalize", async function () {
+      await mintTo();
+      const rcaAmount = ether("1");
+      const expectedUTokenAmount = ether("1");
+
+      const shieldUTokenBalanceBefore = await contracts.uToken.balanceOf(rcaShieldAddress);
+      const shieldStakedBalanceBefore = await rstETHGauge.balanceOf(rcaShieldAddress);
+
+      await contracts.rcaShieldRibbon.connect(signers.user).redeemRequest(rcaAmount, 0, [], 0, []);
+
+      const shieldUTokenBalanceAfter = await contracts.uToken.balanceOf(rcaShieldAddress);
+      const shieldStakedBalanceAfter = await rstETHGauge.balanceOf(rcaShieldAddress);
+
+      expect(shieldUTokenBalanceAfter.sub(shieldUTokenBalanceBefore)).to.be.equal(expectedUTokenAmount);
+      expect(shieldStakedBalanceBefore.sub(shieldStakedBalanceAfter)).to.be.equal(expectedUTokenAmount);
+
+      await fastForward(TIME_IN_SECS.week);
+      await mine();
+      const uTokenBalanceBefore = await contracts.uToken.balanceOf(userAddress);
+      // finalize redeem
+      await contracts.rcaShieldRibbon
+        .connect(signers.user)
+        .redeemFinalize(signers.user.address, ethers.constants.AddressZero, 0, [], 0, []);
+      const uTokenBalanceAfter = await contracts.uToken.balanceOf(userAddress);
+      expect(uTokenBalanceAfter.sub(uTokenBalanceBefore)).to.gte(expectedUTokenAmount);
+    });
+  });
+  this.afterEach(async function () {
+    // whale has small balance so reset blockchain to rescue
+    await resetBlockchain(RESET_BLOCK_NUMBER);
   });
 });

@@ -10,7 +10,7 @@ contract RcaShieldRibbon is RcaShieldNormalized {
 
     IRibbonVault public immutable ribbonVault;
     ILiquidityGauge public immutable liquidityGauge;
-    IMinter public immutable minter;
+    IMinter public immutable rbnMinter;
 
     constructor(
         string memory _name,
@@ -21,15 +21,15 @@ contract RcaShieldRibbon is RcaShieldNormalized {
         address _controller,
         IRibbonVault _ribbonVault,
         ILiquidityGauge _liquidityGauge,
-        IMinter _minter
+        IMinter _rbnMinter
     ) RcaShieldNormalized(_name, _symbol, _uToken, _uTokenDecimals, _governance, _controller) {
         ribbonVault = _ribbonVault;
         liquidityGauge = _liquidityGauge;
-        minter = _minter;
+        rbnMinter = _rbnMinter;
     }
 
     function getReward() external {
-        minter.mint(address(liquidityGauge));
+        rbnMinter.mint(address(liquidityGauge));
     }
 
     function purchase(
