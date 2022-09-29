@@ -5,12 +5,14 @@ import "hardhat-abi-exporter";
 import "@typechain/hardhat";
 import "hardhat-gas-reporter";
 import "solidity-coverage";
+import "@tenderly/hardhat-tenderly";
 
 import { resolve } from "path";
 
 import { config as dotenvConfig } from "dotenv";
 import { HardhatUserConfig } from "hardhat/config";
 import { NetworkUserConfig } from "hardhat/types";
+import { getForkingBlockNumber } from "./env_helpers";
 
 dotenvConfig({ path: resolve(__dirname, "./.env") });
 
@@ -65,14 +67,14 @@ const config: HardhatUserConfig = {
   defaultNetwork: "hardhat",
   etherscan: {
     apiKey: {
-      arbitrumOne: process.env.ARBSCAN_API_KEY || "",
-      goerli: process.env.ETHERSCAN_API_KEY || "",
-      kovan: process.env.ETHERSCAN_API_KEY || "",
-      mainnet: process.env.ETHERSCAN_API_KEY || "",
-      optimisticEthereum: process.env.OPTIMISM_API_KEY || "",
-      polygon: process.env.POLYGONSCAN_API_KEY || "",
-      rinkeby: process.env.ETHERSCAN_API_KEY || "",
-      ropsten: process.env.ETHERSCAN_API_KEY || "",
+      arbitrumOne: process.env.ARBSCAN_API_KEY as string,
+      goerli: process.env.ETHERSCAN_API_KEY as string,
+      kovan: process.env.ETHERSCAN_API_KEY as string,
+      mainnet: process.env.ETHERSCAN_API_KEY as string,
+      optimisticEthereum: process.env.OPTIMISM_API_KEY as string,
+      polygon: process.env.POLYGONSCAN_API_KEY as string,
+      rinkeby: process.env.ETHERSCAN_API_KEY as string,
+      ropsten: process.env.ETHERSCAN_API_KEY as string,
     },
   },
   gasReporter: {
@@ -92,8 +94,8 @@ const config: HardhatUserConfig = {
   networks: {
     hardhat: {
       forking: {
-        url: process.env.MAINNET_URL_ALCHEMY ?? "",
-        blockNumber: 14186060,
+        url: process.env.MAINNET_URL_ALCHEMY as string,
+        blockNumber: getForkingBlockNumber(),
         enabled: !!process.env.FORKING,
       },
       accounts: {

@@ -185,7 +185,7 @@ async function main() {
     const RCA_SHIELD_NORMALIZED = <RcaShieldNormalized__factory>await ethers.getContractFactory("RcaShieldNormalized");
     for (let i = 0; i < rcaTokens.yearn.length; i++) {
       const details = rcaTokens.yearn[i];
-      var shield;
+      let shield;
       if (details.decimals == 18) {
         shield = <RcaShield>await RCA_SHIELD.connect(accounts[vaultDeployerIndex++]).deploy(
           details.name, // token name

@@ -53,7 +53,7 @@ export const MAINNET_ADDRESSES: MainnetAddresses = {
     bitWethWhale: "0x54b55662901aF57B31fb6B52AF8175b652A5816e",
     sushiWhale: "0xabea1a9b8b4a4534ae6b71041aa48067d84a3df3",
     stkAAVEWhale: "0xafdabfb6227507ff6522b8a242168f6b5f353a6e",
-    rstEthWhale: "0xE5350E927B904FdB4d2AF55C566E269BB3df1941",
+    rstEthWhale: "0xa452CAD482995d65Ee6e7149c2bb707C4A6087D7",
     stEthWhale: "0x2FAF487A4414Fe77e2327F0bf4AE2a264a776AD2",
     ethWhale: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
     rstEthVaultKeeper: "0x55e4b3e3226444cd4de09778844453ba9fe9cd7c",

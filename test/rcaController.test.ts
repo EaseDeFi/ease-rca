@@ -1,6 +1,6 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { increase, getTimestamp, mine, ether, getSignatureDetailsFromCapOracle } from "./utils";
+import { fastForward, getTimestamp, mine, ether, getSignatureDetailsFromCapOracle } from "./utils";
 import { BigNumber } from "ethers";
 
 import BalanceTree from "./balance-tree";
@@ -151,8 +151,8 @@ describe("RCA controller", function () {
         userAddress,
         shieldAddress: contracts.rcaShield.address,
       });
-      increase(200);
-      mine();
+      await fastForward(200);
+      await mine();
 
       await contracts.rcaShield
         .connect(signers.user)
@@ -179,8 +179,8 @@ describe("RCA controller", function () {
         userAddress,
         shieldAddress: contracts.rcaShield.address,
       });
-      increase(400);
-      mine();
+      await fastForward(400);
+      await mine();
 
       await expect(
         contracts.rcaShield
@@ -209,7 +209,7 @@ describe("RCA controller", function () {
         userAddress,
         shieldAddress: contracts.rcaShield.address,
       });
-      increase(200);
+      await fastForward(200);
       mine();
 
       await expect(

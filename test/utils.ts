@@ -30,7 +30,7 @@ export function sleep(ms: number) {
   new Promise(resolve => setTimeout(resolve, ms));
 }
 
-export async function increase(seconds: number) {
+export async function fastForward(seconds: number) {
   const signers = await ethers.getSigners();
   const signer = signers[0];
   await (signer.provider as providers.JsonRpcProvider).send("evm_increaseTime", [seconds]);

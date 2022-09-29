@@ -4,7 +4,14 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { Contracts, MerkleProofs, MerkleTrees, Signers } from "./types";
 import { MAINNET_ADDRESSES, TIME_IN_SECS } from "./constants";
 import { MockERC20 } from "../src/types/MockERC20";
-import { ether, getExpectedRcaValue, getSignatureDetailsFromCapOracle, increase, mine, resetBlockchain } from "./utils";
+import {
+  ether,
+  getExpectedRcaValue,
+  getSignatureDetailsFromCapOracle,
+  fastForward,
+  mine,
+  resetBlockchain,
+} from "./utils";
 import { RcaController__factory } from "../src/types/factories/RcaController__factory";
 import { RcaTreasury__factory } from "../src/types/factories/RcaTreasury__factory";
 import { RcaShieldConvex__factory } from "../src/types/factories/RcaShieldConvex__factory";
@@ -265,7 +272,7 @@ describe("RcaShieldConvex", function () {
       const cvxBalBefore = await cvxToken.balanceOf(shieldAddress);
 
       //2. wait for half a year
-      await increase(TIME_IN_SECS.halfYear);
+      await fastForward(TIME_IN_SECS.halfYear);
       await mine();
 
       //3. call getReward function
@@ -316,7 +323,7 @@ describe("RcaShieldConvex", function () {
     });
     it("should not allow user to purchase underlying token", async function () {
       // 1. wait for half a year
-      await increase(TIME_IN_SECS.halfYear);
+      await fastForward(TIME_IN_SECS.halfYear);
       await mine();
       // 2. call getReward function
       await contracts.rcaShieldConvex.getReward();
@@ -350,7 +357,7 @@ describe("RcaShieldConvex", function () {
     });
     it("should allow user to purchase shield reward balance", async function () {
       // 1. wait for half a year
-      await increase(TIME_IN_SECS.halfYear);
+      await fastForward(TIME_IN_SECS.halfYear);
       await mine();
       // 2. call getReward function
       await contracts.rcaShieldConvex.getReward();
@@ -433,7 +440,7 @@ describe("RcaShieldConvex", function () {
 
     it("should allow user to purchase shield reward balance on discount", async function () {
       // 1. wait for half a year
-      await increase(TIME_IN_SECS.halfYear);
+      await fastForward(TIME_IN_SECS.halfYear);
       await mine();
       // 2. call getReward function
       await contracts.rcaShieldConvex.getReward();
