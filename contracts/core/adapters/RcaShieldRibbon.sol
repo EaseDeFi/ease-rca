@@ -59,7 +59,7 @@ contract RcaShieldRibbon is RcaShieldNormalized {
     }
 
     function _uBalance() internal view override returns (uint256) {
-        return uToken.balanceOf(address(this)) + liquidityGauge.balanceOf(address(this));
+        return ((uToken.balanceOf(address(this)) + liquidityGauge.balanceOf(address(this))) * BUFFER) / BUFFER_UTOKEN;
     }
 
     function _afterMint(uint256 _uAmount) internal override {
