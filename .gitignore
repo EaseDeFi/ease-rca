@@ -13,3 +13,4 @@ abi/
 # files
 .env
 test/ScratchPad.md
+testDebug.ts
