@@ -32,6 +32,9 @@ export const MAINNET_ADDRESSES: MainnetAddresses = {
       bitWethPid: 17,
       bitWethPair: "0xE12af1218b4e9272e9628D7c7Dc6354D137D024e",
     },
+    lido: {
+      stEth: "0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84",
+    }
   },
   accounts: {
     aAAVEWhale: "0x9080bdc6377e4ef9d51eddae526fb713c535041f",
@@ -46,6 +49,7 @@ export const MAINNET_ADDRESSES: MainnetAddresses = {
     bitWethWhale: "0x54b55662901aF57B31fb6B52AF8175b652A5816e",
     sushiWhale: "0xabea1a9b8b4a4534ae6b71041aa48067d84a3df3",
     stkAAVEWhale: "0xafdabfb6227507ff6522b8a242168f6b5f353a6e",
+    stEthWhale: "0x2FAF487A4414Fe77e2327F0bf4AE2a264a776AD2"
   },
 };
 

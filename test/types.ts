@@ -8,6 +8,7 @@ import { RcaShieldAave } from "../src/types/RcaShieldAave";
 import { RcaShieldOnsen } from "../src/types/RcaShieldOnsen";
 import { RcaShieldCompound } from "../src/types/RcaShieldCompound";
 import { RcaShieldConvex } from "../src/types/RcaShieldConvex";
+import { RcaShieldLido } from "../src/types";
 import { RcaTreasury } from "../src/types/RcaTreasury";
 import BalanceTree from "./balance-tree";
 import ClaimTree from "./claim-tree";
@@ -36,8 +37,9 @@ export type Contracts = {
   rcaShieldAave: RcaShieldAave;
   rcaShieldOnsen: RcaShieldOnsen;
   rcaShieldCompound: RcaShieldCompound;
-  compoundComptroller: IComptroller;
   rcaShieldConvex: RcaShieldConvex;
+  rcaShieldLido: RcaShieldLido;
+  compoundComptroller: IComptroller;
   cvxCRVPool: IConvexRewardPool;
   router: MockRouter;
 };
@@ -96,11 +98,16 @@ export type OnsenContracts = {
   bitWethPair: string;
 };
 
+export type LidoContracts = {
+  stEth: string;
+}
+
 export type MainnetContracts = {
   aave: AaveContracts;
   convex: ConvexContracts;
   onsen: OnsenContracts;
   compound: CompoundContracts;
+  lido: LidoContracts;
 };
 
 export type MainnetAccounts = {
@@ -116,6 +123,7 @@ export type MainnetAccounts = {
   sushiWhale: string;
   bitWethWhale: string;
   stkAAVEWhale: string;
+  stEthWhale: string;
 };
 
 export type MainnetAddresses = {
