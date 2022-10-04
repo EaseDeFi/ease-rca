@@ -41,7 +41,7 @@ contract RcaShieldBadger is RcaShieldNormalized {
         uint256 _underlyingPrice,
         bytes32[] calldata _underlyinPriceProof
     ) external {
-        require(_token != address(uToken), "cannot buy underlyingToken");
+        require(_token != address(uToken), "cannot buy underlying token");
         controller.verifyPrice(_token, _tokenPrice, _tokenPriceProof);
         controller.verifyPrice(address(uToken), _underlyingPrice, _underlyinPriceProof);
 

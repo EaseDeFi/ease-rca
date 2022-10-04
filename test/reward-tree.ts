@@ -21,7 +21,6 @@ export default class RewardTree {
     proof: Buffer[],
     root: Buffer,
   ): boolean {
-    console.log("Proof: ", proof);
     let pair = RewardTree.toNode(index, user, cycle, tokens, cumulativeAmounts);
     for (const item of proof) {
       pair = MerkleTree.combinedHash(pair, item);
@@ -39,9 +38,11 @@ export default class RewardTree {
   ): Buffer {
     return Buffer.from(
       utils
-        .solidityKeccak256(
-          ["uint256", "address", "uint256", "address[]", "uint256[]"],
-          [index, user, cycle, tokens, cumulativeAmounts],
+        .keccak256(
+          utils.defaultAbiCoder.encode(
+            ["uint256", "address", "uint256", "address[]", "uint256[]"],
+            [index, user, cycle, tokens, cumulativeAmounts],
+          ),
         )
         .substring(2),
       "hex",

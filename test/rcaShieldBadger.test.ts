@@ -7,7 +7,7 @@ import { RcaController } from "../src/types/RcaController";
 import { RcaController__factory } from "../src/types/factories/RcaController__factory";
 import { RcaTreasury } from "../src/types/RcaTreasury";
 import { RcaTreasury__factory } from "../src/types/factories/RcaTreasury__factory";
-import { ether, getSignatureDetailsFromCapOracle, resetBlockchain } from "./utils";
+import { ether, fastForward, getSignatureDetailsFromCapOracle, mine, resetBlockchain } from "./utils";
 import { expect } from "chai";
 import { BigNumber } from "ethers";
 import BalanceTree from "./balance-tree";
@@ -16,6 +16,7 @@ import { IBadgerTreeV2, IERC20, RcaShieldBadger, RcaShieldBadger__factory } from
 import RewardTree from "./reward-tree";
 
 const RESET_BLOCK_NUMBER = 15664830;
+
 type RewardTokens = {
   bAuraBal: IERC20;
   graviAuraBal: IERC20;
@@ -105,7 +106,7 @@ describe("RcaShieldBadger", function () {
     );
     await contracts.rcaController.deployed();
 
-    // deploy rcaShieldRibbon
+    // deploy rcaShieldBadger
     contracts.rcaShieldBadger = <RcaShieldBadger>(
       await RCAShieldBadgerFactory.deploy(
         "Ease Gravi Aura",
@@ -221,10 +222,6 @@ describe("RcaShieldBadger", function () {
       );
   }
 
-  function getSlot(key: number, mappingSlot: number) {
-    return ethers.utils.solidityKeccak256(["uint256", "uint256"], [key, mappingSlot]);
-  }
-
   describe("Initialize", function () {
     it("Should initialize the shield with valid state", async function () {
       expect(await contracts.rcaShieldBadger.badgerTree()).to.be.equal(MAINNET_ADDRESSES.contracts.badger.tree);
@@ -244,37 +241,20 @@ describe("RcaShieldBadger", function () {
       // shield balance should update by deposited uToken amount
       expect(shildUTokenBalAfter.sub(shildUTokenBalBefore)).to.gte(uAmount);
     });
-
-    xit("should test my assumptions", async function () {
-      // const currCycle = await badgerTree.currentCycle();
-      // console.log({ currCycle });
-      // const currSlot = getSlot(currCycle.toNumber(), rootsMappingLocation);
-      // console.log((await badgerTree.lastProposeEndBlock()).toNumber());
-      // console.log("computed slot: ", await ethers.provider.getStorageAt(badgerTree.address, currSlot));
-      // console.log(
-      //   "above mapping : ",
-      //   BigNumber.from(await ethers.provider.getStorageAt(badgerTree.address, rootsMappingLocation - 1)),
-      // );
-      // console.log(await badgerTree.lastProposeEndBlock());
-      // const currData = await ethers.provider.getStorageAt(badgerTree.address, ethers.utils.hexlify(currRootLocation));
-      // console.log({ currData });
-      // // // const data = await ethers.provider.getStorageAt(badgerTree.address, currRootLocation);
-      // // console.log(ethers.utils.hexlify(currRootLocation));
-      // // // update current root
-      // // console.log(await ethers.provider.getStorageAt(badgerTree.address, ethers.utils.hexlify(currRootLocation)));
-      // const currRoot = await badgerTree.merkleRoot();
-      // console.log({ currRoot });
-    });
   });
 
   describe("getRewards()", function () {
-    it.only("should collect rewards for the shield", async function () {
+    it("should collect rewards for the shield", async function () {
       // mint rca
       await mintTo();
       // node details for badger shield
       const node = rewardNodes[0];
+
       const amountsToClaim = [parseEther("1"), parseEther("2"), parseEther("3")];
       const proof = rewardTree.getProof(node.index, node.user, node.cycle, node.tokens, node.cumulativeAmounts);
+      const bAuraBalanceBefore = await rewardTokens.bAuraBal.balanceOf(rcaShieldAddress);
+      const graviAuraBalanceBefore = await rewardTokens.graviAuraBal.balanceOf(rcaShieldAddress);
+      const badgerBalanceBefore = await rewardTokens.badger.balanceOf(rcaShieldAddress);
       // collect reward
       await contracts.rcaShieldBadger.getReward(
         node.tokens,
@@ -284,20 +264,110 @@ describe("RcaShieldBadger", function () {
         proof,
         amountsToClaim,
       );
+      const bAuraBalanceAfter = await rewardTokens.bAuraBal.balanceOf(rcaShieldAddress);
+      const graviAuraBalanceAfter = await rewardTokens.graviAuraBal.balanceOf(rcaShieldAddress);
+      const badgerBalanceAfter = await rewardTokens.badger.balanceOf(rcaShieldAddress);
+
+      expect(bAuraBalanceAfter.sub(bAuraBalanceBefore)).to.equal(amountsToClaim[0]);
+
+      expect(graviAuraBalanceAfter.sub(graviAuraBalanceBefore)).to.equal(amountsToClaim[1]);
+
+      expect(badgerBalanceAfter.sub(badgerBalanceBefore)).to.equal(amountsToClaim[2]);
     });
   });
 
   describe("purchase()", function () {
-    // TODO:
+    it("Should not allow users to purchase uToken", async function () {
+      await mintTo();
+
+      const node = rewardNodes[0];
+
+      const amountsToClaim = [parseEther("1"), parseEther("2"), parseEther("3")];
+      const proof = rewardTree.getProof(node.index, node.user, node.cycle, node.tokens, node.cumulativeAmounts);
+      await contracts.rcaShieldBadger.getReward(
+        node.tokens,
+        node.cumulativeAmounts,
+        node.index,
+        node.cycle,
+        proof,
+        amountsToClaim,
+      );
+
+      const badgerAmtToBuy = ether("1");
+      const badgerPrice = ether("0.001");
+      const badgerPriceProof = merkleTrees.priceTree1.getProof(rewardTokens.badger.address, badgerPrice);
+      const underlyingPrice = ether("0.001");
+      const underLyingPriceProof = merkleTrees.priceTree1.getProof(contracts.uToken.address, underlyingPrice);
+
+      await expect(
+        contracts.rcaShieldBadger
+          .connect(signers.user)
+          .purchase(
+            contracts.uToken.address,
+            badgerAmtToBuy,
+            badgerPrice,
+            badgerPriceProof,
+            underlyingPrice,
+            underLyingPriceProof,
+          ),
+      ).to.be.revertedWith("cannot buy underlying token");
+    });
+    it("Should allow users to purchase reward token", async function () {
+      await mintTo();
+
+      const node = rewardNodes[0];
+
+      const amountsToClaim = [parseEther("1"), parseEther("2"), parseEther("3")];
+      const proof = rewardTree.getProof(node.index, node.user, node.cycle, node.tokens, node.cumulativeAmounts);
+      await contracts.rcaShieldBadger.getReward(
+        node.tokens,
+        node.cumulativeAmounts,
+        node.index,
+        node.cycle,
+        proof,
+        amountsToClaim,
+      );
+
+      const badgerAmtToBuy = ether("1");
+      const badgerPrice = ether("0.001");
+      const badgerPriceProof = merkleTrees.priceTree1.getProof(rewardTokens.badger.address, badgerPrice);
+      const underlyingPrice = ether("0.001");
+      const underLyingPriceProof = merkleTrees.priceTree1.getProof(contracts.uToken.address, underlyingPrice);
+      const userBadgerBalBefore = await rewardTokens.badger.balanceOf(userAddress);
+      await contracts.rcaShieldBadger
+        .connect(signers.user)
+        .purchase(
+          rewardTokens.badger.address,
+          badgerAmtToBuy,
+          badgerPrice,
+          badgerPriceProof,
+          underlyingPrice,
+          underLyingPriceProof,
+        );
+      const userBadgerBalAfter = await rewardTokens.badger.balanceOf(userAddress);
+      expect(userBadgerBalAfter.sub(userBadgerBalBefore)).to.equal(badgerAmtToBuy);
+    });
   });
 
-  describe("redeemRequest()", function () {
-    // TODO:
-  });
+  describe("redeem()", function () {
+    it("should initiate redeem request and finalize it", async function () {
+      await mintTo();
+      const rcaAmount = ether("1");
+      const expectedUTokenAmount = ether("1");
 
-  describe("finalizeRedeem()", function () {
-    xit("user should be able to receive uTokens on withdraw finalize", async function () {
-      // TODO:
+      await contracts.rcaShieldBadger.connect(signers.user).redeemRequest(rcaAmount, 0, [], 0, []);
+
+      const uTokenBalanceBefore = await contracts.uToken.balanceOf(userAddress);
+      // Fast Forward
+      await fastForward(TIME_IN_SECS.week);
+      await mine();
+
+      // Finalize Redeem
+      await contracts.rcaShieldBadger
+        .connect(signers.user)
+        .redeemFinalize(signers.user.address, ethers.constants.AddressZero, 0, [], 0, []);
+      const uTokenBalanceAfter = await contracts.uToken.balanceOf(userAddress);
+      expect(uTokenBalanceAfter.sub(uTokenBalanceBefore)).to.gte(expectedUTokenAmount);
     });
   });
 });
