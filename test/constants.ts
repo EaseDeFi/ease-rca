@@ -39,6 +39,11 @@ export const MAINNET_ADDRESSES: MainnetAddresses = {
       minter: "0x5B0655F938A72052c46d2e94D206ccB6FF625A3A",
       rbn: "0x6123B0049F904d730dB3C36a31167D9d4121fA6B",
     },
+    badger: {
+      tree: "0x660802Fc641b154aBA66a62137e71f331B6d787A",
+      bcvxVault: "0xfd05D3C7fe2924020620A8bE4961bBaA747e6305", //vested cvx
+      graviAuraVault: "0xBA485b556399123261a5F9c95d413B4f93107407", //vested aura
+    },
   },
   accounts: {
     aAAVEWhale: "0x9080bdc6377e4ef9d51eddae526fb713c535041f",
@@ -57,6 +62,8 @@ export const MAINNET_ADDRESSES: MainnetAddresses = {
     stEthWhale: "0x2FAF487A4414Fe77e2327F0bf4AE2a264a776AD2",
     ethWhale: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
     rstEthVaultKeeper: "0x55e4b3e3226444cd4de09778844453ba9fe9cd7c",
+    bcvxWhale: "0x48d93dabf29aa5d86424a90ee60f419f1837649f",
+    graviAuraWhale: "0xd14f076044414c255d2e82cceb1cb00fb1bba64c",
   },
 };
 

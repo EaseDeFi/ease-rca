@@ -14,6 +14,8 @@ import BalanceTree from "./balance-tree";
 import ClaimTree from "./claim-tree";
 import { IConvexRewardPool } from "../src/types/IConvexRewardPool";
 import { IComptroller } from "../src/types/IComptroller";
+import { RcaShieldBadger } from "../src/types";
+import { BigNumber } from "ethers/lib/ethers";
 
 export type Signers = {
   user: SignerWithAddress;
@@ -38,6 +40,7 @@ export type Contracts = {
   rcaShieldOnsen: RcaShieldOnsen;
   rcaShieldCompound: RcaShieldCompound;
   rcaShieldRibbon: RcaShieldRibbon;
+  rcaShieldBadger: RcaShieldBadger;
   compoundComptroller: IComptroller;
   rcaShieldConvex: RcaShieldConvex;
   cvxCRVPool: IConvexRewardPool;
@@ -105,6 +108,11 @@ export type RibbonContracts = {
   minter: string;
   rbn: string;
 };
+export type BadgerContracts = {
+  tree: string;
+  bcvxVault: string;
+  graviAuraVault: string;
+};
 
 export type MainnetContracts = {
   aave: AaveContracts;
@@ -112,6 +120,7 @@ export type MainnetContracts = {
   onsen: OnsenContracts;
   compound: CompoundContracts;
   ribbon: RibbonContracts;
+  badger: BadgerContracts;
 };
 
 export type MainnetAccounts = {
@@ -131,6 +140,8 @@ export type MainnetAccounts = {
   stEthWhale: string;
   ethWhale: string;
   rstEthVaultKeeper: string;
+  bcvxWhale: string;
+  graviAuraWhale: string;
 };
 
 export type MainnetAddresses = {
@@ -143,4 +154,12 @@ export type TimeInSecs = {
   month: number;
   week: number;
   day: number;
+};
+
+export type RewardNode = {
+  index: BigNumber;
+  user: string;
+  cycle: BigNumber;
+  tokens: string[];
+  cumulativeAmounts: BigNumber[];
 };
