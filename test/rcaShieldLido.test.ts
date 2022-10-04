@@ -11,14 +11,14 @@ import { RcaController } from "../src/types/RcaController";
 import { RcaController__factory } from "../src/types/factories/RcaController__factory";
 import { RcaTreasury } from "../src/types/RcaTreasury";
 import { RcaTreasury__factory } from "../src/types/factories/RcaTreasury__factory";
-import { ether, getExpectedRcaValue, getSignatureDetailsFromCapOracle, increase, mine, resetBlockchain } from "./utils";
+import { ether, getExpectedRcaValue, getSignatureDetailsFromCapOracle, resetBlockchain } from "./utils";
 import { expect } from "chai";
 import { RcaShieldLido } from "../src/types/RcaShieldLido";
 import { BigNumber } from "ethers";
 import BalanceTree from "./balance-tree";
 
 describe.only("RcaShieldLido", function () {
-  const contracts = {} as Contracts
+  const contracts = {} as Contracts;
   const signers = {} as Signers;
   const merkleProofs = {} as MerkleProofs;
   const merkleTrees = {} as MerkleTrees;
@@ -27,7 +27,7 @@ describe.only("RcaShieldLido", function () {
     await resetBlockchain();
     await newFork();
   });
-  
+
   beforeEach(async function () {
     const _signers: SignerWithAddress[] = await ethers.getSigners();
     signers.user = _signers[0];
@@ -44,10 +44,8 @@ describe.only("RcaShieldLido", function () {
     signers.user = await ethers.getSigner(MAINNET_ADDRESSES.accounts.stEthWhale);
 
     // stETH Token
-    contracts.uToken = <MockERC20>(
-      await ethers.getContractAt("MockERC20", MAINNET_ADDRESSES.contracts.lido.stEth)
-    );
-    
+    contracts.uToken = <MockERC20>await ethers.getContractAt("MockERC20", MAINNET_ADDRESSES.contracts.lido.stEth);
+
     // sent some stETH to referrer
     await contracts.uToken.connect(signers.user).transfer(signers.referrer.address, ether("100"));
 
@@ -82,7 +80,7 @@ describe.only("RcaShieldLido", function () {
         "RcaLido",
         contracts.uToken.address,
         signers.gov.address,
-        contracts.rcaController.address
+        contracts.rcaController.address,
       )
     );
     await contracts.rcaShieldLido.deployed();
@@ -114,12 +112,14 @@ describe.only("RcaShieldLido", function () {
   async function newFork() {
     await hre.network.provider.request({
       method: "hardhat_reset",
-      params: [{
-        forking: {
-          jsonRpcUrl: process.env.MAINNET_URL_ALCHEMY ?? "",
-          blockNumber: 14634392
+      params: [
+        {
+          forking: {
+            jsonRpcUrl: process.env.MAINNET_URL_ALCHEMY ?? "",
+            blockNumber: 14634392,
+          },
         },
-      },],
+      ],
     });
   }
   async function mintTokenForUser(): Promise<void>;
@@ -208,7 +208,7 @@ describe.only("RcaShieldLido", function () {
         newCumLiqForClaims: BigNumber.from(0),
         rcaShield: contracts.rcaShieldLido,
         uAmountForRcaValue: uAmount,
-        uToken: contracts.uToken
+        uToken: contracts.uToken,
       });
 
       await contracts.rcaShieldLido
@@ -222,7 +222,7 @@ describe.only("RcaShieldLido", function () {
           sigValues.r,
           sigValues.s,
           0,
-          merkleProofs.liqProof1
+          merkleProofs.liqProof1,
         );
 
       // Check if RCA value received is same as uAmount

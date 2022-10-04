@@ -117,7 +117,14 @@ export async function getSignatureDetailsFromCapOracle({
 
   return { vInt, r, s, expiry };
 }
-type Shield = RcaShield | RcaShieldAave | RcaShieldOnsen | RcaShieldConvex | RcaShieldCompound | RcaShieldLido | RcaShieldNormalized;
+type Shield =
+  | RcaShield
+  | RcaShieldAave
+  | RcaShieldOnsen
+  | RcaShieldConvex
+  | RcaShieldCompound
+  | RcaShieldLido
+  | RcaShieldNormalized;
 
 type UValueArgs = {
   newCumLiqForClaims: BigNumber;

@@ -7,7 +7,6 @@ import "../RcaShieldBase.sol";
 contract RcaShieldLido is RcaShieldBase {
     using SafeERC20 for IERC20Metadata;
 
-
     // IConvexRewardPool public immutable rewardPool;
 
     constructor(
@@ -16,8 +15,7 @@ contract RcaShieldLido is RcaShieldBase {
         address _uToken,
         address _governance,
         address _controller
-    ) RcaShieldBase(_name, _symbol, _uToken, _governance, _controller) {
-    }
+    ) RcaShieldBase(_name, _symbol, _uToken, _governance, _controller) {}
 
     function _uBalance() internal view override returns (uint256) {
         return uToken.balanceOf(address(this));

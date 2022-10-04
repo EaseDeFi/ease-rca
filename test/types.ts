@@ -100,7 +100,7 @@ export type OnsenContracts = {
 
 export type LidoContracts = {
   stEth: string;
-}
+};
 
 export type MainnetContracts = {
   aave: AaveContracts;
