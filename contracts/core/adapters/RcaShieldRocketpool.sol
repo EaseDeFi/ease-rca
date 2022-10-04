@@ -5,7 +5,7 @@ pragma solidity ^0.8.11;
 import "../../external/Rocketpool.sol";
 import "../RcaShieldBase.sol";
 
-contract RcaShieldLido is RcaShieldBase {
+contract RcaShieldRocketpool is RcaShieldBase {
     using SafeERC20 for IERC20Metadata;
 
     //TODO: Do I need this?
@@ -45,7 +45,7 @@ contract RcaShieldLido is RcaShieldBase {
         address rocketTokenRETHAddress = rocketStorage.getAddress(keccak256(
                 abi.encodePacked("contract.address", "rocketTokenRETH")
             ));
-        IRocketTokenRETH rocketTokenRETH = IRocketTokenRETH(rocketTokenRETHAddress);
+        IERC20Metadata rocketTokenRETH = IERC20Metadata(rocketTokenRETHAddress);
         rocketTokenRETH.safeTransferFrom(msg.sender, address(this), _uAmount);
 
         _mint(_user, rcaAmount);
@@ -93,7 +93,8 @@ contract RcaShieldLido is RcaShieldBase {
         address rocketTokenRETHAddress = rocketStorage.getAddress(keccak256(
                 abi.encodePacked("contract.address", "rocketTokenRETH")
             ));
-        uToken.safeTransfer(_to, uAmount);
+        IERC20Metadata rocketTokenRETH = IERC20Metadata(rocketTokenRETHAddress);
+        rocketTokenRETH.safeTransfer(_to, uAmount);
 
         // The cool part about doing it this way rather than having user send RCAs to router contract,
         // then it exchanging and returning Ether is that it's more gas efficient and no approvals are needed.
@@ -107,7 +108,15 @@ contract RcaShieldLido is RcaShieldBase {
         address rocketTokenRETHAddress = rocketStorage.getAddress(keccak256(
                 abi.encodePacked("contract.address", "rocketTokenRETH")
             ));
-        IRocketTokenRETH rocketTokenRETH = IRocketTokenRETH(rocketTokenRETHAddress);
+        IERC20Metadata rocketTokenRETH = IERC20Metadata(rocketTokenRETHAddress);
         return rocketTokenRETH.balanceOf(address(this));
+    }
+
+    function _afterMint(uint256 _uAmount) internal override {
+        // Rocketpool has no further staking
+    }
+
+    function _afterRedeem(uint256 _uAmount) internal override {
+        // Rocketpool has no further staking
     }
 }
