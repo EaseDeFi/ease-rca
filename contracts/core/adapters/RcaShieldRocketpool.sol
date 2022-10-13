@@ -70,7 +70,7 @@ contract RcaShieldRocketpool is ERC20, Governable {
     /// @notice Controller of RCA contract that takes care of actions.
     IRcaController public controller;
     /// @notice Rocketpools storage contract with all Rocketpool contract addresses
-    IRocketStorage public rocketStorage;
+    IRocketStorage public immutable rocketStorage;
 
     /// @notice Percent to pay per year. 1000 == 10%.
     uint256 public apr;
