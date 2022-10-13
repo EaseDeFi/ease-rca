@@ -33,7 +33,6 @@ export const MAINNET_ADDRESSES: MainnetAddresses = {
       bitWethPair: "0xE12af1218b4e9272e9628D7c7Dc6354D137D024e",
     },
     rocketPool: {
-      //TODO: the "token" address is subject to change. See rocketStorage for current address
       rEthToken: "0xae78736Cd615f374D3085123A210448E74Fc6393",
       rocketStorage: "0x1d8f8f00cfa6758d7bE78336684788Fb0ee0Fa46",
     },
@@ -53,7 +52,6 @@ export const MAINNET_ADDRESSES: MainnetAddresses = {
     stkAAVEWhale: "0xafdabfb6227507ff6522b8a242168f6b5f353a6e",
     rEthWhale: "0xeadb3840596cabf312f2bc88a4bb0b93a4e1ff5f",
     rEthWhale2: "0x800764343e062d9a0e665aa279d30fe5ec376dea",
-    // rEthWhale: "0xba12222222228d8ba445958a75a0704d566bf2c8",
   },
 };
 
