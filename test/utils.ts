@@ -1,18 +1,19 @@
 import dotenv from "dotenv";
 import { ethers } from "hardhat";
 import { providers, BigNumber } from "ethers";
-import { RcaController } from "../src/types/RcaController";
+import {
+  RcaController,
+  RcaShield,
+  MockERC20,
+  RcaShieldConvex,
+  RcaShieldAave,
+  RcaShieldOnsen,
+  RcaShieldCompound,
+  RcaShieldRocketPool,
+  RcaShieldNormalized,
+} from "../src/types";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { RcaShield } from "../src/types/RcaShield";
-import { MockERC20 } from "../src/types/MockERC20";
-import { RcaShieldAave } from "../src/types/RcaShieldAave";
-import { RcaShieldOnsen } from "../src/types/RcaShieldOnsen";
-import { RcaShieldConvex } from "../src/types/RcaShieldConvex";
-import { RcaShieldCompound } from "../src/types/RcaShieldCompound";
-import { RcaShieldRocketpool } from "../src/types/RcaShieldRocketpool";
-
 import { getForkingBlockNumber, getMainnetUrl, isMainnetFork } from "../env_helpers";
-import { RcaShieldNormalized } from "../src/types/RcaShieldNormalized";
 
 dotenv.config();
 
@@ -122,7 +123,7 @@ type Shield =
   | RcaShieldOnsen
   | RcaShieldConvex
   | RcaShieldCompound
-  | RcaShieldRocketpool
+  | RcaShieldRocketPool
   | RcaShieldNormalized;
 
 type UValueArgs = {

@@ -1,15 +1,17 @@
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { MockERC20 } from "../src/types/MockERC20";
-import { MockRouter } from "../src/types/MockRouter";
-import { RcaController } from "../src/types/RcaController";
-import { RcaShield } from "../src/types/RcaShield";
-import { RcaShieldNormalized } from "../src/types/RcaShieldNormalized";
-import { RcaShieldAave } from "../src/types/RcaShieldAave";
-import { RcaShieldOnsen } from "../src/types/RcaShieldOnsen";
-import { RcaShieldCompound } from "../src/types/RcaShieldCompound";
-import { RcaShieldConvex } from "../src/types/RcaShieldConvex";
-import { RcaShieldRocketpool } from "../src/types/RcaShieldRocketpool";
-import { RcaTreasury } from "../src/types/RcaTreasury";
+import {
+  MockERC20,
+  MockRouter,
+  RcaController,
+  RcaShield,
+  RcaShieldNormalized,
+  RcaShieldAave,
+  RcaShieldOnsen,
+  RcaShieldCompound,
+  RcaShieldConvex,
+  RcaShieldRocketPool,
+  RcaTreasury,
+} from "../src/types";
 import BalanceTree from "./balance-tree";
 import ClaimTree from "./claim-tree";
 import { IConvexRewardPool } from "../src/types/IConvexRewardPool";
@@ -39,7 +41,7 @@ export type Contracts = {
   rcaShieldCompound: RcaShieldCompound;
   compoundComptroller: IComptroller;
   rcaShieldConvex: RcaShieldConvex;
-  rcaShieldRocketpool: RcaShieldRocketpool;
+  rcaShieldRocketPool: RcaShieldRocketPool;
   cvxCRVPool: IConvexRewardPool;
   router: MockRouter;
 };

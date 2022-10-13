@@ -1,26 +1,42 @@
 import hre, { ethers } from "hardhat";
 import { Contracts, MerkleProofs, MerkleTrees, Signers } from "./types";
 import { MAINNET_ADDRESSES, TIME_IN_SECS } from "./constants";
-import { RcaShieldRocketpool__factory } from "../src/types/factories/RcaShieldRocketpool__factory";
+import {
+  RcaShieldRocketPool,
+  RcaShieldRocketPool__factory,
+  MockERC20,
+  RcaController,
+  RcaController__factory,
+  RcaTreasury,
+  RcaTreasury__factory,
+} from "../src/types";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { MockERC20 } from "../src/types/MockERC20";
-import { RcaController } from "../src/types/RcaController";
-import { RcaController__factory } from "../src/types/factories/RcaController__factory";
-import { RcaTreasury } from "../src/types/RcaTreasury";
-import { RcaTreasury__factory } from "../src/types/factories/RcaTreasury__factory";
-import { ether, getExpectedRcaValue, getSignatureDetailsFromCapOracle, resetBlockchain } from "./utils";
+import {
+  ether,
+  getExpectedRcaValue,
+  getSignatureDetailsFromCapOracle,
+  getTimestamp,
+  increase,
+  mine,
+  resetBlockchain,
+} from "./utils";
 import { expect } from "chai";
-import { RcaShieldRocketpool } from "../src/types/RcaShieldRocketpool";
 import { BigNumber } from "ethers";
 import BalanceTree from "./balance-tree";
 
 const FORK_BLOCK_NUMBER = 15500000;
 
-describe.only("RcaShieldRocketpool", function () {
+const VAULT_METADATA = {
+  name: "rETH Ease Vault",
+  symbol: "ez-rETH",
+};
+
+describe("RcaShieldRocketpool", function () {
   const contracts = {} as Contracts;
   const signers = {} as Signers;
   const merkleProofs = {} as MerkleProofs;
   const merkleTrees = {} as MerkleTrees;
+  let userAddress: string;
 
   before(async function () {
     await resetBlockchain(FORK_BLOCK_NUMBER);
@@ -54,8 +70,8 @@ describe.only("RcaShieldRocketpool", function () {
     await contracts.uToken.connect(signers.user).transfer(signers.referrer.address, ether("100"));
 
     // rca contract factories
-    const rcaShieldRocketpoolFactory = <RcaShieldRocketpool__factory>(
-      await ethers.getContractFactory("RcaShieldRocketpool")
+    const rcaShieldRocketpoolFactory = <RcaShieldRocketPool__factory>(
+      await ethers.getContractFactory("RcaShieldRocketPool")
     );
     const rcaControllerFactory = <RcaController__factory>await ethers.getContractFactory("RcaController");
     const rcaTreasuryFactory = <RcaTreasury__factory>await ethers.getContractFactory("RcaTreasury");
@@ -80,39 +96,41 @@ describe.only("RcaShieldRocketpool", function () {
     await contracts.rcaController.deployed();
 
     // deploy rcaShieldRocketpool
-    contracts.rcaShieldRocketpool = <RcaShieldRocketpool>(
+    contracts.rcaShieldRocketPool = <RcaShieldRocketPool>(
       await rcaShieldRocketpoolFactory.deploy(
-        "RcaShield Rocketpool",
-        "RcaRocketpool",
+        VAULT_METADATA.name,
+        VAULT_METADATA.symbol,
+        contracts.uToken.address,
         signers.gov.address,
         contracts.rcaController.address,
-        MAINNET_ADDRESSES.contracts.rocketPool.rocketStorage,
       )
     );
-    await contracts.rcaShieldRocketpool.deployed();
+    await contracts.rcaShieldRocketPool.deployed();
 
     // initialize rcaShieldRocketpool
-    await contracts.rcaController.connect(signers.gov).initializeShield(contracts.rcaShieldRocketpool.address);
+    await contracts.rcaController.connect(signers.gov).initializeShield(contracts.rcaShieldRocketPool.address);
 
     // Set liquidation tree.
     merkleTrees.liqTree1 = new BalanceTree([
-      { account: contracts.rcaShieldRocketpool.address, amount: ether("100") },
+      { account: contracts.rcaShieldRocketPool.address, amount: ether("100") },
       { account: contracts.rcaController.address, amount: ether("100") },
     ]);
     // Set price tree.
     merkleTrees.priceTree1 = new BalanceTree([
-      { account: contracts.rcaShieldRocketpool.address, amount: ether("0.001") },
+      { account: contracts.rcaShieldRocketPool.address, amount: ether("0.001") },
       { account: contracts.rcaController.address, amount: ether("0.001") },
       { account: contracts.uToken.address, amount: ether("0.001") },
     ]);
 
-    merkleProofs.liqProof1 = merkleTrees.liqTree1.getProof(contracts.rcaShieldRocketpool.address, ether("100"));
+    merkleProofs.liqProof1 = merkleTrees.liqTree1.getProof(contracts.rcaShieldRocketPool.address, ether("100"));
     merkleProofs.priceProof1 = merkleTrees.priceTree1.getProof(contracts.uToken.address, ether("0.001"));
 
     await contracts.rcaController.connect(signers.priceOracle).setPrices(merkleTrees.priceTree1.getHexRoot());
     // approve uToken to shield
-    await contracts.uToken.connect(signers.user).approve(contracts.rcaShieldRocketpool.address, ether("10000000"));
-    await contracts.uToken.connect(signers.referrer).approve(contracts.rcaShieldRocketpool.address, ether("10000000"));
+    await contracts.uToken.connect(signers.user).approve(contracts.rcaShieldRocketPool.address, ether("10000000"));
+    await contracts.uToken.connect(signers.referrer).approve(contracts.rcaShieldRocketPool.address, ether("10000000"));
+    // init variables
+    userAddress = signers.user.address;
   });
 
   async function mintTokenForUser(_userAddress?: string, _uAmount?: BigNumber, _shieldAddress?: string): Promise<void> {
@@ -122,7 +140,7 @@ describe.only("RcaShieldRocketpool", function () {
     if (_userAddress == undefined || _uAmount == undefined || _shieldAddress == undefined) {
       userAddress = signers.user.address;
       uAmount = ether("100");
-      shieldAddress = contracts.rcaShieldRocketpool.address;
+      shieldAddress = contracts.rcaShieldRocketPool.address;
     } else {
       userAddress = _userAddress;
       uAmount = _uAmount;
@@ -138,7 +156,7 @@ describe.only("RcaShieldRocketpool", function () {
       shieldAddress,
     });
 
-    await contracts.rcaShieldRocketpool
+    await contracts.rcaShieldRocketPool
       .connect(signers.user)
       .mintTo(
         userAddress,
@@ -155,7 +173,11 @@ describe.only("RcaShieldRocketpool", function () {
 
   describe("Initialize", function () {
     it("Should initialize the shield with valid state", async function () {
-      expect(await contracts.rcaShieldRocketpool.uToken()).to.be.equal(contracts.uToken.address);
+      expect(await contracts.rcaShieldRocketPool.name()).to.be.equal(VAULT_METADATA.name);
+      expect(await contracts.rcaShieldRocketPool.symbol()).to.be.equal(VAULT_METADATA.symbol);
+      expect(await contracts.rcaShieldRocketPool.uToken()).to.be.equal(contracts.uToken.address);
+      expect(await contracts.rcaShieldRocketPool.governor()).to.be.equal(signers.gov.address);
+      expect(await contracts.rcaShieldRocketPool.controller()).to.be.equal(contracts.rcaController.address);
     });
   });
 
@@ -163,20 +185,20 @@ describe.only("RcaShieldRocketpool", function () {
     it("Should deposit users rETH tokens and mint ez-rETH tokens to user", async function () {
       let userAddress = signers.user.address;
       let uAmount = ether("101.00002");
-      const shieldAddress = contracts.rcaShieldRocketpool.address;
+      const shieldAddress = contracts.rcaShieldRocketPool.address;
 
       // Try to mint RCA from user to user
       await mintTokenForUser(userAddress, uAmount, shieldAddress);
 
       let expectedRcaValue = await getExpectedRcaValue({
         newCumLiqForClaims: BigNumber.from(0),
-        rcaShield: contracts.rcaShieldRocketpool,
+        rcaShield: contracts.rcaShieldRocketPool,
         uAmountForRcaValue: uAmount,
         uToken: contracts.uToken,
       });
 
       // Check if RCA value received is same as uAmount
-      let rcaBal = await contracts.rcaShieldRocketpool.balanceOf(userAddress);
+      let rcaBal = await contracts.rcaShieldRocketPool.balanceOf(userAddress);
       expect(rcaBal).to.be.equal(expectedRcaValue);
 
       // Try to mint RCA from referrer to user
@@ -195,12 +217,12 @@ describe.only("RcaShieldRocketpool", function () {
 
       expectedRcaValue = await getExpectedRcaValue({
         newCumLiqForClaims: BigNumber.from(0),
-        rcaShield: contracts.rcaShieldRocketpool,
+        rcaShield: contracts.rcaShieldRocketPool,
         uAmountForRcaValue: uAmount,
         uToken: contracts.uToken,
       });
 
-      await contracts.rcaShieldRocketpool
+      await contracts.rcaShieldRocketPool
         .connect(signers.referrer)
         .mintTo(
           userAddress,
@@ -215,21 +237,41 @@ describe.only("RcaShieldRocketpool", function () {
         );
 
       // Check if RCA value received is same as uAmount
-      rcaBal = await contracts.rcaShieldRocketpool.balanceOf(userAddress);
+      rcaBal = await contracts.rcaShieldRocketPool.balanceOf(userAddress);
       expect(rcaBal).to.be.equal(expectedRcaValue);
     });
   });
 
   describe("redeemRequest()", function () {
-    it("Should have same uToken amount after redeemRequest as before, since nothing is being unstaked.", async function () {
+    it("Should allow user to submit withdraw request", async function () {
       await mintTokenForUser();
-      const rcaShieldAddress = contracts.rcaShieldRocketpool.address;
+      const rcaAmount = ether("100");
+      await contracts.rcaShieldRocketPool.connect(signers.user).redeemRequest(rcaAmount, 0, [], 0, []);
+      const endTime = (await getTimestamp()).add(TIME_IN_SECS.day);
+      const withdrawRequest = await contracts.rcaShieldRocketPool.withdrawRequests(userAddress);
+      expect(withdrawRequest.rcaAmount).to.equal(rcaAmount);
+      // since ez-token:underlying token is 1:1 for this case
+      expect(withdrawRequest.uAmount).to.equal(rcaAmount);
+      expect(withdrawRequest.endTime).to.equal(endTime);
+    });
+  });
+  describe("redeemFinalize()", function () {
+    it("Should allow user to submit and finalize withdraw request", async function () {
+      await mintTokenForUser();
       const rcaAmount = ether("100");
 
-      const shieldUTokenBalanceBefore = await contracts.uToken.balanceOf(rcaShieldAddress);
-      await contracts.rcaShieldRocketpool.connect(signers.user).redeemRequest(rcaAmount, 0, [], 0, []);
-      const shieldUTokenBalanceAfter = await contracts.uToken.balanceOf(rcaShieldAddress);
-      expect(shieldUTokenBalanceBefore).to.be.equal(shieldUTokenBalanceAfter);
+      const userUtokenBalBefore = await contracts.uToken.balanceOf(userAddress);
+      await contracts.rcaShieldRocketPool.connect(signers.user).redeemRequest(rcaAmount, 0, [], 0, []);
+      // fast forward
+      await increase(TIME_IN_SECS.day);
+      await mine();
+
+      await contracts.rcaShieldRocketPool
+        .connect(signers.user)
+        .redeemFinalize(userAddress, ethers.constants.AddressZero, 0, merkleProofs.liqProof1, 0, []);
+      const userUtokenBalAfter = await contracts.uToken.balanceOf(userAddress);
+
+      expect(userUtokenBalAfter.sub(userUtokenBalBefore)).to.gte(rcaAmount);
     });
   });
 });
