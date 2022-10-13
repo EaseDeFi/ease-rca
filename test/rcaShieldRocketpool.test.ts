@@ -14,6 +14,8 @@ import { RcaShieldRocketpool } from "../src/types/RcaShieldRocketpool";
 import { BigNumber } from "ethers";
 import BalanceTree from "./balance-tree";
 
+const FORK_BLOCK_NUMBER = 15500000;
+
 describe.only("RcaShieldRocketpool", function () {
   const contracts = {} as Contracts;
   const signers = {} as Signers;
@@ -21,8 +23,7 @@ describe.only("RcaShieldRocketpool", function () {
   const merkleTrees = {} as MerkleTrees;
 
   before(async function () {
-    await resetBlockchain();
-    await newFork();
+    await resetBlockchain(FORK_BLOCK_NUMBER);
   });
 
   beforeEach(async function () {
@@ -42,16 +43,20 @@ describe.only("RcaShieldRocketpool", function () {
     await signers.otherAccounts[0].sendTransaction({
       to: signers.user.address,
       value: ether("100"),
-    })
+    });
 
     // rETH Token
-    contracts.uToken = <MockERC20>await ethers.getContractAt("MockERC20", MAINNET_ADDRESSES.contracts.rocketPool.rEthToken);
+    contracts.uToken = <MockERC20>(
+      await ethers.getContractAt("MockERC20", MAINNET_ADDRESSES.contracts.rocketPool.rEthToken)
+    );
 
     // sent some rETH to referrer
     await contracts.uToken.connect(signers.user).transfer(signers.referrer.address, ether("100"));
 
     // rca contract factories
-    const rcaShieldRocketpoolFactory = <RcaShieldRocketpool__factory>await ethers.getContractFactory("RcaShieldRocketpool");
+    const rcaShieldRocketpoolFactory = <RcaShieldRocketpool__factory>(
+      await ethers.getContractFactory("RcaShieldRocketpool")
+    );
     const rcaControllerFactory = <RcaController__factory>await ethers.getContractFactory("RcaController");
     const rcaTreasuryFactory = <RcaTreasury__factory>await ethers.getContractFactory("RcaTreasury");
 
@@ -81,7 +86,7 @@ describe.only("RcaShieldRocketpool", function () {
         "RcaRocketpool",
         signers.gov.address,
         contracts.rcaController.address,
-        MAINNET_ADDRESSES.contracts.rocketPool.rocketStorage
+        MAINNET_ADDRESSES.contracts.rocketPool.rocketStorage,
       )
     );
     await contracts.rcaShieldRocketpool.deployed();
@@ -110,21 +115,6 @@ describe.only("RcaShieldRocketpool", function () {
     await contracts.uToken.connect(signers.referrer).approve(contracts.rcaShieldRocketpool.address, ether("10000000"));
   });
 
-  async function newFork() {
-    await hre.network.provider.request({
-      method: "hardhat_reset",
-      params: [
-        {
-          forking: {
-            jsonRpcUrl: process.env.MAINNET_URL_ALCHEMY ?? "",
-            blockNumber: 15000000,
-          },
-        },
-      ],
-    });
-  }
-  async function mintTokenForUser(): Promise<void>;
-  async function mintTokenForUser(_userAddress: string, _uAmount: BigNumber, _shieldAddress: string): Promise<void>;
   async function mintTokenForUser(_userAddress?: string, _uAmount?: BigNumber, _shieldAddress?: string): Promise<void> {
     let userAddress;
     let uAmount;

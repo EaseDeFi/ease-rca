@@ -69,9 +69,6 @@ contract RcaShieldRocketpool is ERC20, Governable {
 
     /// @notice Controller of RCA contract that takes care of actions.
     IRcaController public controller;
-    /// @notice Underlying token that is protected by the shield.
-    // TODO: is this variable still necessary?
-    // IERC20Metadata public uToken;
     /// @notice Rocketpools storage contract with all Rocketpool contract addresses
     IRocketStorage public rocketStorage;
 
@@ -170,21 +167,17 @@ contract RcaShieldRocketpool is ERC20, Governable {
      * @notice Construct shield and RCA ERC20 token.
      * @param _name Name of the RCA token.
      * @param _symbol Symbol of the RCA token.
-    // TODO: remove if not needed * param _uToken Address of the underlying token.
      * @param _governor Address of the governor (owner) of the shield.
      * @param _controller Address of the controller that maintains the shield.
      */
     constructor(
         string memory _name,
         string memory _symbol,
-        // address _uToken,
         address _governor,
         address _controller,
         address _rocketStorage
     ) ERC20(_name, _symbol) {
         initializeGovernable(_governor);
-        // TODO: remove if not needed
-        // uToken = IERC20Metadata(_uToken);
         controller = IRcaController(_controller);
         rocketStorage = IRocketStorage(_rocketStorage);
     }
@@ -373,7 +366,14 @@ contract RcaShieldRocketpool is ERC20, Governable {
         bytes32[] calldata _liqForClaimsProof
     ) external payable virtual {
         // If user submits incorrect price, tx will fail here.
-        controller.purchase(_user, address(_uToken()), _uEthPrice, _priceProof, _newCumLiqForClaims, _liqForClaimsProof);
+        controller.purchase(
+            _user,
+            address(_uToken()),
+            _uEthPrice,
+            _priceProof,
+            _newCumLiqForClaims,
+            _liqForClaimsProof
+        );
 
         _update();
 
@@ -409,7 +409,14 @@ contract RcaShieldRocketpool is ERC20, Governable {
         bytes32[] calldata _liqForClaimsProof
     ) external payable {
         // If user submits incorrect price, tx will fail here.
-        controller.purchase(_user, address(_uToken()), _uEthPrice, _priceProof, _newCumLiqForClaims, _liqForClaimsProof);
+        controller.purchase(
+            _user,
+            address(_uToken()),
+            _uEthPrice,
+            _priceProof,
+            _newCumLiqForClaims,
+            _liqForClaimsProof
+        );
 
         _update();
 
@@ -583,17 +590,10 @@ contract RcaShieldRocketpool is ERC20, Governable {
         return IERC20Metadata(rocketTokenRETHAddress);
     }
 
-    // TODO: only for testing purposes
+    /// @notice Underlying token that is protected by the shield.
     function uToken() public view returns (IERC20Metadata) {
         return _uToken();
     }
-
-    //TODO: Delete _aftermint and _afterRedeem?
-    /// @notice Logic to run after a mint, such as if we need to stake the underlying token.
-    // function _afterMint(uint256 _uAmount) internal virtual;
-
-    /// @notice Logic to run after a redeem, such as unstaking.
-    // function _afterRedeem(uint256 _uAmount) internal virtual;
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////
     /////////////////////////////////////////////// onlyController //////////////////////////////////////////////
@@ -684,17 +684,6 @@ contract RcaShieldRocketpool is ERC20, Governable {
     function setController(address _newController) external onlyGov {
         controller = IRcaController(_newController);
     }
-
-    // TODO: remove if not needed
-    // /**
-    //  * @notice Update uToken to a new address from RocketPools rocketStorage contract.
-    //  */
-    // function setUToken() external onlyGov {
-    //     address rocketTokenRETHAddress = rocketStorage.getAddress(
-    //         keccak256(abi.encodePacked("contract.address", "rocketTokenRETH"))
-    //     );
-    //     uToken = IERC20Metadata(rocketTokenRETHAddress);
-    // }
 
     /**
      * @notice Needed for Nexus to prove this contract lost funds. We'll likely have reinsurance

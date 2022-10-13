@@ -8,6 +8,7 @@ import {
   getSignatureDetailsFromCapOracle,
   getExpectedUValue,
   getExpectedRcaValue,
+  resetBlockchain,
 } from "./utils";
 import { BigNumber } from "ethers";
 
@@ -16,7 +17,6 @@ import BalanceTree from "./balance-tree";
 import type { Contracts, MerkleProofs, MerkleTrees, Signers } from "./types";
 import {
   MockERC20,
-  MockERC20__factory,
   MockRouter,
   MockRouter__factory,
   RcaController,
@@ -27,6 +27,8 @@ import {
   RcaTreasury__factory,
 } from "../src/types";
 import { MAINNET_ADDRESSES } from "./constants";
+
+const FORK_BLOCK_NUMBER = 15500000;
 
 // Testing base RCA functionalities
 // comment to rerun jobs
@@ -42,7 +44,7 @@ describe.only("rcaShieldRocketpool and Controller", function () {
   const denominator = BigNumber.from(10000);
 
   before(async function () {
-    await newFork();  
+    await resetBlockchain(FORK_BLOCK_NUMBER);
   });
 
   beforeEach(async function () {
@@ -82,7 +84,9 @@ describe.only("rcaShieldRocketpool and Controller", function () {
       contracts.rcaTreasury.address, // treasury address
     );
 
-    const rcaShieldRocketpoolFactory = <RcaShieldRocketpool__factory>await ethers.getContractFactory("RcaShieldRocketpool");
+    const rcaShieldRocketpoolFactory = <RcaShieldRocketpool__factory>(
+      await ethers.getContractFactory("RcaShieldRocketpool")
+    );
 
     contracts.rcaShieldRocketpool = <RcaShieldRocketpool>await rcaShieldRocketpoolFactory.deploy(
       "rcaRocketpool Shield", // token name
@@ -100,7 +104,7 @@ describe.only("rcaShieldRocketpool and Controller", function () {
     await signers.otherAccounts[0].sendTransaction({
       to: signers.user.address,
       value: ether("100"),
-    })
+    });
     // await contracts.uToken.connect(signers.otherAccounts[0]).transfer(signers.user.address, ether("15000"));
 
     // // transfer some ETH to user
@@ -151,36 +155,22 @@ describe.only("rcaShieldRocketpool and Controller", function () {
     await contracts.rcaController.connect(signers.priceOracle).setPrices(merkleTrees.priceTree1.getHexRoot());
   });
 
-  async function newFork() {
-    await hre.network.provider.request({
-      method: "hardhat_reset",
-      params: [
-        {
-          forking: {
-            jsonRpcUrl: process.env.MAINNET_URL_ALCHEMY ?? "",
-            blockNumber: 15500000,
-          },
-        },
-      ],
-    });
-  };
-
   describe("Initialize", function () {
-  //   // Approve rcaShield to take 1,000 underlying tokens, mint, should receive back 1,000 RCA tokens.
-  //   it("should initialize rcaController correctly", async function () {
-  //     expect(await contracts.rcaController.apr()).to.be.equal(0);
-  //     expect(await contracts.rcaController.discount()).to.be.equal(200);
-  //     expect(await contracts.rcaController.withdrawalDelay()).to.be.equal(86400);
-  //     expect(await contracts.rcaController.treasury()).to.be.equal(contracts.rcaTreasury.address);
-  //     expect(await contracts.rcaController.priceOracle()).to.be.equal(signers.priceOracle.address);
-  //     expect(await contracts.rcaController.capOracle()).to.be.equal(signers.capOracle.address);
-  //     expect(await contracts.rcaController.governor()).to.be.equal(signers.gov.address);
-  //     expect(await contracts.rcaController.guardian()).to.be.equal(signers.guardian.address);
+    //   // Approve rcaShield to take 1,000 underlying tokens, mint, should receive back 1,000 RCA tokens.
+    //   it("should initialize rcaController correctly", async function () {
+    //     expect(await contracts.rcaController.apr()).to.be.equal(0);
+    //     expect(await contracts.rcaController.discount()).to.be.equal(200);
+    //     expect(await contracts.rcaController.withdrawalDelay()).to.be.equal(86400);
+    //     expect(await contracts.rcaController.treasury()).to.be.equal(contracts.rcaTreasury.address);
+    //     expect(await contracts.rcaController.priceOracle()).to.be.equal(signers.priceOracle.address);
+    //     expect(await contracts.rcaController.capOracle()).to.be.equal(signers.capOracle.address);
+    //     expect(await contracts.rcaController.governor()).to.be.equal(signers.gov.address);
+    //     expect(await contracts.rcaController.guardian()).to.be.equal(signers.guardian.address);
 
-  //     expect(await contracts.rcaController.shieldMapping(contracts.rcaShield.address)).to.be.equal(true);
-  //   });
+    //     expect(await contracts.rcaController.shieldMapping(contracts.rcaShield.address)).to.be.equal(true);
+    //   });
 
-  //   // Approve rcaShield to take 1,000 underlying tokens, mint, should receive back 1,000 RCA tokens.
+    //   // Approve rcaShield to take 1,000 underlying tokens, mint, should receive back 1,000 RCA tokens.
     it("should initialize shield correctly", async function () {
       // expect(await contracts.rcaShield.apr()).to.be.equal(0);
       // expect(await contracts.rcaShield.discount()).to.be.equal(200);
@@ -204,7 +194,9 @@ describe.only("rcaShieldRocketpool and Controller", function () {
   describe("Mint", function () {
     beforeEach(async function () {
       await contracts.uToken.connect(signers.user).approve(contracts.rcaShieldRocketpool.address, ether("10000000"));
-      await contracts.uToken.connect(signers.referrer).approve(contracts.rcaShieldRocketpool.address, ether("10000000"));
+      await contracts.uToken
+        .connect(signers.referrer)
+        .approve(contracts.rcaShieldRocketpool.address, ether("10000000"));
     });
     describe("#feature", function () {
       it("should be able to mint an ez-rETH token", async function () {
@@ -353,7 +345,11 @@ describe.only("rcaShieldRocketpool and Controller", function () {
           uToken: contracts.uToken,
         });
 
-        const uValue = await contracts.rcaShieldRocketpool.uValue(rcaAmountForUvalue, newCumLiqForClaims, percentReserved);
+        const uValue = await contracts.rcaShieldRocketpool.uValue(
+          rcaAmountForUvalue,
+          newCumLiqForClaims,
+          percentReserved,
+        );
         const rcaValue = await contracts.rcaShieldRocketpool.rcaValue(uAmountForRcaValue, newCumLiqForClaims);
 
         expect(uValue).to.be.equal(expectedUValue);
@@ -477,7 +473,9 @@ describe.only("rcaShieldRocketpool and Controller", function () {
           userAddress,
           shieldAddress: contracts.rcaShieldRocketpool.address,
         });
-        const beforeShieldUpdated = await contracts.rcaController.lastShieldUpdate(contracts.rcaShieldRocketpool.address);
+        const beforeShieldUpdated = await contracts.rcaController.lastShieldUpdate(
+          contracts.rcaShieldRocketpool.address,
+        );
         const cumLiqForClaimsBefore = await contracts.rcaShieldRocketpool.cumLiqForClaims();
         const amtForSaleBefore = await contracts.rcaShieldRocketpool.amtForSale();
 
@@ -498,7 +496,9 @@ describe.only("rcaShieldRocketpool and Controller", function () {
             0,
             [],
           );
-        const afterShieldUpdated = await contracts.rcaController.lastShieldUpdate(contracts.rcaShieldRocketpool.address);
+        const afterShieldUpdated = await contracts.rcaController.lastShieldUpdate(
+          contracts.rcaShieldRocketpool.address,
+        );
         const cumLiqForClaimsAfter = await contracts.rcaShieldRocketpool.cumLiqForClaims();
         const amtForSaleAfter = await contracts.rcaShieldRocketpool.amtForSale();
 
@@ -571,7 +571,9 @@ describe.only("rcaShieldRocketpool and Controller", function () {
       // If one request is made after another, the amounts should add to last amounts
       // and the endTime should restart.
       it("should be able to stack redeem requests and reset time", async function () {
-        await contracts.rcaShieldRocketpool.connect(signers.user).redeemRequest(ether("50"), 0, [], 0, merkleProofs.resProof1);
+        await contracts.rcaShieldRocketpool
+          .connect(signers.user)
+          .redeemRequest(ether("50"), 0, [], 0, merkleProofs.resProof1);
         // By increasing half a day we can check timestamp changing
         let startTime = await getTimestamp();
         let redeemRequest = await contracts.rcaShieldRocketpool.withdrawRequests(signers.user.address);
@@ -583,7 +585,9 @@ describe.only("rcaShieldRocketpool and Controller", function () {
         // (don't want both requests starting at the same time or we can't check).
         increase(43200);
 
-        await contracts.rcaShieldRocketpool.connect(signers.user).redeemRequest(ether("50"), 0, [], 0, merkleProofs.resProof1);
+        await contracts.rcaShieldRocketpool
+          .connect(signers.user)
+          .redeemRequest(ether("50"), 0, [], 0, merkleProofs.resProof1);
         startTime = await getTimestamp();
         redeemRequest = await contracts.rcaShieldRocketpool.withdrawRequests(signers.user.address);
         expect(redeemRequest.uAmount).to.be.equal(ether("100"));
@@ -679,7 +683,7 @@ describe.only("rcaShieldRocketpool and Controller", function () {
     //   });
     // });
     // describe("#protocolUpdates", function () {
-      // TODO: redeemFinalize() should decrease pending withdrawal by corrent amount?
+    // TODO: redeemFinalize() should decrease pending withdrawal by corrent amount?
     //   it("should increase pending withdrawal by correct amount", async function () {
     //     const rcaAmount = ether("50");
     //     const pendingWithdrawalBefore = await contracts.rcaShield.pendingWithdrawal();
@@ -971,7 +975,7 @@ describe.only("rcaShieldRocketpool and Controller", function () {
     });
     describe("#events", function () {
       before(async function () {
-        await newFork();  
+        await resetBlockchain();
       });
       describe("#rcashiled", function () {
         it("should emit PurchaseRca event with valid args", async function () {
@@ -1107,7 +1111,7 @@ describe.only("rcaShieldRocketpool and Controller", function () {
     });
     describe("#protocolupdates", function () {
       before(async function () {
-        await newFork();  
+        await resetBlockchain(FORK_BLOCK_NUMBER);
       });
       it("should update amount for sale on successful rca Token buy", async function () {
         const uAmount = ether("50");

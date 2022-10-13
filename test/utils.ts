@@ -61,15 +61,14 @@ export async function mine() {
   await (signer.provider as providers.JsonRpcProvider).send("evm_mine", []);
 }
 
-export async function resetBlockchain() {
+export async function resetBlockchain(blockNumber = 0) {
   const signer = (await ethers.getSigners())[0];
   const provider = signer.provider as providers.JsonRpcProvider;
-
   if (isMainnetFork()) {
     await provider.send("hardhat_reset", [
       {
         forking: {
-          blockNumber: getForkingBlockNumber(),
+          blockNumber: blockNumber || getForkingBlockNumber(),
           jsonRpcUrl: getMainnetUrl(),
         },
       },
@@ -117,7 +116,14 @@ export async function getSignatureDetailsFromCapOracle({
 
   return { vInt, r, s, expiry };
 }
-type Shield = RcaShield | RcaShieldAave | RcaShieldOnsen | RcaShieldConvex | RcaShieldCompound | RcaShieldRocketpool | RcaShieldNormalized;
+type Shield =
+  | RcaShield
+  | RcaShieldAave
+  | RcaShieldOnsen
+  | RcaShieldConvex
+  | RcaShieldCompound
+  | RcaShieldRocketpool
+  | RcaShieldNormalized;
 
 type UValueArgs = {
   newCumLiqForClaims: BigNumber;
