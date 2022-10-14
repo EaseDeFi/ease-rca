@@ -27,7 +27,7 @@ export function hex(str: string): string {
 }
 
 export function sleep(ms: number) {
-  new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 export async function fastForward(seconds: number) {

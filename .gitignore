@@ -3,6 +3,7 @@ node_modules/
 build/
 package-lock.json
 cache/
+deployments/
 artifacts/
 coverage/
 coverage.json

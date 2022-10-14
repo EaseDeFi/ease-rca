@@ -44,6 +44,9 @@ export const MAINNET_ADDRESSES: MainnetAddresses = {
       bcvxVault: "0xfd05D3C7fe2924020620A8bE4961bBaA747e6305", //vested cvx
       graviAuraVault: "0xBA485b556399123261a5F9c95d413B4f93107407", //vested aura
     },
+    ease: {
+      timelock: "0xEA5edEf1401e8C312c797c27a9842e03Eb0e557a",
+    },
   },
   accounts: {
     aAAVEWhale: "0x9080bdc6377e4ef9d51eddae526fb713c535041f",

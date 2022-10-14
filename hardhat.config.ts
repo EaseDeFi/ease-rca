@@ -6,6 +6,7 @@ import "@typechain/hardhat";
 import "hardhat-gas-reporter";
 import "solidity-coverage";
 import "@tenderly/hardhat-tenderly";
+import "hardhat-deploy";
 
 import { resolve } from "path";
 
@@ -77,6 +78,18 @@ const config: HardhatUserConfig = {
       ropsten: process.env.ETHERSCAN_API_KEY as string,
     },
   },
+  namedAccounts: {
+    deployer0: 0,
+    deployer1: 1,
+    deployer2: 2,
+    deployer3: 3,
+    deployer4: 4,
+    deployer5: 5,
+    deployer6: 6,
+    deployer7: 7,
+    deployer8: 8,
+    deployer9: 9,
+  },
   gasReporter: {
     enabled: true,
     currency: "USD",
@@ -107,6 +120,7 @@ const config: HardhatUserConfig = {
     mainnet: getChainConfig("mainnet"),
     optimism: getChainConfig("optimism"),
     rinkeby: getChainConfig("rinkeby"),
+    goerli: getChainConfig("goerli"),
     tenderly: {
       url: process.env.TENDERLY_FORK || "",
       accounts: process.env.MAINNET_PRIVATE_KEY ? [`0x${process.env.MAINNET_PRIVATE_KEY}`] : [],

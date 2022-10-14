@@ -113,6 +113,9 @@ export type BadgerContracts = {
   bcvxVault: string;
   graviAuraVault: string;
 };
+export type EaseContracts = {
+  timelock: string;
+};
 
 export type MainnetContracts = {
   aave: AaveContracts;
@@ -121,6 +124,7 @@ export type MainnetContracts = {
   compound: CompoundContracts;
   ribbon: RibbonContracts;
   badger: BadgerContracts;
+  ease: EaseContracts;
 };
 
 export type MainnetAccounts = {
