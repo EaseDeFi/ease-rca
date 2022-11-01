@@ -1,8 +1,10 @@
+import "@nomiclabs/hardhat-ethers";
 import hre, { ethers } from "hardhat";
 import "hardhat-deploy";
 import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
-import { MAINNET_ADDRESSES } from "../test/constants";
+import { rcaTokens } from "../scripts/vaultDetails";
+import { EASE_ADDRESSES, MAINNET_ADDRESSES } from "../test/constants";
 import { sleep } from "../test/utils";
 
 const deployBadgerShield: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
@@ -10,52 +12,50 @@ const deployBadgerShield: DeployFunction = async function (hre: HardhatRuntimeEn
     getNamedAccounts,
     deployments: { deploy },
   } = hre;
-  const { deployer0 } = await getNamedAccounts();
+  const { deployer0, deployer1, deployer2 } = await getNamedAccounts();
+  const deployers = [deployer0, deployer1, deployer2];
 
-  const rcaControllerAddress = ethers.constants.AddressZero;
+  const badgerVaultDetails = rcaTokens.badger;
+  for (let i = 0; i < badgerVaultDetails.length; i++) {
+    console.log("Deploying Badger Shield....");
+    const details = badgerVaultDetails[i];
+    const deployer = deployers[i];
 
-  const details = {
-    name: "graviAura Ease Vault",
-    symbol: "ez-graviAura",
-    address: MAINNET_ADDRESSES.contracts.badger.graviAuraVault,
-    decimals: 18,
-  };
-  console.log("Deploying Badger Shield....");
-
-  const badgerShield = await deploy("RcaShieldBadger", {
-    args: [
-      details.name,
-      details.symbol,
-      details.address,
-      details.decimals,
-      MAINNET_ADDRESSES.contracts.ease.timelock,
-      rcaControllerAddress,
-      MAINNET_ADDRESSES.contracts.badger.tree,
-    ],
-    from: deployer0,
-    log: true,
-  });
-
-  console.log(`Badger Shield Deployed to ${badgerShield.address}`);
-
-  if (["mainnet", "goerli"].includes(hre.network.name)) {
-    // wait for few seconds for etherscan
-    await sleep(10000);
-    // verify etherscan
-    console.log("Verifying contract....");
-    await hre.run("verify:verify", {
-      address: badgerShield.address,
-      constructorArguments: [
+    const badgerShield = await deploy("RcaShieldBadger", {
+      args: [
         details.name,
         details.symbol,
         details.address,
         details.decimals,
         MAINNET_ADDRESSES.contracts.ease.timelock,
-        rcaControllerAddress,
-        MAINNET_ADDRESSES.contracts.badger.tree,
+        EASE_ADDRESSES.rcas.controller,
+        details.balanceTree,
       ],
+      from: deployer,
+      log: true,
     });
-    console.log("Contract Verified!");
+
+    console.log(`${details.name} Shield Deployed at ${badgerShield.address}`);
+
+    if (["mainnet", "goerli"].includes(hre.network.name)) {
+      // wait for few seconds for etherscan
+      await sleep(100000);
+      // verify etherscan
+      console.log(`Verifying ${details.symbol} shield....`);
+      await hre.run("verify:verify", {
+        address: badgerShield.address,
+        constructorArguments: [
+          details.name,
+          details.symbol,
+          details.address,
+          details.decimals,
+          MAINNET_ADDRESSES.contracts.ease.timelock,
+          EASE_ADDRESSES.rcas.controller,
+          details.balanceTree,
+        ],
+      });
+      console.log(`${details.symbol} shield verified!`);
+    }
   }
 };
 

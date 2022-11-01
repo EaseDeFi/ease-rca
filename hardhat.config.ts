@@ -7,6 +7,7 @@ import "hardhat-gas-reporter";
 import "solidity-coverage";
 import "@tenderly/hardhat-tenderly";
 import "hardhat-deploy";
+import "hardhat-tracer";
 
 import { resolve } from "path";
 
@@ -123,7 +124,9 @@ const config: HardhatUserConfig = {
     goerli: getChainConfig("goerli"),
     tenderly: {
       url: process.env.TENDERLY_FORK || "",
-      accounts: process.env.MAINNET_PRIVATE_KEY ? [`0x${process.env.MAINNET_PRIVATE_KEY}`] : [],
+      accounts: process.env.PRIVATE_KEY1
+        ? [`0x${process.env.PRIVATE_KEY1}`, `0x${process.env.PRIVATE_KEY2}`, `0x${process.env.PRIVATE_KEY3}`]
+        : [],
       chainId: 1,
     },
   },

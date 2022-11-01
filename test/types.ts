@@ -152,6 +152,26 @@ export type MainnetAddresses = {
   contracts: MainnetContracts;
   accounts: MainnetAccounts;
 };
+export type EaseAddresses = {
+  rcas: {
+    controller: string;
+    shields: RcaShieldDetail[];
+  };
+  governance: string;
+  timelock: string;
+  token: string;
+  bribePot: string;
+  gvToken: string;
+  tokenSwap: string;
+};
+
+export type RcaShieldDetail = {
+  name: string;
+  symbol: string;
+  address: string;
+  underlyingToken: string;
+};
+
 export type TimeInSecs = {
   year: number;
   halfYear: number;
