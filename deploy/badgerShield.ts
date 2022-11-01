@@ -1,11 +1,10 @@
 import "@nomiclabs/hardhat-ethers";
-import hre, { ethers } from "hardhat";
+import hre from "hardhat";
 import "hardhat-deploy";
 import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { rcaTokens } from "../scripts/vaultDetails";
 import { EASE_ADDRESSES, MAINNET_ADDRESSES } from "../test/constants";
-import { sleep } from "../test/utils";
 
 const deployBadgerShield: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const {
@@ -38,23 +37,25 @@ const deployBadgerShield: DeployFunction = async function (hre: HardhatRuntimeEn
     console.log(`${details.name} Shield Deployed at ${badgerShield.address}`);
 
     if (["mainnet", "goerli"].includes(hre.network.name)) {
-      // wait for few seconds for etherscan
-      await sleep(100000);
       // verify etherscan
       console.log(`Verifying ${details.symbol} shield....`);
-      await hre.run("verify:verify", {
-        address: badgerShield.address,
-        constructorArguments: [
-          details.name,
-          details.symbol,
-          details.address,
-          details.decimals,
-          MAINNET_ADDRESSES.contracts.ease.timelock,
-          EASE_ADDRESSES.rcas.controller,
-          details.balanceTree,
-        ],
-      });
-      console.log(`${details.symbol} shield verified!`);
+      try {
+        await hre.run("verify:verify", {
+          address: details.shield,
+          constructorArguments: [
+            details.name,
+            details.symbol,
+            details.address,
+            details.decimals,
+            MAINNET_ADDRESSES.contracts.ease.timelock,
+            EASE_ADDRESSES.rcas.controller,
+            details.balanceTree,
+          ],
+        });
+        console.log(`${details.symbol} shield verified!`);
+      } catch {
+        console.log("Couldn't verify the contract!");
+      }
     }
   }
 };
