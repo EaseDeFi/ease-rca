@@ -6,6 +6,7 @@ export type RcaTokens = {
   aave: RcaToken[];
   onsen: RcaToken[];
   convex: RcaToken[];
+  badger: RcaToken[];
 };
 export type RcaToken = {
   name: string;
@@ -16,6 +17,7 @@ export type RcaToken = {
   shield: string;
   pid?: number;
   rewardPool?: string;
+  balanceTree?: string;
 };
 export type FundMeTokenArgs = {
   details: RcaToken;

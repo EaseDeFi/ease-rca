@@ -13,7 +13,14 @@ import type { RcaController__factory } from "../src/types/factories/RcaControlle
 import type { RcaTreasury__factory } from "../src/types/factories/RcaTreasury__factory";
 import { expect } from "chai";
 import BalanceTree from "./balance-tree";
-import { ether, getExpectedRcaValue, getSignatureDetailsFromCapOracle, increase, mine, resetBlockchain } from "./utils";
+import {
+  ether,
+  getExpectedRcaValue,
+  getSignatureDetailsFromCapOracle,
+  fastForward,
+  mine,
+  resetBlockchain,
+} from "./utils";
 import { MAINNET_ADDRESSES, TIME_IN_SECS } from "./constants";
 import type { Contracts, MerkleProofs, MerkleTrees, Signers } from "./types";
 import { BigNumber } from "ethers";
@@ -216,7 +223,7 @@ describe("RcaShieldAave:aWeth", function () {
       const shieldUTokenBalanceBefore = await contracts.uToken.balanceOf(shieldAddress);
       const shieldStkAaveTokenBalBefore = await stkAAVEToken.balanceOf(shieldAddress);
 
-      await increase(TIME_IN_SECS.halfYear);
+      await fastForward(TIME_IN_SECS.halfYear);
       await mine();
       // this function call increases aWeth balance and stkAave balance
       await contracts.rcaShieldAave.getReward();
@@ -274,7 +281,7 @@ describe("RcaShieldAave:aWeth", function () {
       await mintTokenForUser();
 
       // increase time
-      await increase(TIME_IN_SECS.halfYear);
+      await fastForward(TIME_IN_SECS.halfYear);
       await mine();
       // this function call increases aWeth balance and stkAave balance
       await contracts.rcaShieldAave.getReward();
@@ -330,7 +337,7 @@ describe("RcaShieldAave:aWeth", function () {
       await mintTokenForUser();
 
       // increase time
-      await increase(TIME_IN_SECS.halfYear);
+      await fastForward(TIME_IN_SECS.halfYear);
       await mine();
       // this function call increases aWeth balance and stkAave balance
       await contracts.rcaShieldAave.getReward();
@@ -589,7 +596,7 @@ describe("RcaShieldAave:aWBTC", function () {
       const shieldUTokenBalanceBefore = await contracts.uToken.balanceOf(shieldAddress);
       const shieldStkAaveTokenBalBefore = await stkAAVEToken.balanceOf(shieldAddress);
 
-      await increase(TIME_IN_SECS.halfYear);
+      await fastForward(TIME_IN_SECS.halfYear);
       await mine();
       // this function call increases aWeth balance and stkAave balance
       await contracts.rcaShieldAave.getReward();
@@ -647,7 +654,7 @@ describe("RcaShieldAave:aWBTC", function () {
       await mintTokenForUser();
 
       // increase time
-      await increase(TIME_IN_SECS.halfYear);
+      await fastForward(TIME_IN_SECS.halfYear);
       await mine();
       // this function call increases aWeth balance and stkAave balance
       await contracts.rcaShieldAave.getReward();
@@ -709,7 +716,7 @@ describe("RcaShieldAave:aWBTC", function () {
       await mintTokenForUser();
 
       // increase time
-      await increase(TIME_IN_SECS.halfYear);
+      await fastForward(TIME_IN_SECS.halfYear);
       await mine();
       // this function call increases aWeth balance and stkAave balance
       await contracts.rcaShieldAave.getReward();

@@ -1,4 +1,16 @@
-import { MainnetAddresses, TimeInSecs } from "./types";
+import { EaseAddresses, MainnetAddresses, TimeInSecs } from "./types";
+export const EASE_ADDRESSES: EaseAddresses = {
+  rcas: {
+    controller: "0xEA5edEF1A7106D9e2024240299DF3D00C7D94767",
+    shields: [],
+  },
+  tokenSwap: "0xEA5edef17986EAbb7333bacdC9E2F574C7Fe6935",
+  token: "0xEa5eDef1287AfDF9Eb8A46f9773AbFc10820c61c",
+  bribePot: "0xEA5EdeF17C9be57228389962ba50b98397f1E28C",
+  gvToken: "0xEa5edeF1eDB2f47B9637c029A6aC3b80a7ae1550",
+  timelock: "0xEA5edEf1401e8C312c797c27a9842e03Eb0e557a",
+  governance: "0xEA5eDeF17c4FCE9C120790F3c54D6E04823dE587",
+};
 
 export const MAINNET_ADDRESSES: MainnetAddresses = {
   contracts: {
@@ -32,6 +44,21 @@ export const MAINNET_ADDRESSES: MainnetAddresses = {
       bitWethPid: 17,
       bitWethPair: "0xE12af1218b4e9272e9628D7c7Dc6354D137D024e",
     },
+    ribbon: {
+      rstEthCCVault: "0x53773E034d9784153471813dacAFF53dBBB78E8c",
+      rstEthGauge: "0x4e079dCA26A4fE2586928c1319b20b1bf9f9be72",
+      stEth: "0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84",
+      minter: "0x5B0655F938A72052c46d2e94D206ccB6FF625A3A",
+      rbn: "0x6123B0049F904d730dB3C36a31167D9d4121fA6B",
+    },
+    badger: {
+      tree: "0x660802Fc641b154aBA66a62137e71f331B6d787A",
+      bcvxVault: "0xfd05D3C7fe2924020620A8bE4961bBaA747e6305", //vested cvx
+      graviAuraVault: "0xBA485b556399123261a5F9c95d413B4f93107407", //vested aura
+    },
+    ease: {
+      timelock: "0xEA5edEf1401e8C312c797c27a9842e03Eb0e557a",
+    },
   },
   accounts: {
     aAAVEWhale: "0x9080bdc6377e4ef9d51eddae526fb713c535041f",
@@ -46,6 +73,12 @@ export const MAINNET_ADDRESSES: MainnetAddresses = {
     bitWethWhale: "0x54b55662901aF57B31fb6B52AF8175b652A5816e",
     sushiWhale: "0xabea1a9b8b4a4534ae6b71041aa48067d84a3df3",
     stkAAVEWhale: "0xafdabfb6227507ff6522b8a242168f6b5f353a6e",
+    rstEthWhale: "0xa452CAD482995d65Ee6e7149c2bb707C4A6087D7",
+    stEthWhale: "0x2FAF487A4414Fe77e2327F0bf4AE2a264a776AD2",
+    ethWhale: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+    rstEthVaultKeeper: "0x55e4b3e3226444cd4de09778844453ba9fe9cd7c",
+    bcvxWhale: "0x48d93dabf29aa5d86424a90ee60f419f1837649f",
+    graviAuraWhale: "0xd14f076044414c255d2e82cceb1cb00fb1bba64c",
   },
 };
 
@@ -53,5 +86,6 @@ export const TIME_IN_SECS: TimeInSecs = {
   year: 60 * 60 * 24 * 365,
   halfYear: 60 * 60 * 24 * 182.5,
   month: 60 * 60 * 24 * 30,
+  week: 60 * 60 * 24 * 7,
   day: 60 * 60 * 24,
 };

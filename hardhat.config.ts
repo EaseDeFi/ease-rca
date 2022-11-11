@@ -5,12 +5,16 @@ import "hardhat-abi-exporter";
 import "@typechain/hardhat";
 import "hardhat-gas-reporter";
 import "solidity-coverage";
+import "@tenderly/hardhat-tenderly";
+import "hardhat-deploy";
+import "hardhat-tracer";
 
 import { resolve } from "path";
 
 import { config as dotenvConfig } from "dotenv";
 import { HardhatUserConfig } from "hardhat/config";
 import { NetworkUserConfig } from "hardhat/types";
+import { getForkingBlockNumber } from "./env_helpers";
 
 dotenvConfig({ path: resolve(__dirname, "./.env") });
 
@@ -65,15 +69,27 @@ const config: HardhatUserConfig = {
   defaultNetwork: "hardhat",
   etherscan: {
     apiKey: {
-      arbitrumOne: process.env.ARBSCAN_API_KEY || "",
-      goerli: process.env.ETHERSCAN_API_KEY || "",
-      kovan: process.env.ETHERSCAN_API_KEY || "",
-      mainnet: process.env.ETHERSCAN_API_KEY || "",
-      optimisticEthereum: process.env.OPTIMISM_API_KEY || "",
-      polygon: process.env.POLYGONSCAN_API_KEY || "",
-      rinkeby: process.env.ETHERSCAN_API_KEY || "",
-      ropsten: process.env.ETHERSCAN_API_KEY || "",
+      arbitrumOne: process.env.ARBSCAN_API_KEY as string,
+      goerli: process.env.ETHERSCAN_API_KEY as string,
+      kovan: process.env.ETHERSCAN_API_KEY as string,
+      mainnet: process.env.ETHERSCAN_API_KEY as string,
+      optimisticEthereum: process.env.OPTIMISM_API_KEY as string,
+      polygon: process.env.POLYGONSCAN_API_KEY as string,
+      rinkeby: process.env.ETHERSCAN_API_KEY as string,
+      ropsten: process.env.ETHERSCAN_API_KEY as string,
     },
+  },
+  namedAccounts: {
+    deployer0: 0,
+    deployer1: 1,
+    deployer2: 2,
+    deployer3: 3,
+    deployer4: 4,
+    deployer5: 5,
+    deployer6: 6,
+    deployer7: 7,
+    deployer8: 8,
+    deployer9: 9,
   },
   gasReporter: {
     enabled: true,
@@ -92,8 +108,8 @@ const config: HardhatUserConfig = {
   networks: {
     hardhat: {
       forking: {
-        url: process.env.MAINNET_URL_ALCHEMY ?? "",
-        blockNumber: 14186060,
+        url: process.env.MAINNET_URL_ALCHEMY as string,
+        blockNumber: getForkingBlockNumber(),
         enabled: !!process.env.FORKING,
       },
       accounts: {
@@ -105,9 +121,12 @@ const config: HardhatUserConfig = {
     mainnet: getChainConfig("mainnet"),
     optimism: getChainConfig("optimism"),
     rinkeby: getChainConfig("rinkeby"),
+    goerli: getChainConfig("goerli"),
     tenderly: {
       url: process.env.TENDERLY_FORK || "",
-      accounts: process.env.MAINNET_PRIVATE_KEY ? [`0x${process.env.MAINNET_PRIVATE_KEY}`] : [],
+      accounts: process.env.PRIVATE_KEY1
+        ? [`0x${process.env.PRIVATE_KEY1}`, `0x${process.env.PRIVATE_KEY2}`, `0x${process.env.PRIVATE_KEY3}`]
+        : [],
       chainId: 1,
     },
   },

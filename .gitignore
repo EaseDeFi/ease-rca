@@ -3,12 +3,15 @@ node_modules/
 build/
 package-lock.json
 cache/
+deployments/
 artifacts/
 coverage/
 coverage.json
 src/types
 abi/
+.vscode/
 
 # files
 .env
 test/ScratchPad.md
+testDebug.ts

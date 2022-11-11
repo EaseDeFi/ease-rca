@@ -8,7 +8,7 @@ import {
   ether,
   getExpectedRcaValue,
   getSignatureDetailsFromCapOracle,
-  increase,
+  fastForward,
   mine,
   parseCToken,
   resetBlockchain,
@@ -276,7 +276,7 @@ describe("RcaShieldCompound", function () {
       const compBalanceBefore = await compToken.balanceOf(shieldAddress);
 
       //2. wait for half a year
-      await increase(TIME_IN_SECS.halfYear);
+      await fastForward(TIME_IN_SECS.halfYear);
       await mine();
 
       //3. call getReward function
@@ -323,7 +323,7 @@ describe("RcaShieldCompound", function () {
     });
     it("should allow user to purchase shield reward balance", async function () {
       // 1. wait for half a year
-      await increase(TIME_IN_SECS.halfYear);
+      await fastForward(TIME_IN_SECS.halfYear);
       await mine();
       // 2. call getReward function
       await contracts.rcaShieldCompound.getReward();
@@ -360,7 +360,7 @@ describe("RcaShieldCompound", function () {
     });
     it("should allow user to purchase shield reward balance with discount", async function () {
       // 1. wait for half a year
-      await increase(TIME_IN_SECS.halfYear);
+      await fastForward(TIME_IN_SECS.halfYear);
       await mine();
       // 2. call getReward function only gives small amount of rewards as comp rewards take block number into account
       await contracts.rcaShieldCompound.getReward();

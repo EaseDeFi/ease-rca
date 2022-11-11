@@ -9,6 +9,7 @@ import { RcaShieldAave } from "../src/types/RcaShieldAave";
 import { RcaShieldOnsen } from "../src/types/RcaShieldOnsen";
 import { RcaShieldConvex } from "../src/types/RcaShieldConvex";
 import { RcaShieldCompound } from "../src/types/RcaShieldCompound";
+import { RcaShieldRibbon } from "../src/types/RcaShieldRibbon";
 
 import { getForkingBlockNumber, getMainnetUrl, isMainnetFork } from "../env_helpers";
 import { RcaShieldNormalized } from "../src/types/RcaShieldNormalized";
@@ -26,10 +27,10 @@ export function hex(str: string): string {
 }
 
 export function sleep(ms: number) {
-  new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-export async function increase(seconds: number) {
+export async function fastForward(seconds: number) {
   const signers = await ethers.getSigners();
   const signer = signers[0];
   await (signer.provider as providers.JsonRpcProvider).send("evm_increaseTime", [seconds]);
@@ -60,15 +61,14 @@ export async function mine() {
   await (signer.provider as providers.JsonRpcProvider).send("evm_mine", []);
 }
 
-export async function resetBlockchain() {
+export async function resetBlockchain(blockNumber = 0) {
   const signer = (await ethers.getSigners())[0];
   const provider = signer.provider as providers.JsonRpcProvider;
-
   if (isMainnetFork()) {
     await provider.send("hardhat_reset", [
       {
         forking: {
-          blockNumber: getForkingBlockNumber(),
+          blockNumber: blockNumber || getForkingBlockNumber(),
           jsonRpcUrl: getMainnetUrl(),
         },
       },
@@ -116,7 +116,14 @@ export async function getSignatureDetailsFromCapOracle({
 
   return { vInt, r, s, expiry };
 }
-type Shield = RcaShield | RcaShieldAave | RcaShieldOnsen | RcaShieldConvex | RcaShieldCompound | RcaShieldNormalized;
+type Shield =
+  | RcaShield
+  | RcaShieldAave
+  | RcaShieldOnsen
+  | RcaShieldConvex
+  | RcaShieldCompound
+  | RcaShieldRibbon
+  | RcaShieldNormalized;
 
 type UValueArgs = {
   newCumLiqForClaims: BigNumber;

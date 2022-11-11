@@ -224,6 +224,36 @@ rcaTokens.convex = [
     decimals: 18,
     whale: "0x9d5c5e364d81dab193b72db9e9be9d8ee669b652",
     shield: "",
-    rewardPool: "0x9D5C5E364D81DaB193b72db9E9BE9D8ee669B652"
+    rewardPool: "0x9D5C5E364D81DaB193b72db9E9BE9D8ee669B652",
+  },
+];
+
+rcaTokens.badger = [
+  {
+    name: "Gravitationally Bound AURA Ease Vault",
+    symbol: "ez-graviAURA",
+    address: "0xBA485b556399123261a5F9c95d413B4f93107407",
+    decimals: 18,
+    whale: "0x465b357bbac5f6f3bc78669db6980f9eaa21d0c2",
+    shield: "0xea5edef169c8834ea5fa77a5323ac5eae1347bc8",
+    balanceTree: "0x660802Fc641b154aBA66a62137e71f331B6d787A",
+  },
+  {
+    name: "Badger Sett Aura BAL Ease Vault",
+    symbol: "ez-bauraBAL",
+    address: "0x37d9D2C6035b744849C15F1BFEE8F268a20fCBd8",
+    decimals: 18,
+    whale: "0x9aef7c447f6bc8d010b22aff52d5b67785ed942c",
+    shield: "0xea5edef1169713c425ce57cf5c154d732b1b7af6",
+    balanceTree: "0x660802Fc641b154aBA66a62137e71f331B6d787A",
+  },
+  {
+    name: "Badger Sett 20WBTC-80BADGER Ease Vault",
+    symbol: "ez-b20WBTC-80BADGER",
+    address: "0x63ad745506BD6a3E57F764409A47ed004BEc40b1",
+    decimals: 18,
+    whale: "0x564b1a055d9caaaff7435dce6b5f6e522b27de7d",
+    shield: "0xea5edef1eca9626f60af75efe70f6b1b0145218c",
+    balanceTree: "0x660802Fc641b154aBA66a62137e71f331B6d787A",
   },
 ];

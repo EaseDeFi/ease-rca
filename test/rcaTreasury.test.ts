@@ -7,8 +7,6 @@ import ClaimTree from "./claim-tree";
 import { ether } from "./utils";
 import { Contracts, MerkleTrees, Signers } from "./types";
 import { RcaTreasury__factory } from "../src/types/factories/RcaTreasury__factory";
-// null claim root
-const NULL_ROOT = "0x0000000000000000000000000000000000000000000000000000000000000000";
 
 describe("RcaTreasury", function () {
   const signers = {} as Signers;
@@ -215,7 +213,7 @@ describe("RcaTreasury", function () {
   describe("STATE:claimsRoots", function () {
     it("should return correct corrosponding roots", async function () {
       // Hex root should be empty
-      expect(await contracts.rcaTreasury.claimsRoots(hackId2)).to.equal(NULL_ROOT);
+      expect(await contracts.rcaTreasury.claimsRoots(hackId2)).to.equal(ethers.constants.HashZero);
 
       await contracts.rcaTreasury.connect(signers.gov).setClaimsRoot(hackId2, merkleTrees.claimTree2.getHexRoot());
       // hackId should have correct corrosponding roots

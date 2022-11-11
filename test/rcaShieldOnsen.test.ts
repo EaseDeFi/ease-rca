@@ -4,7 +4,14 @@ import { MockERC20 } from "../src/types/MockERC20";
 import { IMasterChef } from "../src/types/IMasterChef";
 import { MAINNET_ADDRESSES, TIME_IN_SECS } from "./constants";
 import { Contracts, MerkleProofs, MerkleTrees, Signers } from "./types";
-import { ether, getExpectedRcaValue, getSignatureDetailsFromCapOracle, increase, mine, resetBlockchain } from "./utils";
+import {
+  ether,
+  getExpectedRcaValue,
+  getSignatureDetailsFromCapOracle,
+  fastForward,
+  mine,
+  resetBlockchain,
+} from "./utils";
 import { RcaShieldOnsen } from "../src/types/RcaShieldOnsen";
 import { RcaController__factory } from "../src/types/factories/RcaController__factory";
 import { RcaTreasury__factory } from "../src/types/factories/RcaTreasury__factory";
@@ -285,7 +292,7 @@ describe("RcaShieldOnsen", function () {
           merkleProofs.liqProof1,
         );
       // increase evm time by half year
-      await increase(TIME_IN_SECS.halfYear);
+      await fastForward(TIME_IN_SECS.halfYear);
       await mine();
       const shieldSushiBalanceBefore = await sushiToken.balanceOf(shieldAddress);
       await contracts.rcaShieldOnsen.getReward();
@@ -303,7 +310,7 @@ describe("RcaShieldOnsen", function () {
       // mint and claim rewards
       await mintTokenForUser();
       // wait for half year
-      await increase(TIME_IN_SECS.halfYear);
+      await fastForward(TIME_IN_SECS.halfYear);
       await mine();
       // call get reward
       await contracts.rcaShieldOnsen.getReward();
@@ -342,7 +349,7 @@ describe("RcaShieldOnsen", function () {
       // mint and claim rewards
       await mintTokenForUser();
       // wait for half year
-      await increase(TIME_IN_SECS.halfYear);
+      await fastForward(TIME_IN_SECS.halfYear);
       await mine();
       // call get reward
       await contracts.rcaShieldOnsen.getReward();
@@ -393,7 +400,7 @@ describe("RcaShieldOnsen", function () {
       // mint and claim rewards
       await mintTokenForUser();
       // wait for half year
-      await increase(TIME_IN_SECS.halfYear);
+      await fastForward(TIME_IN_SECS.halfYear);
       await mine();
       // call get reward
       await contracts.rcaShieldOnsen.getReward();

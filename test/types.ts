@@ -8,11 +8,14 @@ import { RcaShieldAave } from "../src/types/RcaShieldAave";
 import { RcaShieldOnsen } from "../src/types/RcaShieldOnsen";
 import { RcaShieldCompound } from "../src/types/RcaShieldCompound";
 import { RcaShieldConvex } from "../src/types/RcaShieldConvex";
+import { RcaShieldRibbon } from "../src/types/RcaShieldRibbon";
 import { RcaTreasury } from "../src/types/RcaTreasury";
 import BalanceTree from "./balance-tree";
 import ClaimTree from "./claim-tree";
 import { IConvexRewardPool } from "../src/types/IConvexRewardPool";
 import { IComptroller } from "../src/types/IComptroller";
+import { RcaShieldBadger } from "../src/types";
+import { BigNumber } from "ethers/lib/ethers";
 
 export type Signers = {
   user: SignerWithAddress;
@@ -36,6 +39,8 @@ export type Contracts = {
   rcaShieldAave: RcaShieldAave;
   rcaShieldOnsen: RcaShieldOnsen;
   rcaShieldCompound: RcaShieldCompound;
+  rcaShieldRibbon: RcaShieldRibbon;
+  rcaShieldBadger: RcaShieldBadger;
   compoundComptroller: IComptroller;
   rcaShieldConvex: RcaShieldConvex;
   cvxCRVPool: IConvexRewardPool;
@@ -96,11 +101,30 @@ export type OnsenContracts = {
   bitWethPair: string;
 };
 
+export type RibbonContracts = {
+  rstEthCCVault: string;
+  rstEthGauge: string;
+  stEth: string;
+  minter: string;
+  rbn: string;
+};
+export type BadgerContracts = {
+  tree: string;
+  bcvxVault: string;
+  graviAuraVault: string;
+};
+export type EaseContracts = {
+  timelock: string;
+};
+
 export type MainnetContracts = {
   aave: AaveContracts;
   convex: ConvexContracts;
   onsen: OnsenContracts;
   compound: CompoundContracts;
+  ribbon: RibbonContracts;
+  badger: BadgerContracts;
+  ease: EaseContracts;
 };
 
 export type MainnetAccounts = {
@@ -116,15 +140,50 @@ export type MainnetAccounts = {
   sushiWhale: string;
   bitWethWhale: string;
   stkAAVEWhale: string;
+  rstEthWhale: string;
+  stEthWhale: string;
+  ethWhale: string;
+  rstEthVaultKeeper: string;
+  bcvxWhale: string;
+  graviAuraWhale: string;
 };
 
 export type MainnetAddresses = {
   contracts: MainnetContracts;
   accounts: MainnetAccounts;
 };
+export type EaseAddresses = {
+  rcas: {
+    controller: string;
+    shields: RcaShieldDetail[];
+  };
+  governance: string;
+  timelock: string;
+  token: string;
+  bribePot: string;
+  gvToken: string;
+  tokenSwap: string;
+};
+
+export type RcaShieldDetail = {
+  name: string;
+  symbol: string;
+  address: string;
+  underlyingToken: string;
+};
+
 export type TimeInSecs = {
   year: number;
   halfYear: number;
   month: number;
+  week: number;
   day: number;
+};
+
+export type RewardNode = {
+  index: BigNumber;
+  user: string;
+  cycle: BigNumber;
+  tokens: string[];
+  cumulativeAmounts: BigNumber[];
 };
