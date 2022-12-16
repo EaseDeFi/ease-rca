@@ -22,7 +22,7 @@ import { BigNumber } from "ethers";
 import BalanceTree from "./balance-tree";
 import { expect } from "chai";
 
-describe("RcaShieldOnsen", function () {
+describe("RcaShieldOnsen:BITWETH", function () {
   const DENOMINATOR = BigNumber.from(10000);
   const BITWETH_PID = BigNumber.from(MAINNET_ADDRESSES.contracts.onsen.bitWethPid);
   const contracts = {} as Contracts;

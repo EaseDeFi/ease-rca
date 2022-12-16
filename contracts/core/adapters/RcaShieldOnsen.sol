@@ -31,7 +31,11 @@ contract RcaShieldOnsen is RcaShieldNormalized {
     }
 
     function getReward() external {
-        masterChef.harvest(pid, address(this));
+        if (address(masterChef) == MCV1) {
+            masterChef.deposit(pid, 0);
+        } else {
+            masterChef.harvest(pid, address(this));
+        }
     }
 
     function purchase(

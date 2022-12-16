@@ -129,6 +129,26 @@ rcaTokens.aave = [
 ];
 rcaTokens.onsen = [
   {
+    name: "YFI-WETH SLP Ease Vault",
+    symbol: "ez-SLP-YFI-WETH",
+    address: "0x088ee5007C98a9677165D78dD2109AE4a3D04d0C",
+    decimals: 18,
+    whale: "",
+    shield: "",
+    rewardPool: "0xc2edad668740f1aa35e4d8f227fb8e17dca888cd",
+    pid: 11,
+  },
+  {
+    name: "LIDO-WETH SLP Ease Vault",
+    symbol: "ez-SLP-LDO-WETH",
+    address: "0xC558F600B34A5f69dD2f0D06Cb8A88d829B7420a",
+    decimals: 18,
+    whale: "",
+    shield: "",
+    rewardPool: "0xc2edad668740f1aa35e4d8f227fb8e17dca888cd",
+    pid: 109,
+  },
+  {
     name: "USDC-WETH SLP Ease Vault",
     symbol: "ez-SLP-USDC-WETH",
     address: "0x397FF1542f962076d0BFE58eA045FfA2d347ACa0",

@@ -39,10 +39,13 @@ export const MAINNET_ADDRESSES: MainnetAddresses = {
       threeCRV: "0x6c3F90f043a72FA612cbac8115EE7e52BDe6E490",
     },
     onsen: {
+      masterChef: "0xc2EdaD668740f1aA35E4D8f227fB8E17dcA888Cd",
       masterChefV2: "0xEF0881eC094552b2e128Cf945EF17a6752B4Ec5d",
       sushiToken: "0x6b3595068778dd592e39a122f4f5a5cf09c90fe2",
       bitWethPid: 17,
       bitWethPair: "0xE12af1218b4e9272e9628D7c7Dc6354D137D024e",
+      lidoWethPair: "0xC558F600B34A5f69dD2f0D06Cb8A88d829B7420a",
+      lidoWethPid: 100,
     },
     ribbon: {
       rstEthCCVault: "0x53773E034d9784153471813dacAFF53dBBB78E8c",
@@ -71,6 +74,7 @@ export const MAINNET_ADDRESSES: MainnetAddresses = {
     cEthWhale: "0xde55095aAC488dE3926463aeDf6A9B117F180260",
     compWhale: "0x0f50d31b3eaefd65236dd3736b863cffa4c63c4e",
     bitWethWhale: "0x54b55662901aF57B31fb6B52AF8175b652A5816e",
+    lidoWethWhale: "0x0de288743f9759148a3e18220ef49815e889aad0",
     sushiWhale: "0xabea1a9b8b4a4534ae6b71041aa48067d84a3df3",
     stkAAVEWhale: "0xafdabfb6227507ff6522b8a242168f6b5f353a6e",
     rstEthWhale: "0xa452CAD482995d65Ee6e7149c2bb707C4A6087D7",
