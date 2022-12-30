@@ -97,8 +97,27 @@ export type ConvexContracts = {
 export type OnsenContracts = {
   sushiToken: string;
   masterChefV2: string;
+  masterChef: string;
   bitWethPid: number;
   bitWethPair: string;
+  lidoWethPair: string;
+  lidoWethPid: number;
+};
+
+export type RibbonContracts = {
+  rstEthCCVault: string;
+  rstEthGauge: string;
+  stEth: string;
+  minter: string;
+  rbn: string;
+};
+export type BadgerContracts = {
+  tree: string;
+  bcvxVault: string;
+  graviAuraVault: string;
+};
+export type EaseContracts = {
+  timelock: string;
 };
 
 export type RibbonContracts = {
@@ -139,6 +158,7 @@ export type MainnetAccounts = {
   compWhale: string;
   sushiWhale: string;
   bitWethWhale: string;
+  lidoWethWhale: string;
   stkAAVEWhale: string;
   rstEthWhale: string;
   stEthWhale: string;
