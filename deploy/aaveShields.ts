@@ -54,7 +54,7 @@ const deployAaveShield: DeployFunction = async function (hre: HardhatRuntimeEnvi
       console.log(`Verifying ${details.symbol} shield....`);
       try {
         await hre.run("verify:verify", {
-          address: details.shield,
+          address: aaveShield.address,
           constructorArguments: [
             details.name,
             details.symbol,

@@ -41,7 +41,7 @@ const deployBadgerShield: DeployFunction = async function (hre: HardhatRuntimeEn
       console.log(`Verifying ${details.symbol} shield....`);
       try {
         await hre.run("verify:verify", {
-          address: details.shield,
+          address: badgerShield.address,
           constructorArguments: [
             details.name,
             details.symbol,

@@ -18,7 +18,6 @@ const deployOnsenShield: DeployFunction = async function (hre: HardhatRuntimeEnv
   console.log(`Balance of deployer1 : ${await ethers.provider.getBalance(deployer1)} ${deployer1}`);
   console.log(`Balance of deployer2 : ${await ethers.provider.getBalance(deployer2)} ${deployer2}`);
 
-  return;
   const onsenVaultDetails = rcaTokens.onsen.slice(0, 2);
   console.log("Deploying Onsen Shield....");
   for (let i = 0; i < onsenVaultDetails.length; i++) {
@@ -49,7 +48,7 @@ const deployOnsenShield: DeployFunction = async function (hre: HardhatRuntimeEnv
       console.log(`Verifying ${details.symbol} shield....`);
       try {
         await hre.run("verify:verify", {
-          address: details.shield,
+          address: onsenShield.address,
           constructorArguments: [
             details.name,
             details.symbol,
