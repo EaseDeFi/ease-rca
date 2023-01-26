@@ -100,7 +100,7 @@ rcaTokens.aave = [
     address: "0xBcca60bB61934080951369a648Fb03DF4F96263C",
     decimals: 6,
     whale: "0x3ddfa8ec3052539b6c9549f12cea2c295cff5296",
-    shield: "",
+    shield: "0xEa5EdEf106230D3EBfb73DD161bed6D002e70536",
   },
   {
     name: "aDAI Ease Vault",
@@ -124,7 +124,7 @@ rcaTokens.aave = [
     address: "0x3Ed3B47Dd13EC9a98b44e6204A523E766B225811",
     decimals: 6,
     whale: "0x3ddfa8ec3052539b6c9549f12cea2c295cff5296",
-    shield: "",
+    shield: "0xea5EDeF13b009BEAcca058585825c8298D035256",
   },
 ];
 rcaTokens.onsen = [
@@ -134,7 +134,7 @@ rcaTokens.onsen = [
     address: "0x088ee5007C98a9677165D78dD2109AE4a3D04d0C",
     decimals: 18,
     whale: "",
-    shield: "",
+    shield: "0xEa5edEF1EE98df572d18D151e6F198B948CaD8cE",
     rewardPool: "0xc2edad668740f1aa35e4d8f227fb8e17dca888cd",
     pid: 11,
   },
@@ -144,7 +144,7 @@ rcaTokens.onsen = [
     address: "0xC558F600B34A5f69dD2f0D06Cb8A88d829B7420a",
     decimals: 18,
     whale: "",
-    shield: "",
+    shield: "0xeA5EdEF191C9bC969ff31294438E27097a184c1E",
     rewardPool: "0xc2edad668740f1aa35e4d8f227fb8e17dca888cd",
     pid: 109,
   },
