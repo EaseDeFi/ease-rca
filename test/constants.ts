@@ -45,7 +45,7 @@ export const MAINNET_ADDRESSES: MainnetAddresses = {
       bitWethPid: 17,
       bitWethPair: "0xE12af1218b4e9272e9628D7c7Dc6354D137D024e",
       lidoWethPair: "0xC558F600B34A5f69dD2f0D06Cb8A88d829B7420a",
-      lidoWethPid: 100,
+      lidoWethPid: 109,
     },
     ribbon: {
       rstEthCCVault: "0x53773E034d9784153471813dacAFF53dBBB78E8c",
