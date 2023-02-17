@@ -116,6 +116,19 @@ export type BadgerContracts = {
   bcvxVault: string;
   graviAuraVault: string;
 };
+
+export type RibbonContracts = {
+  rstEthCCVault: string;
+  rstEthGauge: string;
+  stEth: string;
+  minter: string;
+  rbn: string;
+};
+export type BadgerContracts = {
+  tree: string;
+  bcvxVault: string;
+  graviAuraVault: string;
+};
 export type EaseContracts = {
   timelock: string;
 };
