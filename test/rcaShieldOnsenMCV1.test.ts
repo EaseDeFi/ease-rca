@@ -22,7 +22,9 @@ import { BigNumber } from "ethers";
 import BalanceTree from "./balance-tree";
 import { expect } from "chai";
 
-describe.only("RcaShieldOnsen:LIDOWETH", function () {
+const RESET_BLOCK_NUMBER = 16584799;
+
+describe("RcaShieldOnsen:LIDOWETH", function () {
   const DENOMINATOR = BigNumber.from(10000);
   const LIDOWETH_PID = BigNumber.from(MAINNET_ADDRESSES.contracts.onsen.lidoWethPid);
   const contracts = {} as Contracts;
@@ -34,7 +36,7 @@ describe.only("RcaShieldOnsen:LIDOWETH", function () {
   let masterChef: IMasterChef;
   let sushiWhale: SignerWithAddress;
   before(async function () {
-    await resetBlockchain();
+    await resetBlockchain(RESET_BLOCK_NUMBER);
   });
   beforeEach(async function () {
     //
@@ -71,14 +73,11 @@ describe.only("RcaShieldOnsen:LIDOWETH", function () {
     // );
 
     // sushi masterchefV2
-    masterChef = <IMasterChef>(
-      await ethers.getContractAt("IMasterChef", MAINNET_ADDRESSES.contracts.onsen.masterChef)
-    );
+    masterChef = <IMasterChef>await ethers.getContractAt("IMasterChef", MAINNET_ADDRESSES.contracts.onsen.masterChef);
 
     // send some ldoWeth lp tokens to the referrer
 
     await contracts.uToken.connect(signers.user).transfer(signers.referrer.address, ether("10"));
-
 
     // rca contract factories
     const rcaShieldOnsenFactory = <RcaShieldOnsen__factory>await ethers.getContractFactory("RcaShieldOnsen");
@@ -321,7 +320,8 @@ describe.only("RcaShieldOnsen:LIDOWETH", function () {
       await fastForward(TIME_IN_SECS.halfYear);
       await mine();
       // call get reward
-      // await contracts.rcaShieldOnsen.getReward();
+      // @note it's necessary to call getReward(); else test may act as false positive
+      await contracts.rcaShieldOnsen.getReward();
       const shieldAddress = contracts.rcaShieldOnsen.address;
       // as rewards are block count dependent send some sushi to contract from whale
       await sushiToken.connect(sushiWhale).transfer(shieldAddress, ether("1000"));
@@ -476,5 +476,9 @@ describe.only("RcaShieldOnsen:LIDOWETH", function () {
       expect(shieldUtokenBalanceAfter.sub(shieldUtokenBalanceBefore)).to.be.equal(expectedUTokenToWithdraw);
       expect(shieldDepositInfoBefore.amount.sub(shieldDepositInfoAfter.amount)).to.be.equal(expectedUTokenToWithdraw);
     });
+  });
+
+  afterEach(async function () {
+    await resetBlockchain(RESET_BLOCK_NUMBER);
   });
 });
