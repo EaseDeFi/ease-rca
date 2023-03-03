@@ -18,6 +18,7 @@ export type RcaToken = {
   pid?: number;
   rewardPool?: string;
   balanceTree?: string;
+  incentivesController?: string;
 };
 export type FundMeTokenArgs = {
   details: RcaToken;

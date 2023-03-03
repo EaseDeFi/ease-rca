@@ -61,7 +61,8 @@ contract RcaShieldOnsen is RcaShieldNormalized {
         token.safeTransfer(msg.sender, _amount);
         uToken.safeTransferFrom(msg.sender, address(this), _normalizedUAmount(underlyingAmount));
 
-        masterChef.deposit(pid, underlyingAmount, address(this));
+        if (address(masterChef) == MCV1) masterChef.deposit(pid, underlyingAmount);
+        else masterChef.deposit(pid, underlyingAmount, address(this));
     }
 
     function _uBalance() internal view override returns (uint256) {

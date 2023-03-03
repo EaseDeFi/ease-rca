@@ -45,22 +45,7 @@ export const MAINNET_ADDRESSES: MainnetAddresses = {
       bitWethPid: 17,
       bitWethPair: "0xE12af1218b4e9272e9628D7c7Dc6354D137D024e",
       lidoWethPair: "0xC558F600B34A5f69dD2f0D06Cb8A88d829B7420a",
-      lidoWethPid: 100,
-    },
-    ribbon: {
-      rstEthCCVault: "0x53773E034d9784153471813dacAFF53dBBB78E8c",
-      rstEthGauge: "0x4e079dCA26A4fE2586928c1319b20b1bf9f9be72",
-      stEth: "0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84",
-      minter: "0x5B0655F938A72052c46d2e94D206ccB6FF625A3A",
-      rbn: "0x6123B0049F904d730dB3C36a31167D9d4121fA6B",
-    },
-    badger: {
-      tree: "0x660802Fc641b154aBA66a62137e71f331B6d787A",
-      bcvxVault: "0xfd05D3C7fe2924020620A8bE4961bBaA747e6305", //vested cvx
-      graviAuraVault: "0xBA485b556399123261a5F9c95d413B4f93107407", //vested aura
-    },
-    ease: {
-      timelock: "0xEA5edEf1401e8C312c797c27a9842e03Eb0e557a",
+      lidoWethPid: 109,
     },
     ribbon: {
       rstEthCCVault: "0x53773E034d9784153471813dacAFF53dBBB78E8c",

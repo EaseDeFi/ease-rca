@@ -5,8 +5,11 @@ import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { rcaTokens } from "../scripts/vaultDetails";
 import { EASE_ADDRESSES, MAINNET_ADDRESSES } from "../test/constants";
+import { BigNumber } from "ethers";
 
-const deployOnsenShield: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
+const INCENTIVES_CONTROLLER = "0xd784927Ff2f95ba542BfC824c8a8a98F3495f6b5";
+
+const deployAaveShield: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const {
     getNamedAccounts,
     deployments: { deploy },
@@ -18,18 +21,18 @@ const deployOnsenShield: DeployFunction = async function (hre: HardhatRuntimeEnv
   console.log(`Balance of deployer1 : ${await ethers.provider.getBalance(deployer1)} ${deployer1}`);
   console.log(`Balance of deployer2 : ${await ethers.provider.getBalance(deployer2)} ${deployer2}`);
 
-
-
-
-  const onsenVaultDetails = rcaTokens.onsen.slice(0, 2);
-  console.log("Deploying Onsen Shield....");
-  for (let i = 0; i < onsenVaultDetails.length; i++) {
-    const details = onsenVaultDetails[i];
+  //   aUSDC & aUSDT
+  const aaveVaultDetails = [rcaTokens.aave[1], rcaTokens.aave[4]];
+  console.log("Deploying aave Shield....");
+  for (let i = 0; i < aaveVaultDetails.length; i++) {
+    const gasPrice = (await ethers.provider.getFeeData()).gasPrice?.mul(11).div(10);
+    console.log(gasPrice);
+    const details = aaveVaultDetails[i];
     const deployer = deployers[i];
 
     console.log(details);
 
-    const onsenShield = await deploy("RcaShieldOnsen", {
+    const aaveShield = await deploy("RcaShieldAave", {
       args: [
         details.name,
         details.symbol,
@@ -37,22 +40,21 @@ const deployOnsenShield: DeployFunction = async function (hre: HardhatRuntimeEnv
         details.decimals,
         MAINNET_ADDRESSES.contracts.ease.timelock,
         EASE_ADDRESSES.rcas.controller,
-        details.rewardPool || "",
-        details.pid || 0,
+        INCENTIVES_CONTROLLER,
       ],
       from: deployer,
       log: true,
+      gasPrice: gasPrice || BigNumber.from(18062463401),
     });
 
-    console.log(`${details.name} Shield Deployed at ${onsenShield.address}`);
+    console.log(`${details.name} Shield Deployed at ${aaveShield.address}`);
 
     if (["mainnet", "goerli"].includes(hre.network.name)) {
       // verify etherscan
       console.log(`Verifying ${details.symbol} shield....`);
       try {
         await hre.run("verify:verify", {
-          address: onsenShield.address,
-
+          address: aaveShield.address,
           constructorArguments: [
             details.name,
             details.symbol,
@@ -60,8 +62,7 @@ const deployOnsenShield: DeployFunction = async function (hre: HardhatRuntimeEnv
             details.decimals,
             MAINNET_ADDRESSES.contracts.ease.timelock,
             EASE_ADDRESSES.rcas.controller,
-            details.rewardPool || "",
-            details.pid || 0,
+            INCENTIVES_CONTROLLER,
           ],
         });
         console.log(`${details.symbol} shield verified!`);
@@ -72,8 +73,8 @@ const deployOnsenShield: DeployFunction = async function (hre: HardhatRuntimeEnv
   }
 };
 
-export default deployOnsenShield;
+export default deployAaveShield;
 
 if (typeof require !== "undefined" && require.main === module) {
-  deployOnsenShield(hre);
+  deployAaveShield(hre);
 }
