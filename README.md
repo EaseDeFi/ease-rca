@@ -1,4 +1,4 @@
-# Reciprocally-Covered Assets
+# Reciprocally-Covered Assets (Ease DAO)
 
 https://ease.org/learn/learn-crypto-defi/
 
